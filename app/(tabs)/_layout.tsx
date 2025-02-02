@@ -1,45 +1,41 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Tabs } from "expo-router";
+import { useState, useEffect } from "react";
+import { auth } from "@/firebase";
+import { User } from "firebase/auth";
+import { setUserId } from "firebase/analytics"; // Make sure you're using the correct analytics package
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+const TabsLayout = () => {
+    const [initializing, setInitializing] = useState(true);
+    const [user, setUser] = useState<User | null>(null);
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+    // The correct function signature for onAuthStateChanged
+    const onAuthStateChanged = (user: User | null) => {
+        console.log('onAuthStateChanged', user);
+        setUser(user);
+        if (user) {
+            setUserId(auth, user.uid); // Set user ID for analytics when the user is authenticated
+        }
+        if (initializing) setInitializing(false);
+    };
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
-}
+    useEffect(() => {
+        // Listen to the authentication state
+        const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged);
+
+        // Cleanup on unmount
+        return () => unsubscribe();
+    }, [initializing]);
+
+    if (initializing) {
+        return null; // Optionally render a loading spinner or placeholder while initializing
+    }
+
+    return (
+        <Tabs>
+            <Tabs.Screen name="Index" />
+            {/*<Tabs.Screen name="users/[id]" />*/}
+        </Tabs>
+    );
+};
+
+export default TabsLayout;
