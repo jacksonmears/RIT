@@ -5,7 +5,7 @@ import { createUserWithEmailAndPassword} from "@firebase/auth";
 import { signInWithEmailAndPassword } from "@firebase/auth";
 import { FirebaseError } from "@firebase/util";
 
-const HomePage = () => {
+const Index = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -88,4 +88,4 @@ const styles = StyleSheet.create({
     }
 })
 
-export default HomePage;
+export default Index;
