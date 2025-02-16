@@ -1,15 +1,36 @@
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useLinkBuilder, useTheme } from '@react-navigation/native';
 import { Text, PlatformPressable } from '@react-navigation/elements';
-import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const { colors } = useTheme();
     const { buildHref } = useLinkBuilder();
+    const primaryColor = '#E5B773';
+    const secondaryColor = '#D3D3D3';
+
+    // Define the icons with an explicit key union and a typed function.
+    const icons: Record<
+        'home' | 'search' | 'create' | 'groups' | 'account',
+        (props: { color: string }) => JSX.Element
+    > = {
+        home: ({ color }) => <AntDesign name="home" size={24} color={color} />,
+        search: ({ color }) => <AntDesign name="search1" size={24} color={color} />,
+        create: ({ color }) => <AntDesign name="plussquareo" size={24} color={color} />,
+        // groups: ({ color }) => <FontAwesome name="group" size={24} color={color} />,
+        groups: ({ color }) => <AntDesign name="staro" size={24} color={color} />,
+
+        account: ({ color }) => (
+            <MaterialCommunityIcons name="account-circle-outline" size={24} color={color} />
+        ),
+    };
 
     return (
-        <View style={{ flexDirection: 'row' }}>
+        <View style={styles.tabbar}>
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
                 const label =
@@ -40,7 +61,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     });
                 };
 
-                // Check if label is a function. If so, call it with the required props.
+                // If label is a function, call it with the required props.
                 let renderedLabel: React.ReactNode;
                 if (typeof label === 'function') {
                     renderedLabel = label({
@@ -53,20 +74,26 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     renderedLabel = label;
                 }
 
+                // Cast route.name to a key of the icons object.
+                const iconKey = route.name as keyof typeof icons;
+                const IconComponent = icons[iconKey];
+
                 return (
                     <PlatformPressable
                         key={route.key}
+                        style={styles.tabbarItem}
                         href={buildHref(route.name, route.params)}
                         accessibilityState={isFocused ? { selected: true } : {}}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                         testID={options.tabBarButtonTestID}
                         onPress={onPress}
                         onLongPress={onLongPress}
-                        style={{ flex: 1 }}
                     >
-                        <Text style={{ color: isFocused ? colors.primary : colors.text }}>
-                            {renderedLabel}
-                        </Text>
+                        {/* Render the icon if it exists */}
+                        {IconComponent && IconComponent({ color: isFocused ? primaryColor: secondaryColor})}
+                        {/*<Text style={{ color: isFocused ? primaryColor : secondaryColor, fontSize: 12}}>*/}
+                        {/*    {renderedLabel}*/}
+                        {/*</Text>*/}
                     </PlatformPressable>
                 );
             })}
@@ -74,15 +101,22 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     );
 }
 
-export default TabBar;
+const styles = StyleSheet.create({
+    tabbar: {
+        position: 'absolute',
+        bottom: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'black',
+        paddingVertical: 15,
+    },
+    tabbarItem: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 4
+    },
+});
 
-// Example usage with createBottomTabNavigator:
-// const MyTabs = createBottomTabNavigator();
-// function MyTabsComponent() {
-//   return (
-//     <MyTabs.Navigator tabBar={(props) => <MyTabBar {...props} />}>
-//       <MyTabs.Screen name="Home" component={HomeScreen} />
-//       <MyTabs.Screen name="Profile" component={ProfileScreen} />
-//     </MyTabs.Navigator>
-//   );
-// }
+export default TabBar;
