@@ -10,6 +10,10 @@ const Page = () => {
             {/*<Button title="Sign Out" onPress={() => auth.signOut()} />*/}
         </View>
     )
+
+
+
+    
 }
 
 export default Page;
