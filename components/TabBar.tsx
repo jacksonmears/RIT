@@ -61,7 +61,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     });
                 };
 
-                // If label is a function, call it with the required props.
                 let renderedLabel: React.ReactNode;
                 if (typeof label === 'function') {
                     renderedLabel = label({
@@ -74,7 +73,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     renderedLabel = label;
                 }
 
-                // Cast route.name to a key of the icons object.
                 const iconKey = route.name as keyof typeof icons;
                 const IconComponent = icons[iconKey];
 
@@ -89,7 +87,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                         onPress={onPress}
                         onLongPress={onLongPress}
                     >
-                        {/* Render the icon if it exists */}
                         {IconComponent && IconComponent({ color: isFocused ? primaryColor: secondaryColor})}
                         {/*<Text style={{ color: isFocused ? primaryColor : secondaryColor, fontSize: 12}}>*/}
                         {/*    {renderedLabel}*/}
