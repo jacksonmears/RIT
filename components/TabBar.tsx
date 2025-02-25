@@ -23,10 +23,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         create: ({ color }) => <AntDesign name="plussquareo" size={24} color={color} />,
         // groups: ({ color }) => <FontAwesome name="group" size={24} color={color} />,
         groups: ({ color }) => <AntDesign name="staro" size={24} color={color} />,
-
-        account: ({ color }) => (
-            <MaterialCommunityIcons name="account-circle-outline" size={24} color={color} />
-        ),
+        account: ({ color }) => (<MaterialCommunityIcons name="account-circle-outline" size={24} color={color} />),
     };
 
     return (
