@@ -1,29 +1,44 @@
-import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, StyleSheet, TextInput, Image, Dimensions } from 'react-native';
 import { auth } from '@/firebase';
 import { updateProfile } from '@firebase/auth';
-import { Dimensions }  from 'react-native';
-import {getDownloadURL, getStorage, ref, uploadBytes} from "@firebase/storage";
-const {width, height} = Dimensions.get('window');
+import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
+
+const { width, height } = Dimensions.get('window');
 
 const Page = () => {
     const [newDisplayName, setNewDisplayName] = useState('');
-    const [newPhotoURL, setNewPhotoURL] = useState(''); // Added newPhotoURL state
-    const [profilePic, setProfilePic] = useState(null);
+    const [photoUrl, setPhotoUrl] = useState<string | undefined>(
+        auth.currentUser?.photoURL || undefined
+    );
 
-    const uploadImageToStorage = async (imageFile: any, userId: string) => {
-        const storage = getStorage();
-        const storageRef = ref(storage, 'profilePics/' + userId); // Create a reference
 
-        // Upload the file
-        await uploadBytes(storageRef, imageFile);
+    const uploadImageToStorage = async (pickerResult: ImagePicker.ImagePickerResult, userId: string) => {
+        try {
+            const storage = getStorage();
+            const storageRef = ref(storage, `profilePics/${userId}`);
 
-        // Get download URL
-        const url = await getDownloadURL(storageRef);
+            // 1) Extract the local URI from the picker result
+            if (pickerResult.assets?.length) {
+                const assetUri = pickerResult.assets[0].uri;
+                // 2) Fetch the file data and convert it to a Blob
+                const response = await fetch(assetUri);
+                const blob = await response.blob();
 
-        return url;
-    }
+                // 3) Upload the Blob to Firebase Storage
+                await uploadBytes(storageRef, blob);
+
+                // 4) Get the public download URL
+                const url = await getDownloadURL(storageRef);
+                return url;
+            }
+
+        } catch (error) {
+            console.error('Error uploading image to Storage:', error);
+            throw error;
+        }
+    };
 
     const handleUpdateDisplayName = async () => {
         try {
@@ -38,34 +53,45 @@ const Page = () => {
         }
     };
 
+    useEffect(() => {
+        console.log('Photo URL changed:', photoUrl);
+    }, [photoUrl]);
 
-
+    const handleLogout = async () => {
+        auth.signOut();
+    }
 
     const handleUpdatePhotoURl = async () => {
+        try {
+            if (!auth.currentUser) {
+                console.log('No user logged in');
+                return;
+            }
 
-        if (auth.currentUser) {
-            let result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images', 'videos'],
+            const result = await ImagePicker.launchImageLibraryAsync({
+                // Better to specify the correct enum for images only:
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [4, 3],
                 quality: 1,
-            })
-            console.log(result);
+            });
 
+            // Log the entire result for debugging
+            console.log('ImagePicker result:', result);
+
+            // Check if the user canceled or if we have valid assets
+            if (!result.canceled && result.assets) {
+                // Upload the image and update the profile
+                const url = await uploadImageToStorage(result, auth.currentUser.uid);
+                await updateProfile(auth.currentUser, { photoURL: url });
+                setPhotoUrl(url); // Update state so we can display it immediately
+                console.log('Profile URL updated successfully');
+            } else {
+                console.log('URL not updated (picker canceled or no assets)');
+            }
+        } catch (error) {
+            console.error('Error in handleUpdatePhotoURL:', error);
         }
-
-
-        // try {
-        //     if (auth.currentUser) {
-        //         const photoURL = await uploadImageToStorage(profilePic, auth.currentUser.uid);
-        //         await updateProfile(auth.currentUser, { photoURL: photoURL });
-        //         console.log('Profile URL updated successfully');
-        //     } else {
-        //         console.error('No user is logged in');
-        //     }
-        // } catch (error) {
-        //     console.error('Error updating profile', error);
-        // }
     };
 
     return (
@@ -74,7 +100,13 @@ const Page = () => {
             <Text style={styles.t}>{auth.currentUser?.email}</Text>
             <Text style={styles.t}>{auth.currentUser?.phoneNumber}</Text>
             <Text style={styles.t}>{auth.currentUser?.displayName}</Text>
-            <Text style={styles.t}>{auth.currentUser?.photoURL}</Text>
+
+            {/* Display the user's photo if available */}
+            {photoUrl ? (
+                <Image source={{ uri: photoUrl }} style={{ width: 200, height: 200 }} />
+            ) : (
+                <Text style={styles.t}>No profile picture available</Text>
+            )}
 
             <View style={styles.nameChange}>
                 <TextInput
@@ -88,16 +120,12 @@ const Page = () => {
             </View>
 
             <View style={styles.photoChange}>
-                {/*<TextInput*/}
-                {/*    style={styles.t}*/}
-                {/*    value={profilePic}*/}
-                {/*    onChangeText={setProfilePic}*/}
-                {/*    placeholder="https://example.com/photo.jpg"*/}
-                {/*    placeholderTextColor="gray"*/}
-                {/*/>*/}
                 <Button title="Update Photo" onPress={handleUpdatePhotoURl} />
             </View>
 
+            <View style={styles.logout}>
+                <Button title="Logout" onPress={handleLogout} />
+            </View>
         </View>
     );
 };
@@ -112,15 +140,26 @@ const styles = StyleSheet.create({
         color: 'white',
         marginBottom: 10,
     },
+    image: {
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        marginVertical: 20,
+    },
     nameChange: {
         position: 'absolute',
-        top: height/2.2,
-        left: width/4,
+        top: height / 2.2,
+        left: width / 4,
     },
     photoChange: {
         position: 'absolute',
-        top: height/1.5,
-        left: width/4,
+        top: height / 1.5,
+        left: width / 4,
+    },
+    logout: {
+        position: 'absolute',
+        top: height / 1.35,
+        left: width / 4,
     }
 });
 

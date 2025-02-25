@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments, Link } from "expo-router";
 import {useEffect, useState} from "react";
 import {User} from "firebase/auth";
 import {auth} from "@/firebase";
@@ -30,6 +30,7 @@ const RootLayout = () => {
 
         const inAuthGroup = segments[0] === '(tabs)';
 
+
         if (user && !inAuthGroup) {
             router.replace('/(tabs)/home');
         } else if (!user && inAuthGroup) {
@@ -54,6 +55,7 @@ const RootLayout = () => {
     return (
         <Stack>
             <Stack.Screen name="index" options={{headerShown: false}} />
+            <Stack.Screen name="signUp" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{headerShown: false}} />
         </Stack>
     )
