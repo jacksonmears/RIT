@@ -1,28 +1,15 @@
-import { Text, View, StyleSheet, KeyboardAvoidingView, TextInput, ActivityIndicator,Button } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, TextInput, ActivityIndicator,Button } from "react-native";
 import { useState } from "react";
 import { auth } from '@/firebase';
-import { createUserWithEmailAndPassword} from "@firebase/auth";
-import { signInWithEmailAndPassword } from "@firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, validatePassword } from "@firebase/auth";
 import { FirebaseError } from "@firebase/util";
+import { Link } from 'expo-router';
 
 const Index = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const signUp = async () => {
-        setLoading(true);
-        try {
-            await createUserWithEmailAndPassword(auth, email, password);
-            alert ('Check your email');
-        } catch (e: any) {
-           const err = e as FirebaseError;
-           alert('Registration Failed: ' + err.message);
-        } finally {
-            setLoading(false);
-        }
-
-    };
 
     const signIn = async () => {
         setLoading(true);
@@ -48,7 +35,6 @@ const Index = () => {
                     keyboardType="email-address"
                     placeholder="Email"
                 />
-                <Text> Password </Text>
                 <TextInput
                 style={styles.input}
                 value={password}
@@ -60,8 +46,15 @@ const Index = () => {
                     <ActivityIndicator size='small' style={{ margin:28 }} />
                 ) : (
                     <>
-                        <Button onPress={signIn} title="Login"/>
-                        <Button onPress={signUp} title="Create Account"/>
+                        <TouchableOpacity style={styles.si} onPress={signIn}>
+                            <Text style={styles.siText}>Login</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.su}>
+                            <Link href={"/signUp"}>
+                                <Text style={styles.suText}>Create Account</Text>
+                            </Link>
+                        </TouchableOpacity>
+
                     </>
                 )}
             </KeyboardAvoidingView>
@@ -73,18 +66,38 @@ const Index = () => {
 
 const styles = StyleSheet.create({
     container: {
+        backgroundColor: "black",
         flex: 1,
-        marginHorizontal: 20,
         justifyContent: "center",
     },
     input: {
         marginVertical: 4,
-        height: 50,
+        marginHorizontal: 40,
         borderWidth: 1,
         borderRadius: 4,
         padding: 20,
         backgroundColor: "white",
-
+    },
+    si: {
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    siText: {
+        fontSize: 25,
+        fontWeight: "bold",
+        color: "gold",
+    },
+    su: {
+        alignSelf: "center",
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 4,
+    },
+    suText: {
+        fontSize: 15,
+        fontWeight: "bold",
+        color: "grey",
     }
 })
 
