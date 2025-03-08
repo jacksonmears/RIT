@@ -9,7 +9,7 @@ import { Link, useRouter } from 'expo-router'
 const { width, height } = Dimensions.get('window');
 
 const Page = () => {
-
+    const [followers, setFollowers] = useState(auth.currentUser);
     const [newDisplayName, setNewDisplayName] = useState('');
     const [photoUrl, setPhotoUrl] = useState<string | undefined>(auth.currentUser?.photoURL || undefined);
 
@@ -41,6 +41,7 @@ const Page = () => {
 
 
 
+
     const handleUpdateDisplayName = async () => {
         try {
             if (auth.currentUser) {
@@ -53,10 +54,6 @@ const Page = () => {
             console.error('Error updating profile', error);
         }
     };
-
-    useEffect(() => {
-        console.log('Photo URL changed:', photoUrl);
-    }, [photoUrl]);
 
     const handleLogout = async () => {
         auth.signOut();
@@ -101,6 +98,7 @@ const Page = () => {
             <Text style={styles.t}>{auth.currentUser?.email}</Text>
             <Text style={styles.t}>{auth.currentUser?.phoneNumber}</Text>
             <Text style={styles.t}>{auth.currentUser?.displayName}</Text>
+            <Text style={styles.t}>Followers: </Text>
 
             {/* Display the user's photo if available */}
             {photoUrl ? (
