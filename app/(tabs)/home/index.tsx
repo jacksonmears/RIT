@@ -1,7 +1,7 @@
-import { View, Text, Button } from 'react-native';
-import { useEffect, useState } from "react";
+import { View, Text, Button, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from "react";
 import { db, auth } from "@/firebase"
-import { useRouter } from 'expo-router';
+import {Link, useRouter} from 'expo-router';
 import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 
 const Page = () => {
@@ -27,17 +27,31 @@ const Page = () => {
         checking();
     }, [user]);
 
+
+
     return (
         <View>
             <Text>Welcome back {userData?.displayName}</Text>
             <Text>Welcome back {user?.uid}</Text>
-            {/*<Button title="Sign Out" onPress={() => auth.signOut()} />*/}
+            <Link href="/(tabs)/home/friendRequests">
+                <Text style={styles.text}>check friend requests</Text>
+            </Link>
         </View>
     )
-
-
-
-
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "black",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    text: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: "gold",
+    }
+})
 
 export default Page;
