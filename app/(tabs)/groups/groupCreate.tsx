@@ -1,0 +1,111 @@
+import {View, Text, Button, StyleSheet, Animated, TextInput, Pressable} from 'react-native';
+import React, { useEffect, useState } from "react";
+import { db, auth } from "@/firebase"
+import {Link, useRouter} from 'expo-router';
+import { collection, addDoc, getDoc, doc, getDocs, orderBy, limit, setDoc } from 'firebase/firestore';
+import {Integer} from "@firebase/webchannel-wrapper/bloom-blob";
+import add = Animated.add;
+
+const Page = () => {
+    const [userData, setUserData] = useState<Record<string, any> | null>(null);
+    const [groupName, setGroupName] = useState("");
+    const user = auth.currentUser;
+
+
+    const createGroup = async (groupName: string) => {
+        try {
+            const docRef = await addDoc(collection(db, "groups"), {
+                name: groupName,              // Store the group name
+                createdAt: new Date(),        // Optional metadata
+                createdBy: auth.currentUser?.uid // Track the creator if logged in
+            });
+
+            if (docRef) {
+                await addGroup(docRef.id, groupName);
+            }
+
+            console.log("Group created with ID:", docRef.id);
+        } catch (error) {
+            console.error("Error creating group:", error);
+        }
+    }
+
+    const addGroup = async (groupID: string, groupName: string) => {
+        if (!auth.currentUser) return;
+
+        const docRef = doc(db, "users", auth.currentUser.uid, "groups", groupID);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+            await setDoc(docRef, {
+                name: groupName,
+                createdAt: new Date(),
+            });
+
+            console.log(`Group ${groupID} added to user ${auth.currentUser.uid}`);
+        } else {
+            console.log(`Group ${groupID} already exists.`);
+        }
+    };
+
+
+
+    return (
+        <View style={styles.container}>
+            <TextInput
+                style={styles.input}
+                placeholder="group name"
+                placeholderTextColor="#ccc"
+                value={groupName}
+                onChangeText={setGroupName}
+            />
+            <Pressable style={styles.button} onPress={() => createGroup(groupName)}>
+                <Text style={styles.text}>create group</Text>
+            </Pressable>
+            <Link href="/(tabs)/groups" style={styles.back}>
+                <Text style={styles.text}>cancel</Text>
+            </Link>
+        </View>
+    )
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "black",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    text: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: "white",
+    },
+    back: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+    },
+    input: {
+        position: "absolute",
+        top: 50,
+        marginVertical: 4,
+        marginHorizontal: 40,
+        borderWidth: 1,
+        borderRadius: 4,
+        padding: 20,
+        backgroundColor: "white",
+        fontSize: 20,
+    },
+    button: {
+        position: "absolute",
+        backgroundColor: "red",
+        marginVertical: 4,
+        marginHorizontal: 40,
+        borderRadius: 4,
+        top: 50,
+        left: 0,
+    },
+})
+
+export default Page;
