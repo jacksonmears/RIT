@@ -21,7 +21,8 @@ const Page = () => {
             });
 
             if (docRef) {
-                await addGroup(docRef.id, groupName);
+                await addGroupUserSide(docRef.id, groupName);
+                await addGroupCollectionSide(docRef.id, groupName);
             }
 
             console.log("Group created with ID:", docRef.id);
@@ -30,7 +31,7 @@ const Page = () => {
         }
     }
 
-    const addGroup = async (groupID: string, groupName: string) => {
+    const addGroupUserSide = async (groupID: string, groupName: string) => {
         if (!auth.currentUser) return;
 
         const docRef = doc(db, "users", auth.currentUser.uid, "groups", groupID);
@@ -47,6 +48,25 @@ const Page = () => {
             console.log(`Group ${groupID} already exists.`);
         }
     };
+
+    const addGroupCollectionSide = async (groupID: string, groupName: string) => {
+        if (!user) return;
+
+        const colRef = collection(db, "groups", groupID, "users");
+        const docSnaps = await getDocs(colRef);
+
+        if (docSnaps.empty) {
+            await setDoc(doc(colRef, user.uid), {
+                name: user.displayName,
+            });
+
+            console.log(`User ${user.uid} added to group ${groupID}`);
+        }
+        else {
+            console.log(`user in ${groupID} already exists.`);
+        }
+    };
+
 
 
 
