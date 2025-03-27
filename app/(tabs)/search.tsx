@@ -26,17 +26,17 @@ const Page = () => {
         if (user){
             const docRef = doc(db, "users", found);
             const docSnap = await getDoc(docRef);
-            const requests = docSnap.data()?.requests || [];
+            const friendRequests = docSnap.data()?.friendRequests || [];
 
-            if (requests.includes(user.uid)){
+            if (friendRequests.includes(user.uid)){
                 console.log("Friend request already sent!");
                 return;
             }
 
             if (docSnap.exists()) {
-                await setDoc(docRef, { requests: [...requests, user.uid] }, { merge: true });
+                await setDoc(docRef, { friendRequests: [...friendRequests, user.uid] }, { merge: true });
             } else {
-                await setDoc(docRef, { requests: [user.uid] });
+                await setDoc(docRef, { friendRequests: [user.uid] });
             }
         }
     }

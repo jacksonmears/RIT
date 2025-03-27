@@ -40,7 +40,6 @@ const Page = () => {
         if (!docSnap.exists()) {
             await setDoc(docRef, {
                 name: groupName,
-                createdAt: new Date(),
             });
 
             console.log(`Group ${groupID} added to user ${auth.currentUser.uid}`);
@@ -58,6 +57,7 @@ const Page = () => {
         if (docSnaps.empty) {
             await setDoc(doc(colRef, user.uid), {
                 name: user.displayName,
+                createdAt: new Date(),
             });
 
             console.log(`User ${user.uid} added to group ${groupID}`);
