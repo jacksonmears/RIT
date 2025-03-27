@@ -25,7 +25,7 @@ const Page = () => {
             };
             getGroups();
         }
-    }, []);
+    }, [groups]);
 
     return (
         <View style={styles.container}>
@@ -41,6 +41,9 @@ const Page = () => {
 
             <Link href="/(tabs)/groups/groupCreate" style={styles.add}>
                 <Text style={styles.text}>Create Group</Text>
+            </Link>
+            <Link href="/(tabs)/groups/groupJoin" style={styles.join}>
+                <Text style={styles.text}>Join Group</Text>
             </Link>
         </View>
     );
@@ -75,6 +78,14 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 70,
         right: 20,
+        backgroundColor: "#444",
+        padding: 10,
+        borderRadius: 8,
+    },
+    join: {
+        position: "absolute",
+        bottom: 70,
+        left: 20,
         backgroundColor: "#444",
         padding: 10,
         borderRadius: 8,

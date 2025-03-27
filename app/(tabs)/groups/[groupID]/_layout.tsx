@@ -5,7 +5,8 @@ const Layout = () => {
     return (
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" /> {/* Handles the account home page */}
-            <Stack.Screen name="groupCreate" /> {/* Handles the display name change */}
+            <Stack.Screen name="groupRequests" />
+            <Stack.Screen name="addFriends" />
         </Stack>
     );
 };
