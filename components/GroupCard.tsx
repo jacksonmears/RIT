@@ -20,7 +20,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
             style={styles.card}
             onPress={() => {
                 if (group.id) {
-                    router.push({ pathname: "/groups/[id]", params: { id: group.id } });
+                    router.push({ pathname: "/groups/[groupID]", params: { groupID: group.id } });
                 }
             }}
         >
