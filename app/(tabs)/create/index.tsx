@@ -1,8 +1,9 @@
-import {View, Text, Pressable, StyleSheet, TextInput} from 'react-native';
-import { useEffect, useRef, useState } from 'react';
+import {View, Text, Pressable, StyleSheet, TextInput, TouchableOpacity} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
 import { auth, db, } from '@/firebase';
 import { Camera, getCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
 import { doc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
+import { Link, useRouter, useLocalSearchParams } from "expo-router";
 
 const Page = () => {
     const user = auth.currentUser;
@@ -11,8 +12,19 @@ const Page = () => {
     const [device, setDevice] = useState<any>(null);
     const { hasPermission: cameraHasPermission, requestPermission: requestCameraPermission } = useCameraPermission();
     const { hasPermission: micHasPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
-    const [post, setPost] = useState('');
+    const [content, setContent] = useState('');
+    const router = useRouter();
+    const { groups } = useLocalSearchParams();
 
+    // Parse JSON string back into an array
+    // const parsedGroupsObject = groups ? JSON.parse(groups as string) : {};
+    // const parsedGroups = Object.keys(parsedGroupsObject)
+    //     .filter((groupId) => parsedGroupsObject[groupId]) // Only keep selected groups (true)
+    //     .map((groupId) => ({ id: groupId })); // Convert to array format
+    //
+    // useEffect(() => {
+    //     console.log(parsedGroups);
+    // }, []);
 
     // useEffect(() => {
     //     const fetchDevices = async () => {
@@ -39,52 +51,56 @@ const Page = () => {
 
 
 
-    const createPost = async (content: string) => {
-        if (!user) return;
-        try {
+    // const createPost = async (content: string) => {
+    //     if (!user || !Array.isArray(parsedGroups) || (!parsedGroups || Object.keys(parsedGroups).length === 0 || Object.values(parsedGroups).every(value => value === false))) {
+    //         console.log("not parsed groups")
+    //         return;
+    //     }
+    //     try {
+    //
+    //         const postRef = await addDoc(collection(db, "posts"), {
+    //             content: content
+    //         });
+    //
+    //         const postID = postRef.id
+    //         console.log("post created with: ", postID)
+    //
+    //         const userRef = await setDoc(doc(db, "users", user.uid, "posts", postID), {
+    //             createdAt: new Date().toISOString(),
+    //         });
+    //
+    //         await addPostToGroups(db, parsedGroups, postID);
+    //
+    //
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    // }
+    //
+    //
+    // const addPostToGroups = async (db: any, parsedGroups: { id: string }[], postID: string) => {
+    //     try {
+    //         await Promise.all(
+    //             parsedGroups.map(async (group) => {
+    //                 await setDoc(doc(db, "groups", group.id, "posts", postID), {
+    //                     createdAt: new Date().toISOString(),
+    //                 });
+    //             })
+    //         );
+    //         console.log("Post added to all selected groups");
+    //     } catch (error) {
+    //         console.error("Error adding post to groups:", error);
+    //     }
+    // };
 
-            const postRef = await addDoc(collection(db, "posts"), {
-                content: content
-            });
-
-            const postID = postRef.id
-            console.log("post created with: ", postID)
-
-            const userRef = await setDoc(doc(db, "users", user.uid, "posts", postID), {
-                createdAt: new Date().toISOString(),
-            });
-
-            // need to add a groupRef to connect the post to a specific group(s)
 
 
-        } catch (error) {
-            console.error(error);
-        }
+    const assignPostGroup = async (postId: string) => {
+
     }
 
 
-    const getRecentPosts = async () => {
-        if (!user) return;
 
-        try {
-            const q = query(
-                collection(db, "users", user.uid, "posts"),
-                orderBy("createdAt", "desc") // Retrieves newest posts first (LIFO)
-            );
-
-            const querySnapshot = await getDocs(q);
-            const posts = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            console.log("Recent posts:", posts);
-            return posts;
-
-        } catch (error) {
-            console.error("Error retrieving posts:", error);
-        }
-    };
 
 
     // const takePhoto = async () => {
@@ -128,16 +144,25 @@ const Page = () => {
                 style={styles.input}
                 placeholder="create a post"
                 placeholderTextColor="#ccc"
-                value={post}
-                onChangeText={setPost}
+                value={content}
+                onChangeText={setContent}
             />
             {/*<Pressable onPress={handleSearch} style={styles.button}>*/}
             {/*    <Text> Search for friends </Text>*/}
             {/*</Pressable>*/}
 
-            <Pressable onPress={() => createPost(post)} style={styles.createPostButton}>
-                <Text> post! </Text>
-            </Pressable>
+            {/*<Pressable onPress={() => createPost(post)} style={styles.createPostButton}>*/}
+            {/*    <Text> post! </Text>*/}
+            {/*</Pressable>*/}
+
+            {/*<TouchableOpacity style={styles.pickGroupsButton} onPress={() => router.push("/create/assignGroup")}>*/}
+            {/*    <Text>pick groups</Text>*/}
+            {/*</TouchableOpacity>*/}
+
+            <TouchableOpacity style={styles.pickGroupsButton} onPress={() => router.push({ pathname: "/create/assignGroup", params: { content: content} })}>
+                <Text>done</Text>
+            </TouchableOpacity>
+
 
         </View>
     );
@@ -187,7 +212,7 @@ const styles = StyleSheet.create({
         top: 50,
         left: 50,
     },
-    createPostButton: {
+    pickGroupsButton: {
         marginVertical: 4,
         marginHorizontal: 40,
         position: "absolute",
@@ -195,6 +220,15 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         top: 500,
         left: 50,
+    },
+    createPostButton: {
+        marginVertical: 4,
+        marginHorizontal: 40,
+        position: "absolute",
+        backgroundColor: "white",
+        borderRadius: 4,
+        top: 500,
+        right: 50,
     }
 });
 
