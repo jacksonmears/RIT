@@ -32,12 +32,13 @@ const RootLayout = () => {
 
 
         if (user && !inAuthGroup) {
+            console.log("user logged in")
             router.replace('/(tabs)/home');
         } else if (!user && inAuthGroup) {
             router.replace('/');
         }
 
-    }, [user, initializing]);
+    }, [user, initializing, segments]);
 
     if (initializing)
         return (
