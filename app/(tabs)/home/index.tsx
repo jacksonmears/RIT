@@ -10,24 +10,6 @@ const Page = () => {
     const user = auth.currentUser;
     const router = useRouter();
 
-    useEffect(() => {
-        console.log(user?.displayName);
-        const checking = async() => {
-            if (!user?.displayName) return;
-            try {
-                const docRef = doc(db, "displayName", user?.displayName);
-                const docSnap = await getDoc(docRef);
-                if (!user?.displayName || !docSnap.exists() || docSnap.data()?.uid !== user.uid){
-                    router.push('/(tabs)/home/createAccount');
-                }
-            }
-            catch (error) {
-                console.error('Error updating profile', error);
-            }
-        }
-        checking();
-    }, [user]);
-
 
 
     return (
