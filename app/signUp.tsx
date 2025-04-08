@@ -116,6 +116,7 @@ const Index = () => {
                     firstName: firstName,
                     lastName: lastName,
                     email: email,
+                    displayName: username
                 });
                 await updateProfile(user, { displayName: username });
                 await setDoc(displayNameRef, { uid: user.uid, displayName: username, lowerDisplayName: username.toLowerCase() });
