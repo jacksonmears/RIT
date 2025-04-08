@@ -11,8 +11,9 @@ const Page = () => {
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<{ [key: string]: boolean }>({});
-    const { content } = useLocalSearchParams();
+    const { content, caption } = useLocalSearchParams();
     const contentString = String(content); // Convert content to string
+    const captionString = String(caption); // Convert content to string
 
 
 
@@ -49,7 +50,8 @@ const Page = () => {
     }, [selectedGroups]);
 
 
-    const createPost = async (content: string) => {
+    const createPost = async (content: string, caption:string) => {
+        if (!user) return;
         const parsedGroups = Object.keys(selectedGroups)
             .filter((groupId) => selectedGroups[groupId]) // Only keep selected groups (true)
             .map((groupId) => ({ id: groupId }));
@@ -62,7 +64,9 @@ const Page = () => {
         try {
 
             const postRef = await addDoc(collection(db, "posts"), {
-                content: content
+                content: content,
+                user: user.uid,
+                caption: caption,
             });
 
             const postID = postRef.id
@@ -96,8 +100,8 @@ const Page = () => {
         }
     };
 
-    const doneButton = async (content: string) => {
-        createPost(content);
+    const doneButton = async (content: string, caption: string) => {
+        createPost(content, caption);
         router.push({
             pathname: "/create",
             params: { reset: "true" },
@@ -139,7 +143,7 @@ const Page = () => {
             {/*    <Text>done</Text>*/}
             {/*</TouchableOpacity>*/}
 
-            <TouchableOpacity style={styles.doneButton} onPress={() => doneButton(contentString)}>
+            <TouchableOpacity style={styles.doneButton} onPress={() => doneButton(contentString, captionString)}>
                 <Text>done</Text>
             </TouchableOpacity>
 

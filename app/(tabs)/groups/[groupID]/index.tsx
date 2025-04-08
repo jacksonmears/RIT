@@ -117,12 +117,12 @@ const Index = () => {
                         <View style={styles.friendComponent}>
                             <Text style={styles.text}>{item.content}</Text>
 
-                            <Pressable  style={styles.acceptButton}>
-                                <Text>Accept</Text>
+                            <Pressable  style={styles.acceptButton} onPress={() => router.push({ pathname: `/groups/post`, params: { postImported: item.id } })}>
+                                <Text> See Post </Text>
                             </Pressable>
-                            <Pressable style={styles.declineButton}>
-                                <Text>Decline</Text>
-                            </Pressable>
+                            {/*<Pressable style={styles.declineButton}>*/}
+                            {/*    <Text>Decline</Text>*/}
+                            {/*</Pressable>*/}
                         </View>
                     </View>
                 )}

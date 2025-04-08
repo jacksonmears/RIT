@@ -13,6 +13,7 @@ const Page = () => {
     const { hasPermission: cameraHasPermission, requestPermission: requestCameraPermission } = useCameraPermission();
     const { hasPermission: micHasPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
     const [content, setContent] = useState('');
+    const [caption, setCaption] = useState('');
     const router = useRouter();
     const { groups } = useLocalSearchParams();
 
@@ -147,6 +148,13 @@ const Page = () => {
                 value={content}
                 onChangeText={setContent}
             />
+            <TextInput
+                style={styles.input}
+                placeholder="create a caption"
+                placeholderTextColor="#ccc"
+                value={caption}
+                onChangeText={setCaption}
+            />
             {/*<Pressable onPress={handleSearch} style={styles.button}>*/}
             {/*    <Text> Search for friends </Text>*/}
             {/*</Pressable>*/}
@@ -159,7 +167,7 @@ const Page = () => {
             {/*    <Text>pick groups</Text>*/}
             {/*</TouchableOpacity>*/}
 
-            <TouchableOpacity style={styles.pickGroupsButton} onPress={() => router.push({ pathname: "/create/assignGroup", params: { content: content} })}>
+            <TouchableOpacity style={styles.pickGroupsButton} onPress={() => router.push({ pathname: "/create/assignGroup", params: { content: content, caption: caption} })}>
                 <Text>done</Text>
             </TouchableOpacity>
 
