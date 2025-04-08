@@ -1,9 +1,9 @@
-import {View, Text, Button, StyleSheet, FlatList, Touchable, TouchableOpacity, Pressable} from "react-native";
+import {View, Text, Button, StyleSheet, FlatList, Touchable, ScrollView, TouchableOpacity, Pressable} from "react-native";
 import {Link, useLocalSearchParams, useRouter} from "expo-router";
 import React, { useEffect, useState } from "react";
-import {doc, getDoc, getDocs, updateDoc, arrayUnion, collection, query, orderBy} from "firebase/firestore";
+import {doc, getDoc, getDocs, updateDoc, arrayUnion, collection, query, orderBy, limit} from "firebase/firestore";
 import { auth, db } from "@/firebase";
-import GroupCard from "@/components/GroupCard";
+import PostComp from "@/components/PostComp"; // Import reusable component
 import {Checkbox} from "react-native-paper";
 
 const Index = () => {
@@ -14,7 +14,7 @@ const Index = () => {
     const user = auth.currentUser;
     const [friends, setFriends] = useState<{ id: string, name: string}[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
-    const [postContents, setPostContents] = useState<{ id: string, content: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string }[] | null>(null);
 
     useEffect(() => {
         getPostIds()
@@ -51,7 +51,8 @@ const Index = () => {
         try {
             const q = query(
                 collection(db, "groups", groupID, "posts"),
-                orderBy("createdAt", "desc") // Retrieves newest posts first (LIFO)
+                orderBy("createdAt", "desc"), // Retrieves newest posts first (LIFO)
+                limit(20)
             );
 
             const querySnapshot = await getDocs(q);
@@ -76,9 +77,16 @@ const Index = () => {
                 const postSnap = await getDoc(postRef);
 
                 if (postSnap.exists()) {
-                    return { id: post.id, content: postSnap.data().content };
+                    const userID = postSnap.data().user;
+                    const displayName = await getDoc(doc(db, "users", userID));
+                    let userName = ''
+                    if (displayName.exists()) {
+                        userName = displayName.data().displayName;
+                    }
+
+                    return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName };
                 } else {
-                    return { id: post.id, content: "Content not found" };
+                    return { id: post.id, content: "Content not found", caption: "failed", userName: "failed" };
                 }
             }));
 
@@ -90,47 +98,34 @@ const Index = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.test}> Welcome! </Text>
-            <Text>{groupID}</Text>
-            {friends ? (
-                <FlatList
-                    style={styles.groups}
-                    data={friends}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <Text style={styles.friendText}>{item.name}</Text>
-                    )}
-                    contentContainerStyle={styles.listContent}
-                />
-            ) : (
-                <Text>Loading users...</Text>
-            )}
-            <TouchableOpacity style={styles.goBackButton} onPress={() => router.back()}>
-                <Text>go back</Text>
-            </TouchableOpacity>
+            <View style={styles.topBar}>
+                <TouchableOpacity style={styles.goBackButton} onPress={() => router.back()}>
+                    <Text style={styles.buttonText}>Go Back</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.addFriendButton} onPress={() => router.push(`/groups/${groupID}/addFriends`)}>
+                    <Text style={styles.buttonText}>Add Friend</Text>
+                </TouchableOpacity>
+            </View>
 
             <FlatList
+                inverted
+                style={styles.groups}
                 data={postContents}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <View style={styles.friendContainer}>
-                        <View style={styles.friendComponent}>
-                            <Text style={styles.text}>{item.content}</Text>
-
-                            <Pressable  style={styles.acceptButton} onPress={() => router.push({ pathname: `/groups/post`, params: { postImported: item.id } })}>
-                                <Text> See Post </Text>
-                            </Pressable>
-                            {/*<Pressable style={styles.declineButton}>*/}
-                            {/*    <Text>Decline</Text>*/}
-                            {/*</Pressable>*/}
-                        </View>
-                    </View>
+                    <TouchableOpacity
+                        onPress={() => router.push({
+                            pathname: '/(tabs)/groups/[groupID]/post',
+                            params: { idT: item.id, contentT: item.content, captionT: item.caption, userNameT: item.userName }
+                        })}
+                    >
+                        <PostComp post={item} />
+                    </TouchableOpacity>
                 )}
+                contentContainerStyle={styles.flatListContentContainer}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
-
-            <TouchableOpacity style={styles.addFriendButton} onPress={() => router.push(`/groups/${groupID}/addFriends`)}>
-                <Text>add friend</Text>
-            </TouchableOpacity>
         </View>
     );
 };
@@ -138,76 +133,49 @@ const Index = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "black",
-        padding: 20,
-        alignItems: "center",
-        justifyContent: "center",
+        backgroundColor: "#121212",
+        padding: 10,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "gold",
-        marginBottom: 10,
-    },
-    description: {
-        fontSize: 16,
-        color: "gray",
-        marginBottom: 20,
-    },
-    groups: {
-        flex: 1, // Allows FlatList to take up remaining space
-    },
-    listContent: {
-        paddingBottom: 80, // Prevents overlap with "Create Group" button
-    },
-    friendText: {
-        color: "white", // Change to whatever color you want for the user names
-        fontSize: 18,
-        marginVertical: 5,
+    topBar: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingVertical: 15,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1,
+        paddingHorizontal: 20,
     },
     goBackButton: {
-        position: "absolute",
-        top: 0,
-        right: 10,
-        backgroundColor: "green",
+        backgroundColor: "#28a745",
+        padding: 10,
+        borderRadius: 8,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
     },
     addFriendButton: {
-        position: "absolute",
-        top: 0,
-        left: 10,
-        backgroundColor: "green",
+        backgroundColor: "#007bff",
+        padding: 10,
+        borderRadius: 8,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
     },
-    test:{
+    buttonText: {
         color: "white",
         fontSize: 16,
-        position: "absolute",
-        top: 50,
-        left: 50
     },
-    friendContainer: {
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%", // Ensures it takes full width
+    groups: {
+        flex: 1,
+        marginTop: 80,
     },
-    friendComponent: {
-        flexDirection: "row", // Places items in a row
-        justifyContent: "space-between", // Pushes name left, button right
-        alignItems: "center",
-        padding: 10,
-        width: "90%", // Adjust width as needed
-        borderBottomWidth: 1,
+    separator: {
+        height: 20,
     },
-    acceptButton: {
-        backgroundColor: "green",
-        borderRadius: 7,
-    },
-    declineButton: {
-        backgroundColor: "red",
-        borderRadius: 7,
-    },
-    text: {
-        fontSize: 18,
-        color: "white",
+    flatListContentContainer: {
+        paddingTop: 90, // Ensures the last items are visible, even if there's a footer
     },
 });
 
