@@ -7,7 +7,8 @@ import { getDoc, doc } from "firebase/firestore";
 const Page = () => {
     const user = auth.currentUser;
     const router = useRouter();
-    const { idT, contentT, captionT, userNameT } = useLocalSearchParams();
+    const { groupID, idT, contentT, captionT, userNameT } = useLocalSearchParams();
+    const groupId = String(groupID);
     const id = String(idT); // Convert content to string
     const content = String(contentT); // Convert content to string
     const caption = String(captionT); // Convert content to string

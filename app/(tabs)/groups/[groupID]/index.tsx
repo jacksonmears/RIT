@@ -9,16 +9,17 @@ import {Checkbox} from "react-native-paper";
 const Index = () => {
     // const { id } = useLocalSearchParams(); // Get the dynamic group ID from the URL
     const { groupID } = useLocalSearchParams();
+    const groupIDString = String(groupID);
     const router = useRouter();
     const [group, setGroup] = useState(null);
     const user = auth.currentUser;
     const [friends, setFriends] = useState<{ id: string, name: string}[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string }[] | null>(null);
 
     useEffect(() => {
         getPostIds()
-    }, [groupID]);
+    }, [groupIDString]);
 
     useEffect(() => {
         getPostContent()
@@ -27,9 +28,7 @@ const Index = () => {
     useEffect(() => {
         const fetchGroup = async () => {
             try {
-                if (typeof groupID !== "string") return;
-
-                const usersDocs = await getDocs(collection(db, "groups", groupID, "users"));
+                const usersDocs = await getDocs(collection(db, "groups", groupIDString, "users"));
 
                 const usersList = usersDocs.docs.map((doc) => ({
                     id: doc.id, // User's UID is the document ID
@@ -46,11 +45,11 @@ const Index = () => {
     }, []);
 
     const getPostIds = async () => {
-        if (!user || typeof groupID !== "string") return;
+        if (!user) return;
 
         try {
             const q = query(
-                collection(db, "groups", groupID, "posts"),
+                collection(db, "groups", groupIDString, "posts"),
                 orderBy("createdAt", "desc"), // Retrieves newest posts first (LIFO)
                 limit(20)
             );
@@ -60,7 +59,6 @@ const Index = () => {
                 id: doc.id,
                 ...doc.data()
             }));
-
             setPosts(postsRef);
 
         } catch (error) {
@@ -84,9 +82,9 @@ const Index = () => {
                         userName = displayName.data().displayName;
                     }
 
-                    return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName };
+                    return { groupID: groupIDString, id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName };
                 } else {
-                    return { id: post.id, content: "Content not found", caption: "failed", userName: "failed" };
+                    return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed" };
                 }
             }));
 
@@ -114,14 +112,15 @@ const Index = () => {
                 data={postContents}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <TouchableOpacity
-                        onPress={() => router.push({
-                            pathname: '/(tabs)/groups/[groupID]/post',
-                            params: { idT: item.id, contentT: item.content, captionT: item.caption, userNameT: item.userName }
-                        })}
-                    >
-                        <PostComp post={item} />
-                    </TouchableOpacity>
+                    // <TouchableOpacity
+                    //     onPress={() => router.push({
+                    //         pathname: '/(tabs)/groups/[groupID]/post',
+                    //         params: { groupID: groupID as string, idT: item.id, contentT: item.content, captionT: item.caption, userNameT: item.userName }
+                    //     })}
+                    // >
+                    <PostComp post={item} />
+                    // <Text>testing</Text>
+                    // </TouchableOpacity>
                 )}
                 contentContainerStyle={styles.flatListContentContainer}
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -175,7 +174,7 @@ const styles = StyleSheet.create({
         height: 20,
     },
     flatListContentContainer: {
-        paddingTop: 90, // Ensures the last items are visible, even if there's a footer
+        paddingTop: 0, // Ensures the last items are visible, even if there's a footer
     },
 });
 
