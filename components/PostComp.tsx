@@ -1,10 +1,11 @@
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import React, {useState} from "react";
-import {doc, getDoc} from "firebase/firestore";
+import React, {useEffect, useState} from "react";
+import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
 import {auth,db} from "@/firebase";
 
 interface Post {
+    groupID: string;
     id: string;
     content: string;
     caption: string;
@@ -19,6 +20,45 @@ interface PostCompProps {
 
 const PostComp: React.FC<PostCompProps> = ({ post }) => {
     const router = useRouter();
+    const user = auth.currentUser;
+    const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
+    const [likeText, setLikeText] = useState("like");
+
+
+
+    useEffect(() => {
+        const likeFunc = async () => {
+            if (!user) return;
+
+            try {
+                const likeCheck = await getDoc(doc(db, "posts", post.id, "likes", user.uid));
+                const liked = likeCheck.exists();
+                setLikeStatus(liked);
+                setLikeText(liked ? "already liked" : "like");
+            } catch (error) {
+                console.error("Error checking like status:", error);
+            }
+        };
+
+        likeFunc();
+    }, [likeStatus]);
+
+    const likeBeta = async () => {
+        if (!user) return;
+        if (!likeStatus) try {
+            await setDoc(doc(db, "posts", post.id, "likes", user.uid), {
+                likedAt: new Date().toISOString(),
+            })
+            console.log("post liked");
+            setLikeStatus(true);
+        } catch (error){
+            console.error(error)
+        }
+        else {
+            await deleteDoc(doc(db, "posts", post.id, "likes", user.uid))
+            setLikeStatus(false);
+        }
+    }
 
     return (
         <View style={styles.postView}>
@@ -30,10 +70,17 @@ const PostComp: React.FC<PostCompProps> = ({ post }) => {
             </View>
             <View style={styles.bottomBar}>
                 <View>
-                    <Text>like </Text>
+                    <TouchableOpacity onPress={() => likeBeta()}>
+                        <Text style={styles.likeText}>{likeText}</Text>
+                    </TouchableOpacity>
                 </View>
                 <View>
-                    <Text> comment</Text>
+                    <TouchableOpacity onPress={() => router.push({
+                        pathname: '/(tabs)/groups/[groupID]/post',
+                        params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
+                    })}>
+                        <Text> comment</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
             <View style={styles.captionBar}>
@@ -69,6 +116,9 @@ const styles = StyleSheet.create({
     },
     userNameCaption: {
         fontWeight: "bold",
+    },
+    likeText: {
+        color: "red",
     }
 });
 

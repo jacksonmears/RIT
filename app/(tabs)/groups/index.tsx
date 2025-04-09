@@ -25,7 +25,8 @@ const Page = () => {
             };
             getGroups();
         }
-    }, [groups]);
+        console.log(groups);
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -36,6 +37,7 @@ const Page = () => {
                 data={groups}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => <GroupCard group={item} />}
+
                 contentContainerStyle={styles.listContent} // Adds padding
             />
 
