@@ -21,86 +21,49 @@ const Page = () => {
 
 
 
-
-
     return (
         <View style={styles.container}>
-            <Text style={styles.backText}>post page</Text>
-            <Text style={styles.backText}>{id}</Text>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backText}>back</Text>
-            </TouchableOpacity>
-            {/*<TouchableOpacity onPress={() => getPost()}>*/}
-            {/*    <Text style={styles.backText}>see post</Text>*/}
-            {/*</TouchableOpacity>*/}
-
-            <View style={styles.postView}>
-                <View style={styles.topBar}>
-                    <Text>{userName}</Text>
-                </View>
-                <View style={styles.contentView}>
-                    <Text>{content}</Text>
-                </View>
-                <View style={styles.bottomBar}>
-                    <View>
-                        <Text>like </Text>
-                    </View>
-                    <View>
-                        <Text> comment</Text>
-                    </View>
-                </View>
-                <View style={styles.captionBar}>
-                    <Text style={styles.userNameCaption}>{userName} </Text>
-                    <Text> {caption}</Text>
-                </View>
+            <View style={styles.contentView}>
+                <Text style={styles.contentText}>{content}</Text>
             </View>
 
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                <Text style={styles.backText}>Back</Text>
+            </TouchableOpacity>
         </View>
     );
-
-}
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "black",
-    },
-    backText: {
-        color: "white",
-    },
-    backButton: {
-        color: "white",
-        position: "absolute",
-        top: 10,
-        right: 20
-    },
-    postView: {
-        justifyContent: "center",
-        top: 40
-    },
-    topBar: {
-        backgroundColor: "white",
-        padding: 20,
+        backgroundColor: 'black',
+        position: 'relative',
     },
     contentView: {
-        backgroundColor: "grey",
-        padding: 100
-    },
-    bottomBar: {
-        backgroundColor: "white",
+        flex: 1,
+        backgroundColor: "black",
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: 20,
-        flexDirection: "row",
     },
-    captionBar: {
-        backgroundColor: "grey",
-        padding: 20,
-        flexDirection: "row",
+    contentText: {
+        color: 'gold',
+        fontSize: 18,
+        textAlign: 'center',
     },
-    userNameCaption: {
-        fontWeight: "bold",
-    }
-
+    backButton: {
+        position: 'absolute',
+        top: 20, // Adjust for status bar / notch
+        left: 15,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: 8,
+        borderRadius: 8,
+    },
+    backText: {
+        color: 'white',
+        fontSize: 16,
+    },
 });
-
 
 export default Page;

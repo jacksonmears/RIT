@@ -1,4 +1,14 @@
-import {View, Text, Button, Pressable, TextInput, StyleSheet, KeyboardAvoidingView, FlatList } from 'react-native';
+import {
+    View,
+    Text,
+    Button,
+    Pressable,
+    TextInput,
+    StyleSheet,
+    KeyboardAvoidingView,
+    FlatList,
+    TouchableOpacity
+} from 'react-native';
 import {auth, db} from '@/firebase';
 import { useState, useEffect } from 'react';
 import {
@@ -19,8 +29,8 @@ import {
 const Page = () => {
     const user = auth.currentUser;
     const [search, setSearch] = useState('');
-    const [found, setFound] = useState('');
-    const [searchResults, setSearchResults] = useState<{ username: string }[]>([]); // Explicitly typing the state
+    const [searchResults, setSearchResults] = useState<{ username: string, uid: string }[]>([]);
+    const [myFriendsUIDs, setMyFriendsUIDs] = useState<string[]>([]);
 
 
     // const handleSearch = async () => {
@@ -34,6 +44,19 @@ const Page = () => {
     //         console.log(docSnap.data());
     //     }
     // }
+
+    useEffect(() => {
+        const fetchMyFriends = async () => {
+            if (!user) return;
+            const friendsRef = collection(db, "users", user.uid, "friends");
+            const snapshot = await getDocs(friendsRef);
+            const friendIds = snapshot.docs.map(doc => doc.id); // IDs of friends
+            setMyFriendsUIDs(friendIds);
+        };
+
+        fetchMyFriends();
+    }, []);
+
 
     const searchUsers = async () => {
         // if (!search) return [];
@@ -51,6 +74,7 @@ const Page = () => {
             const querySnapshot = await getDocs(q);
             const searchResults = querySnapshot.docs.map(doc => ({
                 username: doc.data().displayName,
+                uid: doc.data().uid
             }));
 
             setSearchResults(searchResults);
@@ -66,24 +90,35 @@ const Page = () => {
         searchUsers(); // Trigger the search whenever search state changes
     }, [search]); // This effect runs when 'search' state changes
 
-    // const sendRequest = async () => {
-    //     if (user){
-    //         const docRef = doc(db, "users", found);
-    //         const docSnap = await getDoc(docRef);
-    //         const friendRequests = docSnap.data()?.friendRequests || [];
-    //
-    //         if (friendRequests.includes(user.uid)){
-    //             console.log("Friend request already sent!");
-    //             return;
-    //         }
-    //
-    //         if (docSnap.exists()) {
-    //             await setDoc(docRef, { friendRequests: [...friendRequests, user.uid] }, { merge: true });
-    //         } else {
-    //             await setDoc(docRef, { friendRequests: [user.uid] });
-    //         }
-    //     }
-    // }
+    const sendRequest = async (input: string) => {
+        if (user){
+            const displayNameSnap = await getDoc(doc(db, "displayName", input));
+            let friend = ''
+            if (displayNameSnap.exists()) friend = displayNameSnap.data().uid;
+            if (friend === '' || user.uid === friend) return;
+
+            const docRef = doc(db, "users", friend);
+            const docSnap = await getDoc(docRef);
+            const friendRequests = docSnap.data()?.friendRequests || [];
+            const friendCheck = await getDoc(doc(db, "users", user.uid, "friends", friend));
+
+            if (friendRequests.includes(user.uid)){
+                console.log("Friend request already sent!");
+                return;
+            }
+
+            else if (friendCheck.exists()){
+                console.log("already friends!");
+                return;
+            }
+
+            if (docSnap.exists()) {
+                await setDoc(docRef, { friendRequests: [...friendRequests, user.uid] }, { merge: true });
+            } else {
+                await setDoc(docRef, { friendRequests: [user.uid] });
+            }
+        }
+    }
 
 
 
@@ -107,6 +142,14 @@ const Page = () => {
                 renderItem={({ item }) => (
                     <View style={styles.resultItem}>
                         <Text style={styles.resultText}>{item.username}</Text>
+                        {
+                            !myFriendsUIDs.includes(item.uid) && (
+                                <TouchableOpacity style={styles.friendReqButton} onPress={() => sendRequest(item.username)}>
+                                    <Text style={styles.resultText}>add friend</Text>
+                                </TouchableOpacity>
+                            )
+                        }
+
                     </View>
                 )}
                 style={styles.resultsList}
@@ -134,9 +177,6 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: "row",
     },
-    t: {
-        color: "white",
-    },
     input: {
         flex: 1,
         marginTop: 20,
@@ -152,17 +192,6 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginRight: 40,
         marginTop: 20
-
-
-    },
-    reqButton: {
-        marginVertical: 4,
-        marginHorizontal: 40,
-        position: "absolute",
-        backgroundColor: "white",
-        borderRadius: 4,
-        top: 500,
-        left: 50,
     },
     resultsList: {
         marginTop: 20,
@@ -172,6 +201,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#green',
         borderBottomWidth: 1,
         borderBottomColor: 'gold',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     resultText: {
         fontSize: 16,
@@ -182,6 +213,11 @@ const styles = StyleSheet.create({
         color: 'gray',
         textAlign: 'center',
     },
+    friendReqButton: {
+        backgroundColor: "green",
+        borderRadius: 4,
+        padding: 1,
+    }
 })
 
 export default Page;

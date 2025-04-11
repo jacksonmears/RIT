@@ -5,41 +5,59 @@ import { doc, getDoc, updateDoc, arrayRemove, onSnapshot, serverTimestamp, setDo
 import { Link } from "expo-router";
 
 const Page = () => {
-    const [friendRequests, setFriendRequests] = useState([]);
+    const [friendsUsername, setFriendsUsername] = useState<string[]>([]);
+    const [friendsUID, setFriendsUID] = useState<string[]>([]);
     const user = auth.currentUser;
 
-    // This function sets up the listener for changes in the user's friend requests
-    useEffect(() => {
-        if (user) {
-            const docRef = doc(db, "users", user.uid);
 
-            // Set up a real-time listener to the user's document
-            const unsubscribe = onSnapshot(docRef, (docSnap) => {
-                const userData = docSnap.data();
-                if (userData?.requests) {
-                    setFriendRequests(userData.requests); // Update the state with the latest requests
+    const fetchFriendRequestsAndUsernames = async () => {
+        if (!user) return;
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+            const friendRequests: string[] = userDoc.data().friendRequests || [];
+            setFriendsUID(friendRequests);
+
+            const usernames: string[] = [];
+
+            for (const uid of friendRequests) {
+                const friendDoc = await getDoc(doc(db, "users", uid));
+                if (friendDoc.exists()) {
+                    usernames.push(friendDoc.data().displayName || "Unknown");
                 }
-            });
+            }
 
-            // Clean up the listener when the component unmounts or user changes
-            return () => unsubscribe();
+            setFriendsUsername(usernames);
         }
-    }, [user]); // This effect depends on the user, it will run when the user changes
+    };
 
-    const acceptFriend = async (friend: string) => {
+    useEffect(() => {
+        fetchFriendRequestsAndUsernames();
+    }, []);
+
+    useEffect(() => {
+        console.log("UIDs:", friendsUID);
+        console.log("Usernames:", friendsUsername);
+    }, [friendsUsername]);
+
+
+    const acceptFriend = async (displayName: string) => {
         if (user) {
+            const friendRef = await getDoc(doc(db, "displayName", displayName));
+            let friend = '';
+            if (friendRef.exists()) friend = friendRef.data().uid;
+
+            console.log(friend, displayName);
+
             const userFriendDocRef = doc(db, "users", user.uid, "friends", friend);
             const friendFriendDocRef = doc(db, "users", friend, "friends", user.uid);
 
             try {
                 const friendData = { dateAdded: serverTimestamp() };
 
-                // Add the friend to both user's and friend's friends list
                 await setDoc(userFriendDocRef, friendData);
                 await setDoc(friendFriendDocRef, friendData);
                 console.log("added friend!");
 
-                // Now remove the friend request from the user's document
                 await removeFriendRequest(friend);
             } catch (error) {
                 console.error("Error accepting friend request: ", error);
@@ -52,12 +70,15 @@ const Page = () => {
             const docRef = doc(db, "users", user.uid);
 
             try {
-                // Remove the friend request from the user's requests array
                 await updateDoc(docRef, {
-                    requests: arrayRemove(friend)
+                    friendRequests: arrayRemove(friend)
                 });
 
+
+
                 console.log(`Removed friend request from ${friend}`);
+                await fetchFriendRequestsAndUsernames();
+
             } catch (error) {
                 console.error("Error removing friend request: ", error);
             }
@@ -75,23 +96,26 @@ const Page = () => {
             </Pressable>
 
             <FlatList
-                data={friendRequests}
+                data={friendsUsername}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.friendContainer}>
                         <View style={styles.friendComponent}>
                             <Text style={styles.text}>{item}</Text>
 
-                            <Pressable onPress={() => acceptFriend(item)} style={styles.acceptButton}>
-                                <Text>Accept</Text>
-                            </Pressable>
-                            <Pressable onPress={() => removeFriendRequest(item)} style={styles.declineButton}>
-                                <Text>Decline</Text>
-                            </Pressable>
+                            <View style={styles.buttonGroup}>
+                                <Pressable onPress={() => acceptFriend(item)} style={styles.acceptButton}>
+                                    <Text>Accept</Text>
+                                </Pressable>
+                                <Pressable onPress={() => removeFriendRequest(item)} style={styles.declineButton}>
+                                    <Text>Decline</Text>
+                                </Pressable>
+                            </View>
                         </View>
                     </View>
                 )}
             />
+
         </View>
     );
 };
@@ -116,21 +140,34 @@ const styles = StyleSheet.create({
         width: "100%", // Ensures it takes full width
     },
     friendComponent: {
-        flexDirection: "row", // Places items in a row
-        justifyContent: "space-between", // Pushes name left, button right
+        flexDirection: "row",
+        justifyContent: "space-between",
         alignItems: "center",
         padding: 10,
-        width: "90%", // Adjust width as needed
+        width: "90%",
         borderBottomWidth: 1,
+        borderBottomColor: "white", // Add for visibility if needed
     },
+
+    buttonGroup: {
+        flexDirection: "row",
+        gap: 10, // Optional if supported
+    },
+
     acceptButton: {
         backgroundColor: "green",
+        padding: 6,
         borderRadius: 7,
+        marginLeft: 10,
     },
+
     declineButton: {
         backgroundColor: "red",
+        padding: 6,
         borderRadius: 7,
-    }
+        marginLeft: 10,
+    },
+
 });
 
 export default Page;
