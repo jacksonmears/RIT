@@ -91,9 +91,9 @@ const Page = () => {
                 <Text style={styles.text}>back to home page</Text>
             </Link>
 
-            <Pressable onPress={() => console.log('Checking friend requests')} style={styles.button}>
-                <Text> Search for friends </Text>
-            </Pressable>
+            {/*<Pressable onPress={() => console.log('Checking friend requests')} style={styles.button}>*/}
+            {/*    <Text> Search for friends </Text>*/}
+            {/*</Pressable>*/}
 
             <FlatList
                 data={friendsUsername}
