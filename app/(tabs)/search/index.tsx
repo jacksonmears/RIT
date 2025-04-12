@@ -198,7 +198,6 @@ const styles = StyleSheet.create({
     },
     resultItem: {
         padding: 10,
-        backgroundColor: '#green',
         borderBottomWidth: 1,
         borderBottomColor: 'gold',
         flexDirection: 'row',

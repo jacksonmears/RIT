@@ -5,7 +5,6 @@ import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimes
 import {auth,db} from "@/firebase";
 
 interface Post {
-    groupID: string;
     id: string;
     content: string;
     caption: string;
@@ -18,7 +17,7 @@ interface PostCompProps {
 
 
 
-const PostComp: React.FC<PostCompProps> = ({ post }) => {
+const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const router = useRouter();
     const user = auth.currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
@@ -76,8 +75,8 @@ const PostComp: React.FC<PostCompProps> = ({ post }) => {
                 </View>
                 <View>
                     <TouchableOpacity onPress={() => router.push({
-                        pathname: '/(tabs)/groups/[groupID]/post',
-                        params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
+                        pathname: '/(tabs)/home/post',
+                        params: { idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
                     })}>
                         <Text> comment</Text>
                     </TouchableOpacity>
@@ -116,10 +115,11 @@ const styles = StyleSheet.create({
     },
     userNameCaption: {
         fontWeight: "bold",
+        color: "gold"
     },
     likeText: {
         color: "red",
     }
 });
 
-export default PostComp;
+export default GroupPost;

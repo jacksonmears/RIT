@@ -3,7 +3,7 @@ import {Link, useLocalSearchParams, useRouter} from "expo-router";
 import React, { useEffect, useState } from "react";
 import {doc, getDoc, getDocs, updateDoc, arrayUnion, collection, query, orderBy, limit} from "firebase/firestore";
 import { auth, db } from "@/firebase";
-import PostComp from "@/components/PostComp"; // Import reusable component
+import GroupPost from "@/components/GroupPost"; // Import reusable component
 import {Checkbox} from "react-native-paper";
 
 const Index = () => {
@@ -118,7 +118,7 @@ const Index = () => {
                     //         params: { groupID: groupID as string, idT: item.id, contentT: item.content, captionT: item.caption, userNameT: item.userName }
                     //     })}
                     // >
-                    <PostComp post={item} />
+                    <GroupPost post={item} />
                     // <Text>testing</Text>
                     // </TouchableOpacity>
                 )}
