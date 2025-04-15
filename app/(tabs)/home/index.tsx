@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        backgroundColor: '#222222',
+        // backgroundColor: '#222222',
         padding: 5
     },
     titleText: {

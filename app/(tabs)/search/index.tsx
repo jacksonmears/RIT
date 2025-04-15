@@ -25,12 +25,13 @@ import {
     FieldPath,
     documentId
 } from "firebase/firestore";
+import {useRouter} from 'expo-router';
 
 const Page = () => {
     const user = auth.currentUser;
     const [search, setSearch] = useState('');
     const [searchResults, setSearchResults] = useState<{ username: string, uid: string }[]>([]);
-    const [myFriendsUIDs, setMyFriendsUIDs] = useState<string[]>([]);
+    const router = useRouter();
 
 
     // const handleSearch = async () => {
@@ -45,17 +46,7 @@ const Page = () => {
     //     }
     // }
 
-    useEffect(() => {
-        const fetchMyFriends = async () => {
-            if (!user) return;
-            const friendsRef = collection(db, "users", user.uid, "friends");
-            const snapshot = await getDocs(friendsRef);
-            const friendIds = snapshot.docs.map(doc => doc.id); // IDs of friends
-            setMyFriendsUIDs(friendIds);
-        };
 
-        fetchMyFriends();
-    }, []);
 
 
     const searchUsers = async () => {
@@ -90,35 +81,9 @@ const Page = () => {
         searchUsers(); // Trigger the search whenever search state changes
     }, [search]); // This effect runs when 'search' state changes
 
-    const sendRequest = async (input: string) => {
-        if (user){
-            const displayNameSnap = await getDoc(doc(db, "displayName", input));
-            let friend = ''
-            if (displayNameSnap.exists()) friend = displayNameSnap.data().uid;
-            if (friend === '' || user.uid === friend) return;
 
-            const docRef = doc(db, "users", friend);
-            const docSnap = await getDoc(docRef);
-            const friendRequests = docSnap.data()?.friendRequests || [];
-            const friendCheck = await getDoc(doc(db, "users", user.uid, "friends", friend));
 
-            if (friendRequests.includes(user.uid)){
-                console.log("Friend request already sent!");
-                return;
-            }
 
-            else if (friendCheck.exists()){
-                console.log("already friends!");
-                return;
-            }
-
-            if (docSnap.exists()) {
-                await setDoc(docRef, { friendRequests: [...friendRequests, user.uid] }, { merge: true });
-            } else {
-                await setDoc(docRef, { friendRequests: [user.uid] });
-            }
-        }
-    }
 
 
 
@@ -141,14 +106,19 @@ const Page = () => {
                 keyExtractor={(item, index) => index.toString()} // Key for each item
                 renderItem={({ item }) => (
                     <View style={styles.resultItem}>
-                        <Text style={styles.resultText}>{item.username}</Text>
-                        {
-                            !myFriendsUIDs.includes(item.uid) && (
-                                <TouchableOpacity style={styles.friendReqButton} onPress={() => sendRequest(item.username)}>
-                                    <Text style={styles.resultText}>add friend</Text>
-                                </TouchableOpacity>
-                            )
-                        }
+                        {/*{*/}
+                        {/*    !myFriendsUIDs.includes(item.uid) && (*/}
+                        {/*        <TouchableOpacity style={styles.friendReqButton} onPress={() => sendRequest(item.username)}>*/}
+                        {/*            <Text style={styles.resultText}>add friend</Text>*/}
+                        {/*        </TouchableOpacity>*/}
+                        {/*    )*/}
+                        {/*}*/}
+
+                        <TouchableOpacity style={styles.friendReqButton} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: item.uid }})}>
+                            {/*<Text style={styles.resultText}>see friend</Text>*/}
+                            <Text style={styles.resultText}>{item.username}</Text>
+
+                        </TouchableOpacity>
 
                     </View>
                 )}
@@ -213,7 +183,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     friendReqButton: {
-        backgroundColor: "green",
         borderRadius: 4,
         padding: 1,
     }

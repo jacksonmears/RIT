@@ -117,7 +117,9 @@ const Index = () => {
                     lastName: lastName,
                     email: email,
                     displayName: username,
-                    bio: ""
+                    bio: "",
+                    friendRequests: [],
+                    groupRequests: []
                 });
                 await updateProfile(user, { displayName: username });
                 await setDoc(displayNameRef, { uid: user.uid, displayName: username, lowerDisplayName: username.toLowerCase() });
