@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, Button, StyleSheet, TextInput, Image, Dimensions, FlatList} from 'react-native';
+import {View, Text, Button, StyleSheet, TextInput, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
 import { auth, db } from '@/firebase';
 import { updateProfile } from '@firebase/auth';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import { Link, useRouter } from 'expo-router'
-import {doc, getDoc, getDocs, collection, query, orderBy, limit} from "firebase/firestore";
+import {Link, useLocalSearchParams, useRouter} from 'expo-router'
+import {doc, getDoc, getDocs, collection, query, orderBy, limit, setDoc} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
+import {string} from "prop-types";
+import friendRequests from "@/app/(tabs)/home/friendRequests";
 
 
 const { width, height } = Dimensions.get('window');
@@ -19,36 +21,17 @@ const Page = () => {
     const [bio, setBio] = useState('');
     const [postContents, setPostContents] = useState<{ id: string, content: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
-
-    const getBioInfo = async () => {
-        if (!user) return;
-        const getInfo = await getDoc(doc(db,"users", user.uid));
-        if (getInfo.exists()){
-            setName(getInfo.data().displayName);
-            setBio(getInfo.data().bio);
-        }
-        const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
-        const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
-
-        setNumFriends(fetchFriendCount.size);
-        setNumPosts(fetchPostCount.size);
-
-    }
-
-    useEffect(() => {
-        console.log(name, numPosts, numFriends, bio)
-    }, [name, numPosts, numFriends, bio]);
-
-    useEffect(() => {
-        getBioInfo()
-    }, []);
-
+    const {friendID} = useLocalSearchParams();
+    const friend = String(friendID);
+    const router = useRouter();
+    const [friendStatus, setFriendStatus] = useState<boolean>(false);
+    const [requestStatus, setRequestStatus] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchUserPosts = async () => {
-            if (!user) return;
+            if (!friend) return;
             try {
-                const postsRef = collection(db, "users", user.uid, "posts");
+                const postsRef = collection(db, "users", friend, "posts");
                 const orderedQuery = query(postsRef, orderBy("createdAt", "asc")); // or "asc"
                 const usersDocs = await getDocs(orderedQuery);
 
@@ -66,12 +49,88 @@ const Page = () => {
     }, []);
 
     useEffect(() => {
+        getBioInfo()
+    }, []);
+
+    useEffect(() => {
+        const fetchMyFriends = async () => {
+            if (!user || !friend) return;
+            const friendsRef = await getDoc(doc(db, "users", user.uid, "friends", friend));
+            if (friendsRef.exists()) {
+                setFriendStatus(true);
+            }
+            else if (user.uid === friend) setFriendStatus(true);
+            else {
+                const friendReqRef = await getDoc(doc(db, "users", friend));
+                if (friendReqRef.exists()) {
+                    if (friendReqRef.data().friendRequests.includes(user.uid)) setRequestStatus(true);
+                }
+            }
+        };
+        fetchMyFriends();
+    }, []);
+
+    useEffect(() => {
+        console.log(friendStatus);
+    }, [friendStatus]);
+
+
+
+    useEffect(() => {
         getPostContent()
     }, [posts]);
 
-    useEffect(() => {
-        console.log(postContents)
-    }, [postContents]);
+
+
+    const getBioInfo = async () => {
+        if (!friend) return;
+        const getInfo = await getDoc(doc(db,"users", friend));
+        if (getInfo.exists()){
+            setName(getInfo.data().displayName);
+            setBio(getInfo.data().bio);
+        }
+        const fetchFriendCount = await getDocs(collection(db, "users", friend, "friends"));
+        const fetchPostCount = await getDocs(collection(db, "users", friend, "posts"));
+
+        setNumFriends(fetchFriendCount.size);
+        setNumPosts(fetchPostCount.size);
+
+    }
+
+
+
+    const sendRequest = async () => {
+        if (!user) return;
+        try {
+            if (friend === '' || user.uid === friend) return;
+            const docRef = doc(db, "users", friend);
+            const docSnap = await getDoc(docRef);
+            const friendRequests = docSnap.data()?.friendRequests || [];
+            // const friendCheck = await getDoc(doc(db, "users", user.uid, "friends", friend));
+            //
+            // if (friendRequests.includes(user.uid)){
+            //     console.log("Friend request already sent!");
+            //     return;
+            // }
+            //
+            // else if (friendCheck.exists()){
+            //     console.log("already friends!");
+            //     return;
+            // }
+
+            if (docSnap.exists()) {
+                await setDoc(docRef, { friendRequests: [...friendRequests, user.uid] }, { merge: true });
+            } else {
+                await setDoc(docRef, { friendRequests: [user.uid] });
+            }
+            setRequestStatus(true);
+        }
+        catch (error) {
+            console.error(error);
+        }
+    }
+
+
 
 
 
@@ -184,6 +243,13 @@ const Page = () => {
 
 
         <View style={styles.container}>
+            <View style={styles.topBar}>
+                <View style={styles.backContainer}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                        <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
             <View style={styles.infoBar}>
                 <View style={styles.pfpAndInfo}>
                     <View style={styles.pfp}></View>
@@ -210,7 +276,36 @@ const Page = () => {
                 </View>
             </View>
 
+            <View style={styles.buttonContainer}>
+                {/*<TouchableOpacity*/}
+                {/*    style={friendStatus ? styles.followingButton : styles.followButton}*/}
+                {/*>*/}
+                {/*    <Text style={styles.followText}>*/}
+                {/*        {friendStatus ? "friends" : "request"}*/}
+                {/*    </Text>*/}
+                {/*</TouchableOpacity>*/}
 
+                {friendStatus ? (
+                    <TouchableOpacity
+                        style={styles.followButton}
+                        // onPress={handleUnfollow} // do something when unfollowing
+                    >
+                        <Text style={styles.followText}>friends</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity
+                        style={styles.followButton}
+                        onPress={sendRequest} // do something when following
+                    >
+                        <Text style={styles.followText}>{requestStatus ? "request pending" : "request"}</Text>
+                    </TouchableOpacity>
+                )}
+
+                <View style={styles.separator}></View>
+                <TouchableOpacity style={styles.messageButton}>
+                    <Text style={styles.messageText}>message</Text>
+                </TouchableOpacity>
+            </View>
 
             <View style={styles.postContainer}>
                 <FlatList
@@ -222,15 +317,10 @@ const Page = () => {
                             <AccountPost post={item} />
                         </View>
                     )}
-                    // contentContainerStyle={styles.flatListContentContainer}
-                    // ItemSeparatorComponent={() => <View style={styles.separator} />}
                     numColumns={3}
                 />
             </View>
 
-            <View style={styles.logout}>
-                <Button title="Logout" onPress={handleLogout} />
-            </View>
         </View>
     );
 };
@@ -241,7 +331,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     infoBar: {
-        paddingTop: 100,
+        paddingTop: 60,
         paddingLeft: 40,
 
     },
@@ -287,27 +377,70 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: 20,
     },
-    separator: {
-        height: 20,
-    },
-    flatListContentContainer: {
-        paddingTop: 0,
-    },
     itemContainer: {
         flex: 1 / 3, // One third of the row
         paddingVertical: 0.5, // Optional: adds spacing between items
         paddingHorizontal: 0.5,
     },
-    logout: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-    },
     postContainer: {
         flex: 1,
         paddingBottom: 55,
         paddingHorizontal: 20,
-        paddingTop: 30
+    },
+    topBar: {
+
+    },
+    backContainer: {
+        width: 60
+    },
+    backButton: {
+        backgroundColor: "#28a745",
+        padding: 10,
+        borderRadius: 8,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    backButtonText: {
+        color: "white"
+    },
+    followText: {
+        color: "white",
+    },
+    messageText: {
+        color: "white",
+    },
+    buttonContainer: {
+        flexDirection: "row",
+        paddingHorizontal: 40,
+        justifyContent: "space-between",
+        paddingTop: 20,
+        paddingBottom: 10
+
+    },
+    followButton: {
+        flex: 1,
+        backgroundColor: "blue",
+        alignItems: "center",
+        padding: 4,
+        borderRadius: 2,
+    },
+    followingButton: {
+        flex: 1,
+        backgroundColor: "blue",
+        alignItems: "center",
+        padding: 4,
+        borderRadius: 2,
+    },
+    messageButton: {
+        flex: 1,
+        backgroundColor: "green",
+        alignItems: "center",
+        borderRadius: 2,
+        padding: 4
+    },
+    separator: {
+        width: 20,
     }
 });
 
