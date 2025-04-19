@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, Button, StyleSheet, TextInput, Image, Dimensions, FlatList} from 'react-native';
+import {View, Text, Button, StyleSheet, TextInput, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
 import { auth, db } from '@/firebase';
 import { updateProfile } from '@firebase/auth';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
@@ -35,9 +35,6 @@ const Page = () => {
 
     }
 
-    useEffect(() => {
-        console.log(name, numPosts, numFriends, bio)
-    }, [name, numPosts, numFriends, bio]);
 
     useEffect(() => {
         getBioInfo()
@@ -45,23 +42,6 @@ const Page = () => {
 
 
     useEffect(() => {
-        const fetchUserPosts = async () => {
-            if (!user) return;
-            try {
-                const postsRef = collection(db, "users", user.uid, "posts");
-                const orderedQuery = query(postsRef, orderBy("createdAt", "asc")); // or "asc"
-                const usersDocs = await getDocs(orderedQuery);
-
-                const postList = usersDocs.docs.map((doc) => ({
-                    id: doc.id,
-                    timestamp: doc.data().timestamp,
-                }));
-
-                setPosts(postList);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            }
-        };
         fetchUserPosts();
     }, []);
 
@@ -69,10 +49,25 @@ const Page = () => {
         getPostContent()
     }, [posts]);
 
-    useEffect(() => {
-        console.log(postContents)
-    }, [postContents]);
 
+
+    const fetchUserPosts = async () => {
+        if (!user) return;
+        try {
+            const postsRef = collection(db, "users", user.uid, "posts");
+            const orderedQuery = query(postsRef, orderBy("timestamp", "asc")); // or "asc"
+            const usersDocs = await getDocs(orderedQuery);
+
+            const postList = usersDocs.docs.map((doc) => ({
+                id: doc.id,
+                timestamp: doc.data().timestamp,
+            }));
+
+            setPosts(postList);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
 
 
     const getPostContent = async () => {
@@ -95,6 +90,16 @@ const Page = () => {
             console.error("Error fetching post content:", error);
         }
     };
+
+    const refresh = () => {
+        setPostContents(null);
+        setName('')
+        setNumPosts(0);
+        setNumFriends(0);
+        setBio('');
+        fetchUserPosts();
+        getBioInfo()
+    }
 
 
     // const [followers, setFollowers] = useState(auth.currentUser);
@@ -184,6 +189,10 @@ const Page = () => {
 
 
         <View style={styles.container}>
+            <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
+                <Text style={styles.text}>refresh</Text>
+            </TouchableOpacity>
+
             <View style={styles.infoBar}>
                 <View style={styles.pfpAndInfo}>
                     <View style={styles.pfp}></View>
@@ -308,7 +317,18 @@ const styles = StyleSheet.create({
         paddingBottom: 55,
         paddingHorizontal: 20,
         paddingTop: 30
-    }
+    },
+    refreshButton: {
+        position: "absolute",
+        top: 0,
+        left: 10,
+        backgroundColor: "green",
+    },
+    text: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "gold",
+    },
 });
 
 export default Page;

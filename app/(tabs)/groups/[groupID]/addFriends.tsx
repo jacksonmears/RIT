@@ -16,51 +16,97 @@ import { auth, db } from "@/firebase";
 import GroupCard from "@/components/GroupCard";
 import groupID from "@/app/(tabs)/groups/[groupID]/index";
 import groups from "@/app/(tabs)/groups";
+import {Checkbox} from "react-native-paper";
 
 const Index = () => {
     const { groupID } = useLocalSearchParams();
+    const groupIDString = String(groupID);
     const router = useRouter();
     const user = auth.currentUser;
-    const [search, setSearch] = useState('');
-    const [found, setFound] = useState('');
+    const [friendsID, setFriendsID] = useState<string[] | null>([]);
+    const [friends, setFriends] = useState<{ id: string, displayName: string }[] | null>(null);
+    const [selectedGroups, setSelectedGroups] = useState<{ [key: string]: boolean }>({});
 
-    const handleSearch = async () => {
-        setFound('');
-        if (search == user?.displayName || !user) return;
-        else {
-            const docRef = doc(db, "displayName", search);
-            const docSnap = await getDoc(docRef);
-            docSnap.exists() ? setFound(docSnap.data().uid) : setFound('');
-            const xxx = doc(db, "users", user.uid, "friends", found);
-            const yyy = await getDoc(xxx);
-            if (yyy.exists()) {
-                console.log('friend found');
-            } else {
-                console.log('no friend found')
-            }
+    useEffect(() => {
+        const fetchFriendIds = async () => {
+            if (!user) return;
+
+            const friendSnap = await getDocs(collection(db, "users", user.uid, "friends"));
+            let friendIds: string[] = [];
+            friendSnap.forEach((doc) => {
+                friendIds.push(doc.id);
+            });
+            setFriendsID(friendIds);
         }
-    }
+        fetchFriendIds();
+    }, []);
+
+    useEffect(() => {
+        fetchFriends();
+    }, [friendsID]);
+
+
+    const fetchFriends = async () => {
+        if (!user || !friendsID || friendsID.length === 0) return;
+
+        try {
+            const friendUsernames: { id: string, displayName: string }[] = [];
+            for (const id of friendsID) {
+                const docSnap = await getDoc(doc(db, "users", id));
+                const friendsRef = await getDoc(doc(db, "groups", groupIDString, "users", id));
+                if (friendsRef.exists() || docSnap.exists() && docSnap.data().groupRequests.includes(groupIDString)){
+
+                }
+                else {
+                    if (docSnap.exists()) friendUsernames.push({id: id, displayName: docSnap.data().displayName});
+                }
+            }
+            setFriends(friendUsernames);
+        } catch (error) {
+            console.error("Error fetching friends' data:", error);
+        }
+    };
+
+    const toggleSelection = (friend: string) => {
+        setSelectedGroups(prev => ({
+            ...prev,
+            [friend]: !prev[friend], // Toggle the selection
+        }));
+    };
+
+    const dealDone = async (selectedGroups: { [key: string]: boolean }) => {
+        const selectedIds = Object.keys(selectedGroups).filter(id => selectedGroups[id]);
+
+        // Send requests in parallel
+        await Promise.all(selectedIds.map(id => sendRequest(id)));
+
+        setFriends((prev) => prev ? prev.filter(friend => !selectedIds.includes(friend.id)) : null);
+
+        setSelectedGroups({});
+    };
 
 
 
-    const sendRequest = async () => {
+
+
+    const sendRequest = async (friend: string) => {
         if (user){
             console.log("attempting");
-            const docRef = doc(db, "users", found);
+            const docRef = doc(db, "users", friend);
             const docSnap = await getDoc(docRef);
             const groupRequests = docSnap.data()?.groupRequests || [];
 
-            if (groupRequests.includes(groupID)){
+            if (groupRequests.includes(friend)){
                 console.log("Group request already sent!");
                 return;
             }
 
             if (docSnap.exists()) {
-                await setDoc(docRef, { groupRequests: [...groupRequests, groupID] }, { merge: true });
-                console.log("Group request sent!");
+                await setDoc(docRef, { groupRequests: [...groupRequests, groupIDString] }, { merge: true });
+                console.log("friend request sent!");
             } else {
-                await setDoc(docRef, { groupRequests: [groupID] });
-                console.log("Group request sent!");
+                await setDoc(docRef, { groupRequests: [groupIDString] });
+                console.log("friend request sent!");
             }
         }
     }
@@ -68,25 +114,49 @@ const Index = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.text}>{groupID}</Text>
+            <Text style={styles.text}>{groupIDString}</Text>
+            <TouchableOpacity style={styles.doneButton} onPress={() => dealDone(selectedGroups)}>
+                <Text style={styles.text}>done</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <Text style={styles.text}>go back</Text>
             </TouchableOpacity>
 
-            <TextInput
-                style={styles.input}
-                placeholder="friends name"
-                placeholderTextColor="#ccc"
-                value={search}
-                onChangeText={setSearch}
-            />
-            <Pressable onPress={handleSearch} style={styles.button}>
-                <Text> Search for friends </Text>
-            </Pressable>
+            {/*<TextInput*/}
+            {/*    style={styles.input}*/}
+            {/*    placeholder="friends name"*/}
+            {/*    placeholderTextColor="#ccc"*/}
+            {/*    value={search}*/}
+            {/*    onChangeText={setSearch}*/}
+            {/*/>*/}
 
-            <Pressable onPress={sendRequest} style={styles.reqButton}>
-                <Text> add {found} </Text>
-            </Pressable>
+
+
+            {/*<Pressable onPress={handleSearch} style={styles.button}>*/}
+            {/*    <Text> Search for friends </Text>*/}
+            {/*</Pressable>*/}
+
+            {/*<Pressable onPress={sendRequest} style={styles.reqButton}>*/}
+            {/*    <Text> add {found} </Text>*/}
+            {/*</Pressable>*/}
+
+            <FlatList
+                style={styles.groups}
+                data={friends}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <View style={styles.groupContainer}>
+                        <Pressable onPress={() => toggleSelection(item.id)} style={styles.groupRow}>
+                            <Checkbox
+                                status={selectedGroups[item.id] ? "checked" : "unchecked"}
+                                onPress={() => toggleSelection(item.id)}
+                            />
+                            <Text style={styles.text}>{item.displayName}</Text>
+                        </Pressable>
+                    </View>
+                )}
+                contentContainerStyle={styles.listContent} // Adds padding
+            />
 
         </View>
     );
@@ -135,7 +205,31 @@ const styles = StyleSheet.create({
         top: 0,
         right: 10,
         backgroundColor: "green",
+    },
+    groups: {
+        flex: 1, // Allows FlatList to take up remaining space
+    },
+    groupContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%", // Ensures it takes full width
+    },
+    groupRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 10,
+        borderBottomWidth: 1,
+    },
+    listContent: {
+        paddingBottom: 80, // Prevents overlap with "Create Group" button
+    },
+    doneButton: {
+        position: "absolute",
+        top: 0,
+        left: 10,
+        backgroundColor: "green",
     }
+
 });
 
 export default Index;

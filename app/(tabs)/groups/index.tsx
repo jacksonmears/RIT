@@ -1,4 +1,4 @@
-import { View, Text, Button, StyleSheet, FlatList } from 'react-native';
+import {View, Text, Button, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
 import {auth, db} from '@/firebase';
 import {Link} from "expo-router";
 import React, {useEffect, useState} from "react";
@@ -11,6 +11,10 @@ const Page = () => {
 
 
     useEffect(() => {
+        getGroups()
+    }, []);
+
+    const getGroups = async () => {
         if (user) {
             const getGroups = async () => {
                 const querySnapshot = await getDocs(collection(db, "users", user?.uid, "groups"));
@@ -25,11 +29,24 @@ const Page = () => {
             };
             getGroups();
         }
-        console.log(groups);
-    }, []);
+    };
+
+    const refresh = () => {
+        setGroups([]);
+        getGroups();
+    }
+
+    // useEffect(() => {
+    //     console.log(groups);
+    // }, [groups]);
 
     return (
         <View style={styles.container}>
+
+            <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
+                <Text style={styles.text}>refresh</Text>
+            </TouchableOpacity>
+
             <Text style={styles.header}>Group Page!</Text>
 
             <FlatList
@@ -91,6 +108,12 @@ const styles = StyleSheet.create({
         backgroundColor: "#444",
         padding: 10,
         borderRadius: 8,
+    },
+    refreshButton: {
+        position: "absolute",
+        top: 0,
+        left: 10,
+        backgroundColor: "green",
     }
 });
 
