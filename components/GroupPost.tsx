@@ -94,7 +94,6 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 const styles = StyleSheet.create({
     postView: {
         justifyContent: "center",
-        top: 40
     },
     topBar: {
         backgroundColor: "white",

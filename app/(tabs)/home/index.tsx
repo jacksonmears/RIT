@@ -14,6 +14,11 @@ const Page = () => {
     const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string }[] | null>(null);
 
 
+    useEffect(() => {
+        console.log(postIds)
+    }, [postIds]);
+
+
     const fetchFriendIds = async () => {
         if (!user) return;
 
@@ -33,7 +38,7 @@ const Page = () => {
         for (const friendId of friends) {
             const q = query(
                 collection(db, "users", friendId, "posts"),
-                orderBy("createdAt", "desc"),
+                orderBy("timestamp", "desc"),
                 limit(1)
             );
 
@@ -56,7 +61,7 @@ const Page = () => {
                 const postSnap = await getDoc(postRef);
 
                 if (postSnap.exists()) {
-                    const userID = postSnap.data().user;
+                    const userID = postSnap.data().sender_id;
                     const displayName = await getDoc(doc(db, "users", userID));
                     let userName = ''
                     if (displayName.exists()) {

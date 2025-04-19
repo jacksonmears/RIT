@@ -63,18 +63,26 @@ const Page = () => {
         }
         try {
 
+            // const postRef = await addDoc(collection(db, "posts"), {
+            //     content: content,
+            //     user: user.uid,
+            //     caption: caption,
+            // });
+
             const postRef = await addDoc(collection(db, "posts"), {
+                sender_id: user.uid,
                 content: content,
-                user: user.uid,
                 caption: caption,
+                timestamp: new Date().toISOString(),
             });
 
             const postID = postRef.id
             console.log("post created with: ", postID)
 
             const userRef = await setDoc(doc(db, "users", user.uid, "posts", postID), {
-                createdAt: new Date().toISOString(),
+                timestamp: new Date().toISOString(),
             });
+
 
             await addPostToGroups(db, parsedGroups, postID);
 
@@ -89,8 +97,9 @@ const Page = () => {
         try {
             await Promise.all(
                 parsedGroups.map(async (group) => {
-                    await setDoc(doc(db, "groups", group.id, "posts", postID), {
-                        createdAt: new Date().toISOString(),
+                    await setDoc(doc(db, "groups", group.id, "messages", postID), {
+                        message_type: "video",
+                        timestamp: new Date().toISOString(),
                     });
                 })
             );
