@@ -44,10 +44,10 @@ export default function EditProfileScreen() {
         setLoading(true);
         try {
             // upload to Storage → get download URL
-            // const downloadURL = await uploadProfileImageAsync(localUri);
+            const downloadURL = await uploadProfileImageAsync(localUri);
             // set it on the Auth user
-            await setAuthUserProfilePhoto(localUri);
-            setPhotoURL(localUri);
+            await setAuthUserProfilePhoto(downloadURL);
+            setPhotoURL(downloadURL);
             setLocalUri(null);
             Alert.alert('Success', 'Your profile picture was updated.');
         } catch (err: any) {
