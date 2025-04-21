@@ -23,7 +23,7 @@ import {
     orderBy,
     limit,
     setDoc,
-    addDoc
+    addDoc, serverTimestamp
 } from "firebase/firestore";
 import { auth, db } from "@/firebase";
 import GroupPost from "@/components/GroupPost"; // Import reusable component
@@ -115,6 +115,20 @@ const Index = () => {
                             userName = displayName.data().displayName;
                         }
 
+                        // let timestamp = "Unknown date";
+                        //
+                        // const rawTimestamp = postSnap.data().timestamp;
+                        // if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
+                        //     try {
+                        //         const dateObj = rawTimestamp.toDate();
+                        //         timestamp = dateObj.toDate();
+                        //     } catch (error) {
+                        //         console.error("Error converting timestamp:", error);
+                        //     }
+                        // } else {
+                        //     console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
+                        // }
+
                         return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: postSnap.data().content, caption: "null", userName: userName };
                     } else {
                         return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed" };
@@ -151,7 +165,7 @@ const Index = () => {
             sender_id: user.uid,
             message_type: "text",
             content: message,
-            timestamp: new Date().toISOString(),
+            timestamp: serverTimestamp(),
         });
 
         setMessage(""); // Clear the input after sending
@@ -272,8 +286,8 @@ const styles = StyleSheet.create({
     },
     messageContainer: {
         borderRadius: 8,
-        padding: 10,
-        marginHorizontal: 20,
+        // padding: 10,
+        // marginHorizontal: 20,
         maxWidth: "70%",
     }
 

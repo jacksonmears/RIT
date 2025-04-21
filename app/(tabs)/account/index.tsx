@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, Button, StyleSheet, TextInput, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
+import {
+    View,
+    Text,
+    Button,
+    StyleSheet,
+    TextInput,
+    Image,
+    Dimensions,
+    FlatList,
+    TouchableOpacity,
+    ActivityIndicator
+} from 'react-native';
 import { auth, db } from '@/firebase';
 import { updateProfile } from '@firebase/auth';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { Link, useRouter } from 'expo-router'
-import {doc, getDoc, getDocs, collection, query, orderBy, limit} from "firebase/firestore";
+import {doc, getDoc, getDocs, collection, query, orderBy, limit, serverTimestamp} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
 
 
@@ -19,6 +30,7 @@ const Page = () => {
     const [bio, setBio] = useState('');
     const [postContents, setPostContents] = useState<{ id: string, content: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
+    const router = useRouter();
 
     const getBioInfo = async () => {
         if (!user) return;
@@ -38,6 +50,10 @@ const Page = () => {
 
     useEffect(() => {
         getBioInfo()
+    }, []);
+
+    useEffect(() => {
+        console.log(user?.photoURL);
     }, []);
 
 
@@ -60,7 +76,7 @@ const Page = () => {
 
             const postList = usersDocs.docs.map((doc) => ({
                 id: doc.id,
-                timestamp: doc.data().timestamp,
+                timestamp: serverTimestamp(),
             }));
 
             setPosts(postList);
@@ -102,100 +118,44 @@ const Page = () => {
     }
 
 
-    // const [followers, setFollowers] = useState(auth.currentUser);
-    // const [newDisplayName, setNewDisplayName] = useState('');
-    // const [photoUrl, setPhotoUrl] = useState<string | undefined>(auth.currentUser?.photoURL || undefined);
 
-    // const uploadImageToStorage = async (pickerResult: ImagePicker.ImagePickerResult, userId: string) => {
-    //     try {
-    //         const storage = getStorage();
-    //         const storageRef = ref(storage, `profilePics/${userId}`);
-    //
-    //         // 1) Extract the local URI from the picker result
-    //         if (pickerResult.assets?.length) {
-    //             const assetUri = pickerResult.assets[0].uri;
-    //             // 2) Fetch the file data and convert it to a Blob
-    //             const response = await fetch(assetUri);
-    //             const blob = await response.blob();
-    //
-    //             // 3) Upload the Blob to Firebase Storage
-    //             await uploadBytes(storageRef, blob);
-    //
-    //             // 4) Get the public download URL
-    //             const url = await getDownloadURL(storageRef);
-    //             return url;
-    //         }
-    //
-    //     } catch (error) {
-    //         console.error('Error uploading image to Storage:', error);
-    //         throw error;
-    //     }
-    // };
-
-
-
-
-    // const handleUpdateDisplayName = async () => {
-    //     try {
-    //         if (auth.currentUser) {
-    //             await updateProfile(auth.currentUser, { displayName: newDisplayName });
-    //             console.log('Profile updated successfully');
-    //         } else {
-    //             console.error('No user is logged in');
-    //         }
-    //     } catch (error) {
-    //         console.error('Error updating profile', error);
-    //     }
-    // };
 
     const handleLogout = async () => {
         auth.signOut();
     }
 
-    // const handleUpdatePhotoURl = async () => {
-    //     try {
-    //         if (!auth.currentUser) {
-    //             console.log('No user logged in');
-    //             return;
-    //         }
-    //
-    //         const result = await ImagePicker.launchImageLibraryAsync({
-    //             // Better to specify the correct enum for images only:
-    //             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    //             allowsEditing: true,
-    //             aspect: [4, 3],
-    //             quality: 1,
-    //         });
-    //
-    //         // Log the entire result for debugging
-    //         console.log('ImagePicker result:', result);
-    //
-    //         // Check if the user canceled or if we have valid assets
-    //         if (!result.canceled && result.assets) {
-    //             // Upload the image and update the profile
-    //             const url = await uploadImageToStorage(result, auth.currentUser.uid);
-    //             await updateProfile(auth.currentUser, { photoURL: url });
-    //             setPhotoUrl(url); // Update state so we can display it immediately
-    //             console.log('Profile URL updated successfully');
-    //         } else {
-    //             console.log('URL not updated (picker canceled or no assets)');
-    //         }
-    //     } catch (error) {
-    //         console.error('Error in handleUpdatePhotoURL:', error);
-    //     }
-    // };
+
 
     return (
 
 
         <View style={styles.container}>
-            <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
-                <Text style={styles.text}>refresh</Text>
-            </TouchableOpacity>
+            <View style={styles.topBar}>
+                <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
+                    <Text style={styles.text}>refresh</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.refreshButton} onPress={() => router.push("/account/editProfile")}>
+                    <Text style={styles.text}>edit profile</Text>
+                </TouchableOpacity>
+
+                <View style={styles.logout}>
+                    <Button title="Logout" onPress={handleLogout} />
+                </View>
+            </View>
+
 
             <View style={styles.infoBar}>
                 <View style={styles.pfpAndInfo}>
-                    <View style={styles.pfp}></View>
+                    <View style={styles.avatarContainer}>
+                        {user?.photoURL ? (
+                            <Image source={{ uri: user?.photoURL }} style={styles.avatar} />
+                        ) : (
+                            <View style={[styles.avatar, styles.placeholder]}>
+                                <Text style={styles.placeholderText}>No Photo</Text>
+                            </View>
+                        )}
+                    </View>
                     <View style={styles.pfpSeparator}></View>
                     <View style={styles.infoBox}>
                         <View style={styles.name}>
@@ -237,9 +197,7 @@ const Page = () => {
                 />
             </View>
 
-            <View style={styles.logout}>
-                <Button title="Logout" onPress={handleLogout} />
-            </View>
+
         </View>
     );
 };
@@ -254,15 +212,21 @@ const styles = StyleSheet.create({
         paddingLeft: 40,
 
     },
+    topBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
     pfpAndInfo: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     pfp: {
-        backgroundColor: 'white',
+        // backgroundColor: 'white',
         borderRadius: 999,
         width: 100,
         height: 100,
+        borderWidth: 1,
+        borderColor: 'white',
     },
     pfpSeparator: {
         width: 20
@@ -308,9 +272,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 0.5,
     },
     logout: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
+        // position: 'absolute',
+        // top: 0,
+        // right: 0,
     },
     postContainer: {
         flex: 1,
@@ -319,15 +283,32 @@ const styles = StyleSheet.create({
         paddingTop: 30
     },
     refreshButton: {
-        position: "absolute",
-        top: 0,
-        left: 10,
+        // position: "absolute",
+        // top: 0,
+        // left: 10,
         backgroundColor: "green",
     },
     text: {
         fontSize: 18,
         fontWeight: "bold",
         color: "gold",
+    },
+    avatarContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    avatar: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+    },
+    placeholder: {
+        backgroundColor: '#444',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    placeholderText: {
+        color: 'white',
     },
 });
 
