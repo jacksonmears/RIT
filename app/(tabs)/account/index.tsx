@@ -27,6 +27,7 @@ const Page = () => {
     const [name, setName] = useState('');
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
+    const [pfp, setPfp] = useState<string>('');
     const [bio, setBio] = useState('');
     const [postContents, setPostContents] = useState<{ id: string, content: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
@@ -52,9 +53,6 @@ const Page = () => {
         getBioInfo()
     }, []);
 
-    useEffect(() => {
-        console.log(user?.photoURL);
-    }, []);
 
 
     useEffect(() => {
@@ -74,6 +72,11 @@ const Page = () => {
             const orderedQuery = query(postsRef, orderBy("timestamp", "asc")); // or "asc"
             const usersDocs = await getDocs(orderedQuery);
 
+            const userPfpRef = await getDoc(doc(db, "users", user.uid));
+            if (userPfpRef.exists()) {
+                setPfp(userPfpRef.data().photoURL)
+            }
+
             const postList = usersDocs.docs.map((doc) => ({
                 id: doc.id,
                 timestamp: serverTimestamp(),
@@ -84,6 +87,8 @@ const Page = () => {
             console.error("Error fetching data:", error);
         }
     };
+
+
 
 
     const getPostContent = async () => {
@@ -148,8 +153,8 @@ const Page = () => {
             <View style={styles.infoBar}>
                 <View style={styles.pfpAndInfo}>
                     <View style={styles.avatarContainer}>
-                        {user?.photoURL ? (
-                            <Image source={{ uri: user?.photoURL }} style={styles.avatar} />
+                        {pfp ? (
+                            <Image source={{ uri: pfp }} style={styles.avatar} />
                         ) : (
                             <View style={[styles.avatar, styles.placeholder]}>
                                 <Text style={styles.placeholderText}>No Photo</Text>

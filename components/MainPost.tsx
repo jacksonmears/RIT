@@ -13,8 +13,8 @@ interface Post {
     content: string;
     caption: string;
     userName: string;
-    photoURL: string;
     timestamp: string;
+    pfp: string;
 }
 
 interface PostCompProps {
@@ -88,8 +88,8 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
             <View style={styles.topBar}>
                 <View style={styles.pfpBox}>
                     <View style={styles.avatarContainer}>
-                        {post.photoURL? (
-                            <Image source={{ uri: post.photoURL }} style={styles.avatar} />
+                        {post.pfp? (
+                            <Image source={{ uri: post.pfp }} style={styles.avatar} />
                         ) : (
                             <View style={[styles.avatar, styles.placeholder]}>
                                 <Text style={styles.placeholderText}>No Photo</Text>
@@ -143,10 +143,19 @@ const styles = StyleSheet.create({
         padding: 5,
         flexDirection: "row",
         alignItems: "center",
+        // backgroundColor: "grey",
+    },
+    avatarContainer: {
+        alignItems: 'center',
+        // marginBottom: 20,
+    },
+    avatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 60,
     },
     pfpBox: {
-        backgroundColor: "white",
-        padding: 20,
+
     },
     username: {
         color: "white",
@@ -184,15 +193,8 @@ const styles = StyleSheet.create({
         color:"grey",
         fontSize: 12
     },
-    avatarContainer: {
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    avatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 60,
-    },
+
+
     placeholder: {
         backgroundColor: '#444',
         justifyContent: 'center',

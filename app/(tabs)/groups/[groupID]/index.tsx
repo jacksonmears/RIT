@@ -42,7 +42,7 @@ const Index = () => {
     const [posts, setPosts] = useState<{ id: string, message_type: string }[] | null>(null);
     // const [videoContents, setVideoContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string }[] | null>(null);
     // const [messageContents, setMessageContents] = useState<{ content: string, userName: string }[] | null>(null);
-    const [messageContents, setMessageContents] = useState<{ message_type: string, groupID: string, id: string, content: string, caption: string, userName: string }[] | null>(null);
+    const [messageContents, setMessageContents] = useState<{ message_type: string, groupID: string, id: string, content: string, caption: string, userName: string, pfp: string }[] | null>(null);
 
     const [message, setMessage] = useState("");
 
@@ -111,8 +111,10 @@ const Index = () => {
                         const userID = postSnap.data().sender_id;
                         const displayName = await getDoc(doc(db, "users", userID));
                         let userName = ''
+                        let pfp = ''
                         if (displayName.exists()) {
                             userName = displayName.data().displayName;
+                            pfp = displayName.data().photoURL;
                         }
 
                         // let timestamp = "Unknown date";
@@ -129,9 +131,9 @@ const Index = () => {
                         //     console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
                         // }
 
-                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: postSnap.data().content, caption: "null", userName: userName };
+                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: postSnap.data().content, caption: "null", userName: userName, pfp: pfp };
                     } else {
-                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed" };
+                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed" };
                     }
                 }
                 else {
@@ -142,13 +144,15 @@ const Index = () => {
                         const userID = postSnap.data().sender_id;
                         const displayName = await getDoc(doc(db, "users", userID));
                         let userName = ''
+                        let pfp = ''
                         if (displayName.exists()) {
                             userName = displayName.data().displayName;
+                            pfp = displayName.data().photoURL;
                         }
 
-                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName };
+                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, pfp: pfp };
                     } else {
-                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed" };
+                        return { message_type: post.message_type, groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed" };
                     }
                 }
             }));

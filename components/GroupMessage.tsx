@@ -7,6 +7,7 @@ import {auth,db} from "@/firebase";
 interface Post {
     content: string;
     userName: string;
+    pfp: string;
 }
 
 interface PostCompProps {
@@ -35,7 +36,17 @@ const GroupMessage: React.FC<PostCompProps> = ({ post }) => {
                 :
                 <View style={styles.container}>
                     <View style={styles.pfpContainer}>
-                        <View style={styles.pfpBox}></View>
+                        <View style={styles.pfpBox}>
+                            <View style={styles.avatarContainer}>
+                                {post.pfp? (
+                                    <Image source={{ uri: post.pfp }} style={styles.avatar} />
+                                ) : (
+                                    <View style={[styles.avatar, styles.placeholder]}>
+                                        <Text style={styles.placeholderText}>No Photo</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
                     </View>
                     <View>
                         <View style={styles.messageView}>
@@ -81,9 +92,6 @@ const styles = StyleSheet.create({
         color: "white",
     },
     pfpBox: {
-        backgroundColor: "white",
-        padding: 15,
-        borderRadius: 999
     },
     selfMessage: {
         backgroundColor: "blue",
@@ -93,7 +101,24 @@ const styles = StyleSheet.create({
     },
     selfText: {
         color: "white",
-    }
+    },
+    avatarContainer: {
+        alignItems: 'center',
+        // marginBottom: 20,
+    },
+    avatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 60,
+    },
+    placeholder: {
+        backgroundColor: '#444',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    placeholderText: {
+        color: 'white',
+    },
 
 });
 

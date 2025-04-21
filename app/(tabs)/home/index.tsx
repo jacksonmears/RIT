@@ -11,7 +11,7 @@ const Page = () => {
     const [postIds, setPostIds] = useState<string[]>([]);
     const user = auth.currentUser;
     const router = useRouter();
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, photoURL: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, pfp: string }[] | null>(null);
     const [refreshing, setRefreshing] = useState(false);
 
 
@@ -87,14 +87,13 @@ const Page = () => {
 
                 if (postSnap.exists()) {
                     const userID = postSnap.data().sender_id;
-                    const displayName = await getDoc(doc(db, "users", userID));
+                    const userInfo = await getDoc(doc(db, "users", userID));
                     let userName = ''
-                    if (displayName.exists()) {
-                        userName = displayName.data().displayName;
+                    let pfp = ''
+                    if (userInfo.exists()) {
+                        userName = userInfo.data().displayName;
+                        pfp = userInfo.data().photoURL;
                     }
-                    const photoURL = postSnap.data().photoURL;
-
-
 
 
 
@@ -120,9 +119,9 @@ const Page = () => {
 
 
 
-                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, photoURL: photoURL };
+                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp };
                 } else {
-                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", photoURL: "failed" };
+                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", pfp: "failed" };
                 }
             }));
 

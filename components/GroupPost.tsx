@@ -10,6 +10,7 @@ interface Post {
     content: string;
     caption: string;
     userName: string;
+    pfp: string;
 }
 
 interface PostCompProps {
@@ -86,7 +87,17 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                     <View style={styles.flexFixer}>
                         <View style={styles.sideSeparator}>
                             <View style={styles.pfpBoxPosition}>
-                                <View style={styles.pfpBox}></View>
+                                <View style={styles.pfpBox}>
+                                    <View style={styles.avatarContainer}>
+                                        {post.pfp? (
+                                            <Image source={{ uri: post.pfp }} style={styles.avatar} />
+                                        ) : (
+                                            <View style={[styles.avatar, styles.placeholder]}>
+                                                <Text style={styles.placeholderText}>No Photo</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
 
                             </View>
                         </View>
@@ -179,10 +190,27 @@ const styles = StyleSheet.create({
         // paddingBottom: 10,
     },
     pfpBox: {
-        backgroundColor: "white",
-        padding: 20,
-        borderRadius: 999
-    }
+        // backgroundColor: "white",
+        // padding: 20,
+        // borderRadius: 999
+    },
+    avatarContainer: {
+        alignItems: 'center',
+        // marginBottom: 20,
+    },
+    avatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 60,
+    },
+    placeholder: {
+        backgroundColor: '#444',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    placeholderText: {
+        color: 'white',
+    },
 });
 
 export default GroupPost;
