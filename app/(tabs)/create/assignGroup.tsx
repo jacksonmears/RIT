@@ -2,7 +2,7 @@ import {View, Text, Button, StyleSheet, FlatList, Pressable, TouchableOpacity } 
 import {auth, db} from '@/firebase';
 import { Checkbox } from 'react-native-paper';
 import React, {useEffect, useState} from "react";
-import {doc, onSnapshot, getDocs, collection, getDoc, addDoc, setDoc } from "firebase/firestore";
+import {doc, onSnapshot, getDocs, collection, getDoc, addDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Link, useRouter, useLocalSearchParams } from "expo-router";
 import GroupCard from "@/components/GroupCard"; // Import reusable component
 
@@ -73,14 +73,14 @@ const Page = () => {
                 sender_id: user.uid,
                 content: content,
                 caption: caption,
-                timestamp: new Date().toISOString(),
+                timestamp: serverTimestamp(),
             });
 
             const postID = postRef.id
             console.log("post created with: ", postID)
 
             const userRef = await setDoc(doc(db, "users", user.uid, "posts", postID), {
-                timestamp: new Date().toISOString(),
+                timestamp: serverTimestamp(),
             });
 
 
@@ -99,7 +99,7 @@ const Page = () => {
                 parsedGroups.map(async (group) => {
                     await setDoc(doc(db, "groups", group.id, "messages", postID), {
                         message_type: "video",
-                        timestamp: new Date().toISOString(),
+                        timestamp: serverTimestamp(),
                     });
                 })
             );

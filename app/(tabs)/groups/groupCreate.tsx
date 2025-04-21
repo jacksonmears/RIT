@@ -2,7 +2,7 @@ import {View, Text, Button, StyleSheet, Animated, TextInput, Pressable} from 're
 import React, { useEffect, useState } from "react";
 import { db, auth } from "@/firebase"
 import {Link, useRouter} from 'expo-router';
-import { collection, addDoc, getDoc, doc, getDocs, orderBy, limit, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDoc, doc, getDocs, orderBy, limit, setDoc, serverTimestamp } from 'firebase/firestore';
 import {Integer} from "@firebase/webchannel-wrapper/bloom-blob";
 import add = Animated.add;
 
@@ -16,7 +16,7 @@ const Page = () => {
         try {
             const docRef = await addDoc(collection(db, "groups"), {
                 name: groupName,              // Store the group name
-                createdAt: new Date(),        // Optional metadata
+                timestamp: serverTimestamp(),        // Optional metadata
                 createdBy: auth.currentUser?.uid // Track the creator if logged in
             });
 
@@ -57,7 +57,7 @@ const Page = () => {
         if (docSnaps.empty) {
             await setDoc(doc(colRef, user.uid), {
                 name: user.displayName,
-                createdAt: new Date(),
+                timestamp: serverTimestamp(),
             });
 
             console.log(`User ${user.uid} added to group ${groupID}`);

@@ -61,47 +61,102 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     }
 
     return (
-        <View style={styles.postView}>
-            <View style={styles.topBar}>
-                <Text>{post.userName}</Text>
-            </View>
-            <View style={styles.contentView}>
-                <Text>{post.content}</Text>
-            </View>
-            <View style={styles.bottomBar}>
-                <View>
-                    <TouchableOpacity onPress={() => likeBeta()}>
-                        <Text style={styles.likeText}>{likeText}</Text>
-                    </TouchableOpacity>
+        <View>
+
+            {user?.displayName === post.userName ? (
+                <View style={styles.postView}>
+                    <View style={styles.nameContentContainer}>
+                        <View style={styles.contentView}>
+                            <TouchableOpacity onPress={() => router.push({
+                                pathname: '/(tabs)/groups/[groupID]/post',
+                                params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
+                            })}>
+                                <Text style={styles.contentText}>{post.content}</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.captionBar}>
+                            <Text style={styles.userNameCaption}>{post.userName} </Text>
+                            <Text> {post.caption}</Text>
+                        </View>
+                    </View>
                 </View>
-                <View>
-                    <TouchableOpacity onPress={() => router.push({
-                        pathname: '/(tabs)/groups/[groupID]/post',
-                        params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
-                    })}>
-                        <Text> comment</Text>
-                    </TouchableOpacity>
+            ) : (
+                <View style={styles.postView}>
+                    <View style={styles.flexFixer}>
+                        <View style={styles.sideSeparator}>
+                            <View style={styles.pfpBoxPosition}>
+                                <View style={styles.pfpBox}></View>
+
+                            </View>
+                        </View>
+                        <View style={styles.nameContentContainer}>
+                            <View style={styles.topBar}>
+                                <Text>{post.userName}</Text>
+                            </View>
+                            <View style={styles.contentView}>
+                                <TouchableOpacity onPress={() => router.push({
+                                    pathname: '/(tabs)/groups/[groupID]/post',
+                                    params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
+                                })}>
+                                    <Text style={styles.contentText}>{post.content}</Text>
+                                </TouchableOpacity>
+                            </View>
+                            {/*<View style={styles.bottomBar}>*/}
+                            {/*    <View>*/}
+                            {/*        <TouchableOpacity onPress={() => likeBeta()}>*/}
+                            {/*            <Text style={styles.likeText}>{likeText}</Text>*/}
+                            {/*        </TouchableOpacity>*/}
+                            {/*    </View>*/}
+                            {/*    <View>*/}
+                            {/*        <TouchableOpacity onPress={() => router.push({*/}
+                            {/*            pathname: '/(tabs)/groups/[groupID]/post',*/}
+                            {/*            params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }*/}
+                            {/*        })}>*/}
+                            {/*            <Text> comment</Text>*/}
+                            {/*        </TouchableOpacity>*/}
+                            {/*    </View>*/}
+                            {/*</View>*/}
+                            <View style={styles.captionBar}>
+                                <Text style={styles.userNameCaption}>{post.userName} </Text>
+                                <Text> {post.caption}</Text>
+                            </View>
+                        </View>
+                    </View>
                 </View>
-            </View>
-            <View style={styles.captionBar}>
-                <Text style={styles.userNameCaption}>{post.userName} </Text>
-                <Text> {post.caption}</Text>
-            </View>
+            )}
+
+
         </View>
+
     );
 };
 
 const styles = StyleSheet.create({
     postView: {
         justifyContent: "center",
+        paddingLeft: 10,
+    },
+    flexFixer: {
+        flexDirection: "row",
+    },
+    sideSeparator: {
+        padding: 0,
+        alignItems: "center",
+        justifyContent: "flex-end",
+        paddingRight: 10
+    },
+    nameContentContainer: {
     },
     topBar: {
-        backgroundColor: "white",
-        padding: 20,
+        backgroundColor: "grey",
+        // padding: 20,
     },
     contentView: {
-        backgroundColor: "grey",
-        padding: 100
+        // backgroundColor: "grey",
+        padding: 100,
+        borderColor: "gold",
+        borderWidth: 1
     },
     bottomBar: {
         backgroundColor: "white",
@@ -109,6 +164,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
     },
     captionBar: {
+        alignItems: "center",
         backgroundColor: "grey",
         padding: 20,
         flexDirection: "row",
@@ -116,8 +172,16 @@ const styles = StyleSheet.create({
     userNameCaption: {
         fontWeight: "bold",
     },
-    likeText: {
-        color: "red",
+    contentText: {
+        color: "white",
+    },
+    pfpBoxPosition: {
+        // paddingBottom: 10,
+    },
+    pfpBox: {
+        backgroundColor: "white",
+        padding: 20,
+        borderRadius: 999
     }
 });
 

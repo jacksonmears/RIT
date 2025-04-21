@@ -9,7 +9,7 @@ import {
 } from "@firebase/auth";
 import { FirebaseError } from "@firebase/util";
 import { Link, useRouter } from "expo-router";
-import {deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const Index = () => {
     const [firstName, setFirstName] = useState("");
@@ -118,8 +118,10 @@ const Index = () => {
                     email: email,
                     displayName: username,
                     bio: "",
+                    photoURL: null,
                     friendRequests: [],
-                    groupRequests: []
+                    groupRequests: [],
+                    joined: serverTimestamp()
                 });
                 await updateProfile(user, { displayName: username });
                 await setDoc(displayNameRef, { uid: user.uid, displayName: username, lowerDisplayName: username.toLowerCase() });

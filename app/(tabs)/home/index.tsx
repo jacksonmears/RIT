@@ -11,12 +11,15 @@ const Page = () => {
     const [postIds, setPostIds] = useState<string[]>([]);
     const user = auth.currentUser;
     const router = useRouter();
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, photoURL: string }[] | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
 
-    useEffect(() => {
-        console.log(postIds)
-    }, [postIds]);
+    // useEffect(() => {
+    //     console.log(friends);
+    //     console.log(postIds)
+    // }, [postIds]);
+
 
 
     const fetchFriendIds = async () => {
@@ -52,6 +55,28 @@ const Page = () => {
     };
 
 
+    const getTimeAgo = (timestampDate: Date): string => {
+        const now = new Date();
+        const diffMs = now.getTime() - timestampDate.getTime();
+
+        const seconds = Math.floor(diffMs / 1000);
+        const minutes = Math.floor(diffMs / (1000 * 60));
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const months = Math.floor(days / 30);
+        const years = Math.floor(days / 365);
+
+        if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
+        if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+        if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+        if (days < 30) return `${days} day${days !== 1 ? 's' : ''} ago`;
+        if (months < 12) return `${months} month${months !== 1 ? 's' : ''} ago`;
+        return `${years} year${years !== 1 ? 's' : ''} ago`;
+    };
+
+
+
+
     const fetchPostContent = async () => {
         if (!postIds || !user) return;
 
@@ -67,10 +92,37 @@ const Page = () => {
                     if (displayName.exists()) {
                         userName = displayName.data().displayName;
                     }
+                    const photoURL = postSnap.data().photoURL;
 
-                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName };
+
+
+
+
+                    // let timestamp = postSnap.data().timestamp.toDate().toDateString();
+
+                    let timestamp = "Unknown date";
+
+                    const rawTimestamp = postSnap.data().timestamp;
+                    if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
+                        try {
+                            const dateObj = rawTimestamp.toDate();
+                            timestamp = getTimeAgo(dateObj);
+                        } catch (error) {
+                            console.error("Error converting timestamp:", error);
+                        }
+                    } else {
+                        console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
+                    }
+
+                    console.log("Raw timestamp:", postSnap.data().timestamp);
+
+
+
+
+
+                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, photoURL: photoURL };
                 } else {
-                    return { id: post, content: "Content not found", caption: "failed", userName: "failed" };
+                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", photoURL: "failed" };
                 }
             }));
 
@@ -80,6 +132,11 @@ const Page = () => {
         }
     };
 
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchFriendIds(); // this will automatically trigger fetchPosts → fetchPostContent via useEffect
+        setRefreshing(false);
+    };
 
 
     useEffect(() => {
@@ -111,6 +168,8 @@ const Page = () => {
                 contentContainerStyle={styles.flatListContentContainer}
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
                 keyboardShouldPersistTaps="handled"
+                refreshing={refreshing}              // 👈 NEW
+                onRefresh={onRefresh}                // 👈 NEW
             />
 
         </View>
@@ -126,7 +185,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        // backgroundColor: '#222222',
         padding: 5
     },
     titleText: {
@@ -146,7 +204,7 @@ const styles = StyleSheet.create({
         height: 20,
     },
     flatListContentContainer: {
-        paddingTop: 0,
+        paddingTop: 10,
         paddingBottom: 100, // or however much is needed to fully see bottom captions
     },
 
