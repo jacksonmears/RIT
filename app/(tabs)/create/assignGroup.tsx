@@ -1,13 +1,17 @@
 import {View, Text, Button, StyleSheet, FlatList, Pressable, TouchableOpacity } from 'react-native';
-import {auth, db} from '@/firebase';
+import {auth, db, storage} from '@/firebase';
 import { Checkbox } from 'react-native-paper';
 import React, {useEffect, useState} from "react";
-import {doc, onSnapshot, getDocs, collection, getDoc, addDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import {doc, onSnapshot, getDocs, collection, getDoc, addDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { Link, useRouter, useLocalSearchParams } from "expo-router";
-import GroupCard from "@/components/GroupCard"; // Import reusable component
+import GroupCard from "@/components/GroupCard";
+import {getDownloadURL, ref as storageRef, uploadBytes} from "firebase/storage"; // Import reusable component
 
 const Page = () => {
     const user = auth.currentUser;
+    const {filler} = useLocalSearchParams();
+    const localUri = String(filler);
+    const [globalPath, setGlobalPath] = useState<string | null>(null);
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<{ [key: string]: boolean }>({});
@@ -16,6 +20,10 @@ const Page = () => {
     const captionString = String(caption); // Convert content to string
 
 
+    useEffect(() => {
+        console.log(filler);
+        console.log("here");
+    }, []);
 
     useEffect(() => {
         if (user) {
@@ -63,21 +71,23 @@ const Page = () => {
         }
         try {
 
-            // const postRef = await addDoc(collection(db, "posts"), {
-            //     content: content,
-            //     user: user.uid,
-            //     caption: caption,
-            // });
+
 
             const postRef = await addDoc(collection(db, "posts"), {
                 sender_id: user.uid,
-                content: content,
-                caption: caption,
+                caption: '',
                 timestamp: serverTimestamp(),
             });
 
             const postID = postRef.id
-            console.log("post created with: ", postID)
+
+            const imageURL = await uploadPhoto(postID);
+
+            await updateDoc(doc(db, "posts", postID), {
+                content: imageURL,
+            });
+
+
 
             const userRef = await setDoc(doc(db, "users", user.uid, "posts", postID), {
                 timestamp: serverTimestamp(),
@@ -91,6 +101,23 @@ const Page = () => {
             console.error(error);
         }
     }
+
+
+    const uploadPhoto = async (postID: string) => {
+        if (!auth.currentUser) {
+            throw new Error('No user logged in');
+        }
+        const response = await fetch(localUri);
+        const blob = await response.blob();
+
+        const path = `postPictures/${postID}.jpg`;
+        const ref = storageRef(storage, path);
+
+        await uploadBytes(ref, blob);
+        return getDownloadURL(ref);
+    }
+
+
 
 
     const addPostToGroups = async (db: any, parsedGroups: { id: string }[], postID: string) => {

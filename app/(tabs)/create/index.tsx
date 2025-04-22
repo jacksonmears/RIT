@@ -1,243 +1,149 @@
-import {View, Text, Pressable, StyleSheet, TextInput, TouchableOpacity} from 'react-native';
-import React, { useEffect, useRef, useState } from 'react';
-import { auth, db, } from '@/firebase';
-import { Camera, getCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
-import { doc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
-import { Link, useRouter, useLocalSearchParams } from "expo-router";
+import { CameraView, CameraType, useCameraPermissions, CameraMode } from 'expo-camera';
+import { useState, useRef } from 'react';
+import { Button, StyleSheet, Text, TouchableOpacity, View, Pressable } from 'react-native';
+import { useRouter } from 'expo-router'
 
 const Page = () => {
-    const user = auth.currentUser;
-    const cameraRef = useRef<Camera>(null);
-    const [snapshotPath, setSnapshotPath] = useState<string | null>(null);
-    const [device, setDevice] = useState<any>(null);
-    const { hasPermission: cameraHasPermission, requestPermission: requestCameraPermission } = useCameraPermission();
-    const { hasPermission: micHasPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
-    const [content, setContent] = useState('');
-    const [caption, setCaption] = useState('');
+    const [permission, requestPermission] = useCameraPermissions();
+    const ref = useRef<CameraView>(null);
+    const [uri, setUri] = useState<string | undefined>(undefined);
+    const [mode, setMode] = useState<CameraMode>("picture");
+    const [facing, setFacing] = useState<CameraType>("front");
+    const [recording, setRecording] = useState(false);
     const router = useRouter();
-    const { groups } = useLocalSearchParams();
 
-    // Parse JSON string back into an array
-    // const parsedGroupsObject = groups ? JSON.parse(groups as string) : {};
-    // const parsedGroups = Object.keys(parsedGroupsObject)
-    //     .filter((groupId) => parsedGroupsObject[groupId]) // Only keep selected groups (true)
-    //     .map((groupId) => ({ id: groupId })); // Convert to array format
-    //
-    // useEffect(() => {
-    //     console.log(parsedGroups);
-    // }, []);
-
-    // useEffect(() => {
-    //     const fetchDevices = async () => {
-    //         if (!cameraHasPermission || !micHasPermission) {
-    //             const permission1 = await requestCameraPermission();
-    //             const permission2 = await requestMicPermission();
-    //             if (!permission1 || !permission2) {
-    //                 console.error('Camera permission not granted.');
-    //                 return;
-    //             } else {
-    //                 console.log('Camera permission granted.');
-    //             }
-    //         }
-    //         const availableDevices = await Camera.getAvailableCameraDevices();
-    //         const backDevice = getCameraDevice(availableDevices, 'back');
-    //         if (!backDevice) {
-    //             console.error('No back camera found.');
-    //         }
-    //         setDevice(backDevice);
-    //     };
-    //
-    //     fetchDevices();
-    // }, [cameraHasPermission, requestCameraPermission, micHasPermission, requestMicPermission]);
-
-
-
-    // const createPost = async (content: string) => {
-    //     if (!user || !Array.isArray(parsedGroups) || (!parsedGroups || Object.keys(parsedGroups).length === 0 || Object.values(parsedGroups).every(value => value === false))) {
-    //         console.log("not parsed groups")
-    //         return;
-    //     }
-    //     try {
-    //
-    //         const postRef = await addDoc(collection(db, "posts"), {
-    //             content: content
-    //         });
-    //
-    //         const postID = postRef.id
-    //         console.log("post created with: ", postID)
-    //
-    //         const userRef = await setDoc(doc(db, "users", user.uid, "posts", postID), {
-    //             createdAt: new Date().toISOString(),
-    //         });
-    //
-    //         await addPostToGroups(db, parsedGroups, postID);
-    //
-    //
-    //     } catch (error) {
-    //         console.error(error);
-    //     }
-    // }
-    //
-    //
-    // const addPostToGroups = async (db: any, parsedGroups: { id: string }[], postID: string) => {
-    //     try {
-    //         await Promise.all(
-    //             parsedGroups.map(async (group) => {
-    //                 await setDoc(doc(db, "groups", group.id, "posts", postID), {
-    //                     createdAt: new Date().toISOString(),
-    //                 });
-    //             })
-    //         );
-    //         console.log("Post added to all selected groups");
-    //     } catch (error) {
-    //         console.error("Error adding post to groups:", error);
-    //     }
-    // };
-
-
-
-    const assignPostGroup = async (postId: string) => {
-
+    if (!permission) {
+        return null;
     }
 
+    if (!permission.granted) {
+        return (
+            <View style={styles.container}>
+                <Text style={{ textAlign: "center" }}>
+                    We need your permission to use the camera
+                </Text>
+                <Button onPress={requestPermission} title="Grant permission" />
+            </View>
+        );
+    }
+
+    const takePicture = async () => {
+        const photo = await ref.current?.takePictureAsync();
+        setUri(photo?.uri);
+        router.push({pathname: '/create/assignGroup', params: {filler: photo?.uri}})
+    };
+
+    const recordVideo = async () => {
+        if (recording) {
+            setRecording(false);
+            ref.current?.stopRecording();
+            return;
+        }
+        setRecording(true);
+        const video = await ref.current?.recordAsync();
+        console.log({ video });
+    };
+
+    const toggleMode = () => {
+        setMode((prev) => (prev === "picture" ? "video" : "picture"));
+    };
+
+    const toggleFacing = () => {
+        setFacing((prev) => (prev === "back" ? "front" : "back"));
+    };
 
 
+    const renderPicture = () => {
+        return (
+            <View>
+            </View>
+        );
+    };
 
-
-    // const takePhoto = async () => {
-    //     if (!cameraRef.current) {
-    //         console.error('Camera ref is not available');
-    //         return;
-    //     }
-    //     try {
-    //         const photo = await cameraRef.current.takePhoto({});
-    //         console.log('Snapshot saved to:', photo.path);
-    //         setSnapshotPath(photo.path);
-    //     } catch (error) {
-    //         console.error('Error taking snapshot:', error);
-    //     }
-    // };
-    //
-    // if (!device) {
-    //     return (
-    //         <View style={styles.container}>
-    //             <Text>Loading camera device...</Text>
-    //         </View>
-    //     );
-    // }
+    const renderCamera = () => {
+        return (
+            <CameraView
+                style={styles.camera}
+                ref={ref}
+                mode={mode}
+                facing={facing}
+                mute={false}
+                responsiveOrientationWhenOrientationLocked
+            >
+                <View style={styles.shutterContainer}>
+                    <Pressable onPress={toggleMode}>
+                    </Pressable>
+                    <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
+                        {({ pressed }) => (
+                            <View
+                                style={[
+                                    styles.shutterBtn,
+                                    {
+                                        opacity: pressed ? 0.5 : 1,
+                                    },
+                                ]}
+                            >
+                                <View
+                                    style={[
+                                        styles.shutterBtnInner,
+                                        {
+                                            backgroundColor: mode === "picture" ? "white" : "red",
+                                        },
+                                    ]}
+                                />
+                            </View>
+                        )}
+                    </Pressable>
+                    <Pressable onPress={toggleFacing}>
+                    </Pressable>
+                </View>
+            </CameraView>
+        );
+    };
 
     return (
         <View style={styles.container}>
-            {/*<Camera*/}
-            {/*    ref={cameraRef}*/}
-            {/*    device={device}*/}
-            {/*    isActive={true}*/}
-            {/*    photo={true}*/}
-            {/*    style={StyleSheet.absoluteFill}*/}
-            {/*/>*/}
-            {/*<Pressable style={styles.permissionButton} onPress={takePhoto}>*/}
-            {/*    <Text style={styles.text}>Take Image</Text>*/}
-            {/*</Pressable>*/}
-            {/*{snapshotPath && <Text>Photo saved at: {snapshotPath}</Text>}*/}
-
-            <Text style={styles.t}> Create Page ! </Text>
-            <TextInput
-                style={styles.input}
-                placeholder="create a post"
-                placeholderTextColor="#ccc"
-                value={content}
-                onChangeText={setContent}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="create a caption"
-                placeholderTextColor="#ccc"
-                value={caption}
-                onChangeText={setCaption}
-            />
-            {/*<Pressable onPress={handleSearch} style={styles.button}>*/}
-            {/*    <Text> Search for friends </Text>*/}
-            {/*</Pressable>*/}
-
-            {/*<Pressable onPress={() => createPost(post)} style={styles.createPostButton}>*/}
-            {/*    <Text> post! </Text>*/}
-            {/*</Pressable>*/}
-
-            {/*<TouchableOpacity style={styles.pickGroupsButton} onPress={() => router.push("/create/assignGroup")}>*/}
-            {/*    <Text>pick groups</Text>*/}
-            {/*</TouchableOpacity>*/}
-
-            <TouchableOpacity style={styles.pickGroupsButton} onPress={() => router.push({ pathname: "/create/assignGroup", params: { content: content, caption: caption} })}>
-                <Text>done</Text>
-            </TouchableOpacity>
-
-
+            {uri ? renderPicture() : renderCamera()}
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
-    // container: {
-    //     flex: 1,
-    //     justifyContent: 'center',
-    //     alignItems: 'center',
-    // },
-    // permissionButton: {
-    //     position: 'absolute',
-    //     top: 50,
-    //     left: 50,
-    //     backgroundColor: 'black',
-    //     padding: 10,
-    //     borderRadius: 5,
-    // },
-    // text: {
-    //     color: 'white',
-    // },
     container: {
-        backgroundColor: "black",
         flex: 1,
-        justifyContent: "center",
+        backgroundColor: "#fff",
         alignItems: "center",
+        justifyContent: "center",
     },
-    t: {
-        color: "white",
+    camera: {
+        flex: 1,
+        width: "100%",
     },
-    input: {
-        marginVertical: 4,
-        marginHorizontal: 40,
-        borderWidth: 1,
-        borderRadius: 4,
-        padding: 20,
-        backgroundColor: "white",
-        fontSize: 30,
-    },
-    button: {
-        marginVertical: 4,
-        marginHorizontal: 40,
+    shutterContainer: {
         position: "absolute",
-        backgroundColor: "white",
-        borderRadius: 4,
-        top: 50,
-        left: 50,
+        bottom: 44,
+        left: 0,
+        width: "100%",
+        alignItems: "center",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingHorizontal: 30,
     },
-    pickGroupsButton: {
-        marginVertical: 4,
-        marginHorizontal: 40,
-        position: "absolute",
-        backgroundColor: "white",
-        borderRadius: 4,
-        top: 500,
-        left: 50,
+    shutterBtn: {
+        backgroundColor: "transparent",
+        borderWidth: 5,
+        borderColor: "white",
+        width: 85,
+        height: 85,
+        borderRadius: 45,
+        alignItems: "center",
+        justifyContent: "center",
     },
-    createPostButton: {
-        marginVertical: 4,
-        marginHorizontal: 40,
-        position: "absolute",
-        backgroundColor: "white",
-        borderRadius: 4,
-        top: 500,
-        right: 50,
-    }
+    shutterBtnInner: {
+        width: 70,
+        height: 70,
+        borderRadius: 50,
+    },
 });
 
 export default Page;
