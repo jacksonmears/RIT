@@ -11,6 +11,7 @@ interface Post {
     caption: string;
     userName: string;
     pfp: string;
+    type: string;
 }
 
 interface PostCompProps {
@@ -27,7 +28,10 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 
 
 
+
+
     useEffect(() => {
+        console.log(post.content)
         const likeFunc = async () => {
             if (!user) return;
 
@@ -72,7 +76,11 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                 pathname: '/(tabs)/groups/[groupID]/post',
                                 params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
                             })}>
-                                <Text style={styles.contentText}>{post.content}</Text>
+                                {post.type === "picture" ?
+                                    <Image source={{ uri: post.content }} style={styles.pictureContent} />
+                                    :
+                                    <Text style={styles.contentText}>{post.content}</Text>
+                                }
                             </TouchableOpacity>
                         </View>
 
@@ -110,24 +118,13 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                     pathname: '/(tabs)/groups/[groupID]/post',
                                     params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
                                 })}>
-                                    <Text style={styles.contentText}>{post.content}</Text>
+                                    {post.type === "picture" ?
+                                        <Image source={{ uri: post.content }} style={styles.pictureContent} />
+                                        :
+                                        <Text style={styles.contentText}>{post.content}</Text>
+                                    }
                                 </TouchableOpacity>
                             </View>
-                            {/*<View style={styles.bottomBar}>*/}
-                            {/*    <View>*/}
-                            {/*        <TouchableOpacity onPress={() => likeBeta()}>*/}
-                            {/*            <Text style={styles.likeText}>{likeText}</Text>*/}
-                            {/*        </TouchableOpacity>*/}
-                            {/*    </View>*/}
-                            {/*    <View>*/}
-                            {/*        <TouchableOpacity onPress={() => router.push({*/}
-                            {/*            pathname: '/(tabs)/groups/[groupID]/post',*/}
-                            {/*            params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }*/}
-                            {/*        })}>*/}
-                            {/*            <Text> comment</Text>*/}
-                            {/*        </TouchableOpacity>*/}
-                            {/*    </View>*/}
-                            {/*</View>*/}
                             <View style={styles.captionBar}>
                                 <Text style={styles.userNameCaption}>{post.userName} </Text>
                                 <Text> {post.caption}</Text>
@@ -165,7 +162,7 @@ const styles = StyleSheet.create({
     },
     contentView: {
         // backgroundColor: "grey",
-        padding: 100,
+        // padding: 100,
         borderColor: "gold",
         borderWidth: 1
     },
@@ -197,6 +194,10 @@ const styles = StyleSheet.create({
     avatarContainer: {
         alignItems: 'center',
         // marginBottom: 20,
+    },
+    pictureContent: {
+        width: 200,
+        height: 200,
     },
     avatar: {
         width: 30,

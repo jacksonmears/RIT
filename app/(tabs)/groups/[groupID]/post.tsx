@@ -1,60 +1,62 @@
-import { View, Text, Button, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import {auth, db} from '@/firebase';
-import React, {useEffect, useState} from "react";
-import {useLocalSearchParams, useRouter, useNavigation} from "expo-router";
-import { getDoc, doc } from "firebase/firestore";
+import {
+    View,
+    Text,
+    StyleSheet,
+    Image,
+    TouchableOpacity
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 
-const Page = () => {
-    const user = auth.currentUser;
+export default function Page() {
+    const { contentT } = useLocalSearchParams();
+    const content = String(contentT);
     const router = useRouter();
-    const { groupID, idT, contentT, captionT, userNameT } = useLocalSearchParams();
-    const groupId = String(groupID);
-    const id = String(idT); // Convert content to string
-    const content = String(contentT); // Convert content to string
-    const caption = String(captionT); // Convert content to string
-    const userName = String(userNameT); // Convert content to string
-
 
     useEffect(() => {
-        console.log(id, content, caption, userName);
+        console.log('Loading image URL:', content);
     }, []);
-
 
 
     return (
         <View style={styles.container}>
-            <View style={styles.contentView}>
-                <Text style={styles.contentText}>{content}</Text>
+            <View style={styles.top70}>
+                <Image
+                    source={{ uri: content }}
+                    style={styles.image}
+                    resizeMode="contain"
+                    onError={(e) => console.error('Image load error', e.nativeEvent.error)}
+                />
             </View>
 
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+            >
                 <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'black',
-        position: 'relative',
     },
-    contentView: {
-        flex: 1,
-        backgroundColor: "black",
+    top70: {
+        height: '95%',      // exactly 7/10 of the screen
+        width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
     },
-    contentText: {
-        color: 'gold',
-        fontSize: 18,
-        textAlign: 'center',
+    image: {
+        width: '100%',      // fill the container
+        height: '100%',
     },
     backButton: {
         position: 'absolute',
-        top: 20, // Adjust for status bar / notch
+        top: 20,
         left: 15,
         backgroundColor: 'rgba(0,0,0,0.5)',
         padding: 8,
@@ -65,5 +67,3 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
 });
-
-export default Page;

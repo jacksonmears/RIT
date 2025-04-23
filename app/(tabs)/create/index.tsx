@@ -2,6 +2,7 @@ import { CameraView, CameraType, useCameraPermissions, CameraMode } from 'expo-c
 import { useState, useRef } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router'
+import { captureRef } from 'react-native-view-shot';
 
 const Page = () => {
     const [permission, requestPermission] = useCameraPermissions();
@@ -10,6 +11,7 @@ const Page = () => {
     const [mode, setMode] = useState<CameraMode>("picture");
     const [facing, setFacing] = useState<CameraType>("front");
     const [recording, setRecording] = useState(false);
+    const [cameraReady, setCameraReady] = useState(false);
     const router = useRouter();
 
     if (!permission) {
@@ -28,9 +30,10 @@ const Page = () => {
     }
 
     const takePicture = async () => {
+        if (!ref || !cameraReady) return;
         const photo = await ref.current?.takePictureAsync();
         setUri(photo?.uri);
-        router.push({pathname: '/create/assignGroup', params: {filler: photo?.uri}})
+        router.push({pathname: '/create/assignGroup', params: {fillerUri: photo?.uri, fillerMode: mode}})
     };
 
     const recordVideo = async () => {
@@ -62,44 +65,45 @@ const Page = () => {
 
     const renderCamera = () => {
         return (
-            <CameraView
-                style={styles.camera}
-                ref={ref}
-                mode={mode}
-                facing={facing}
-                mute={false}
-                responsiveOrientationWhenOrientationLocked
-            >
-                <View style={styles.shutterContainer}>
-                    <Pressable onPress={toggleMode}>
-                    </Pressable>
-                    <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
-                        {({ pressed }) => (
-                            <View
-                                style={[
-                                    styles.shutterBtn,
-                                    {
-                                        opacity: pressed ? 0.5 : 1,
-                                    },
-                                ]}
-                            >
+            <View style={{ flex: 1 }}>
+                <CameraView
+                    style={StyleSheet.absoluteFill}
+                    ref={ref}
+                    mode={mode}
+                    facing={facing}
+                    mute={false}
+                    onCameraReady={() => setCameraReady(true)}
+                    responsiveOrientationWhenOrientationLocked
+                >
+                    <View style={styles.shutterContainer}>
+                        <Pressable onPress={toggleMode} />
+                        <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
+                            {({ pressed }) => (
                                 <View
                                     style={[
-                                        styles.shutterBtnInner,
-                                        {
-                                            backgroundColor: mode === "picture" ? "white" : "red",
-                                        },
+                                        styles.shutterBtn,
+                                        { opacity: pressed ? 0.5 : 1 },
                                     ]}
-                                />
-                            </View>
-                        )}
-                    </Pressable>
-                    <Pressable onPress={toggleFacing}>
-                    </Pressable>
-                </View>
-            </CameraView>
+                                >
+                                    <View
+                                        style={[
+                                            styles.shutterBtnInner,
+                                            {
+                                                backgroundColor:
+                                                    mode === "picture" ? "white" : "red",
+                                            },
+                                        ]}
+                                    />
+                                </View>
+                            )}
+                        </Pressable>
+                        <Pressable onPress={toggleFacing} />
+                    </View>
+                </CameraView>
+            </View>
         );
     };
+
 
     return (
         <View style={styles.container}>
@@ -111,9 +115,7 @@ const Page = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff",
-        alignItems: "center",
-        justifyContent: "center",
+        backgroundColor: "black",
     },
     camera: {
         flex: 1,
@@ -147,3 +149,4 @@ const styles = StyleSheet.create({
 });
 
 export default Page;
+

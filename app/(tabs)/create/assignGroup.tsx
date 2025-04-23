@@ -6,11 +6,13 @@ import {doc, onSnapshot, getDocs, collection, getDoc, addDoc, setDoc, serverTime
 import { Link, useRouter, useLocalSearchParams } from "expo-router";
 import GroupCard from "@/components/GroupCard";
 import {getDownloadURL, ref as storageRef, uploadBytes} from "firebase/storage"; // Import reusable component
+import * as ImageManipulator from 'expo-image-manipulator';
 
 const Page = () => {
     const user = auth.currentUser;
-    const {filler} = useLocalSearchParams();
-    const localUri = String(filler);
+    const {fillerUri, fillerMode} = useLocalSearchParams();
+    const localUri = String(fillerUri);
+    const mode = String(fillerMode);
     const [globalPath, setGlobalPath] = useState<string | null>(null);
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
@@ -19,11 +21,6 @@ const Page = () => {
     const contentString = String(content); // Convert content to string
     const captionString = String(caption); // Convert content to string
 
-
-    useEffect(() => {
-        console.log(filler);
-        console.log("here");
-    }, []);
 
     useEffect(() => {
         if (user) {
@@ -75,6 +72,7 @@ const Page = () => {
 
             const postRef = await addDoc(collection(db, "posts"), {
                 sender_id: user.uid,
+                type: mode,
                 caption: '',
                 timestamp: serverTimestamp(),
             });
@@ -84,7 +82,7 @@ const Page = () => {
             const imageURL = await uploadPhoto(postID);
 
             await updateDoc(doc(db, "posts", postID), {
-                content: imageURL,
+                content: encodeURIComponent(imageURL),
             });
 
 
@@ -110,22 +108,80 @@ const Page = () => {
         const response = await fetch(localUri);
         const blob = await response.blob();
 
-        const path = `postPictures/${postID}.jpg`;
-        const ref = storageRef(storage, path);
+        // const resizedImage = await ImageManipulator.manipulateAsync(
+        //     localUri,
+        //     [{ resize: { width: 1080, height: 1350 } }],
+        //     { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        // );
+
+        // const resizedImage = await resize(localUri)
+
+        // const encodedPath = encodeURIComponent(`postPictures/${postID}.jpg`);
+        const ref = storageRef(storage, `postPictures/${postID}.jpg`);
+        // const resizedBlob = await fetch(resizedImage).then(res => res.blob());
 
         await uploadBytes(ref, blob);
         return getDownloadURL(ref);
     }
 
 
+    const resize = async (uri: string) => {
+        const targetWidth = 1080;
+        const targetHeightPortrait = 1350;
+        // const targetHeightLandscape = 566;
 
+        // Get the image dimensions
+        const { width, height } = await getImageDimensions(uri);
+        console.log(width, height);
+
+        // Calculate the aspect ratio
+        const aspectRatio = width / height;
+
+        let newWidth, newHeight;
+
+        if (aspectRatio > targetWidth / targetHeightPortrait ) {
+            newWidth = targetWidth;
+            newHeight = Math.round(targetWidth / aspectRatio);
+        } else {
+            // Portrait image, adjust height
+            newHeight = targetHeightPortrait;
+            newWidth = Math.round(targetHeightPortrait * aspectRatio);
+        }
+
+        // Resize the image to fit the target dimensions while maintaining the aspect ratio
+        const resizedImage = await ImageManipulator.manipulateAsync(uri, [
+            { resize: { width: newWidth, height: newHeight } },
+        ]);
+
+        // Create a new blank image with the target size and a background color
+        const paddedImage = await ImageManipulator.manipulateAsync(resizedImage.uri, [
+            {
+                resize: { width: targetWidth, height: targetHeightPortrait },
+            },
+            {
+                crop: {
+                    originX: (targetWidth - newWidth) / 2,
+                    originY: (targetHeightPortrait - newHeight) / 2,
+                    width: newWidth,
+                    height: newHeight,
+                },
+            },
+        ]);
+
+        return paddedImage.uri; // Return the resized and padded image URI
+    };
+
+    const getImageDimensions = async (uri: string) => {
+        const { width, height } = await ImageManipulator.manipulateAsync(uri, []);
+        return { width, height };
+    };
 
     const addPostToGroups = async (db: any, parsedGroups: { id: string }[], postID: string) => {
         try {
             await Promise.all(
                 parsedGroups.map(async (group) => {
                     await setDoc(doc(db, "groups", group.id, "messages", postID), {
-                        message_type: "video",
+                        type: mode,
                         timestamp: serverTimestamp(),
                     });
                 })
