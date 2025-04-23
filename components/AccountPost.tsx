@@ -19,7 +19,9 @@ const AccountPost: React.FC<PostCompProps> = ({ post }) => {
 
     return (
         <View style={styles.contentView}>
-            <Text style={styles.contentText}>{post.content}</Text>
+            <Image source={{ uri: post.content }} />
+
+            {/*<Text style={styles.contentText}>{post.content}</Text>*/}
         </View>
     );
 };

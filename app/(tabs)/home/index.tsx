@@ -11,7 +11,7 @@ const Page = () => {
     const [postIds, setPostIds] = useState<string[]>([]);
     const user = auth.currentUser;
     const router = useRouter();
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, pfp: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, pfp: string, type: string }[] | null>(null);
     const [refreshing, setRefreshing] = useState(false);
 
 
@@ -87,6 +87,7 @@ const Page = () => {
 
                 if (postSnap.exists()) {
                     const userID = postSnap.data().sender_id;
+                    const type = postSnap.data().type;
                     const userInfo = await getDoc(doc(db, "users", userID));
                     let userName = ''
                     let pfp = ''
@@ -119,9 +120,9 @@ const Page = () => {
 
 
 
-                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp };
+                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp, type: type };
                 } else {
-                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", pfp: "failed" };
+                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", pfp: "failed", type: "failed" };
                 }
             }));
 

@@ -10,6 +10,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 interface Post {
     id: string;
+    type: string;
     content: string;
     caption: string;
     userName: string;
@@ -25,6 +26,7 @@ interface PostCompProps {
 
 const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const router = useRouter();
+    const content = decodeURIComponent(post.content);
     const user = auth.currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
     const [likeText, setLikeText] = useState("like");
@@ -32,7 +34,10 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const [numComments, setNumComments] = useState<number>(0);
 
 
+
+
     useEffect(() => {
+        console.log(content)
         const likeFunc = async () => {
             if (!user) return;
 
@@ -85,52 +90,113 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 
     return (
         <View style={styles.postView}>
-            <View style={styles.topBar}>
-                <View style={styles.pfpBox}>
-                    <View style={styles.avatarContainer}>
-                        {post.pfp? (
-                            <Image source={{ uri: post.pfp }} style={styles.avatar} />
-                        ) : (
-                            <View style={[styles.avatar, styles.placeholder]}>
-                                <Text style={styles.placeholderText}>No Photo</Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-                <Text style={styles.username}>{post.userName}</Text>
-            </View>
-            <View style={styles.contentView}>
-                <Text style={styles.username}>{post.content}</Text>
-            </View>
-            <View style={styles.bottomBar}>
-                <TouchableOpacity onPress={() => likeBeta()}>
-                    <View style={styles.likeAssetContainer}>
-                        {likeStatus ?
-                            <AntDesign name="heart" size={24} color={"red"} />
-                            :
-                            <AntDesign name="hearto" size={24} color={"white"} />
-                        }
 
-                    </View>
-                </TouchableOpacity>
-                <Text style={styles.numLikesText}>{numLikes}</Text>
-
+            {(post.type === "picture") ?
                 <View>
-                    <TouchableOpacity onPress={() => router.push({
-                        pathname: '/(tabs)/home/post',
-                        params: { idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
-                    })}>
-                        <FontAwesome name="comment-o" size={22} color={"white"} />
-                    </TouchableOpacity>
-                </View>
-                <Text style={styles.numLikesText}>{numComments}</Text>
+                    <View>
+                        <View style={styles.topBar}>
+                            <View style={styles.pfpBox}>
+                                <View style={styles.avatarContainer}>
+                                    {post.pfp? (
+                                        <Image source={{ uri: post.pfp }} style={styles.avatar} />
+                                    ) : (
+                                        <View style={[styles.avatar, styles.placeholder]}>
+                                            <Text style={styles.placeholderText}>No Photo</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                            <Text style={styles.username}>{post.userName}</Text>
+                        </View>
+                        <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{contentT: post.content}})}>
+                            <View style={styles.contentViewPicture}>
+                                <Image source={{ uri: content }} style={styles.pictureContent} />
+                                {/*<Text style={styles.username}>{post.content}</Text>*/}
+                            </View>
+                        </TouchableOpacity>
+                        <View style={styles.bottomBar}>
+                            <TouchableOpacity onPress={() => likeBeta()}>
+                                <View style={styles.likeAssetContainer}>
+                                    {likeStatus ?
+                                        <AntDesign name="heart" size={24} color={"red"} />
+                                        :
+                                        <AntDesign name="hearto" size={24} color={"white"} />
+                                    }
 
-            </View>
-            <View style={styles.captionBar}>
-                <Text style={styles.userNameCaption}>{post.userName} </Text>
-                <Text style={styles.username}> {post.caption}</Text>
-            </View>
-            <Text style={styles.timeText}>{post.timestamp}</Text>
+                                </View>
+                            </TouchableOpacity>
+                            <Text style={styles.numLikesText}>{numLikes}</Text>
+
+                            <View>
+                                <TouchableOpacity onPress={() => router.push({
+                                    pathname: '/(tabs)/home/post',
+                                    params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName }
+                                })}>
+                                    <FontAwesome name="comment-o" size={22} color={"white"} />
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={styles.numLikesText}>{numComments}</Text>
+
+                        </View>
+                        <View style={styles.captionBar}>
+                            <Text style={styles.userNameCaption}>{post.userName} </Text>
+                            <Text style={styles.username}> {post.caption}</Text>
+                        </View>
+                        <Text style={styles.timeText}>{post.timestamp}</Text>
+                    </View>
+                </View>
+                :
+                <View>
+                    <View style={styles.topBar}>
+                        <View style={styles.pfpBox}>
+                            <View style={styles.avatarContainer}>
+                                {post.pfp? (
+                                    <Image source={{ uri: post.pfp }} style={styles.avatar} />
+                                ) : (
+                                    <View style={[styles.avatar, styles.placeholder]}>
+                                        <Text style={styles.placeholderText}>No Photo</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+                        <Text style={styles.username}>{post.userName}</Text>
+                    </View>
+                    <View style={styles.contentViewText}>
+                        <Text style={styles.username}>{post.content}</Text>
+                    </View>
+                    <View style={styles.bottomBar}>
+                        <TouchableOpacity onPress={() => likeBeta()}>
+                            <View style={styles.likeAssetContainer}>
+                                {likeStatus ?
+                                    <AntDesign name="heart" size={24} color={"red"} />
+                                    :
+                                    <AntDesign name="hearto" size={24} color={"white"} />
+                                }
+
+                            </View>
+                        </TouchableOpacity>
+                        <Text style={styles.numLikesText}>{numLikes}</Text>
+
+                        <View>
+                            <TouchableOpacity onPress={() => router.push({
+                                pathname: '/(tabs)/home/post',
+                                params: { idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
+                            })}>
+                                <FontAwesome name="comment-o" size={22} color={"white"} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.numLikesText}>{numComments}</Text>
+
+                    </View>
+                    <View style={styles.captionBar}>
+                        <Text style={styles.userNameCaption}>{post.userName} </Text>
+                        <Text style={styles.username}> {post.caption}</Text>
+                    </View>
+                    <Text style={styles.timeText}>{post.timestamp}</Text>
+                </View>
+            }
+
+
         </View>
     );
 };
@@ -161,10 +227,23 @@ const styles = StyleSheet.create({
         color: "white",
         paddingHorizontal: 10
     },
-    contentView: {
+    contentViewText: {
         padding: 100,
         borderColor: "gold",
         borderWidth: 1,
+    },
+    contentViewPicture: {
+        width: "100%",
+        height: 500,
+        overflow: "hidden", // Hides top/bottom overflow
+        borderColor: "gold",
+        borderWidth: 1,
+    },
+    pictureContent: {
+        backgroundColor: "grey",
+        width: "100%",
+        resizeMode: "contain",
+        height: '100%',
     },
     bottomBar: {
         flexDirection: "row",
