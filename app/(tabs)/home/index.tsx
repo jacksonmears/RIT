@@ -155,7 +155,10 @@ const Page = () => {
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
-                <Text style={styles.titleText}>Recap It</Text>
+                <View style={styles.titleCardView}>
+                    <Text style={styles.titleTextRECAP}>Recap</Text>
+                    <Text style={styles.titleTextIT}>It</Text>
+                </View>
                 <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/friendRequests')}>
                     <Text style={styles.friendRequestText}>friend</Text>
                 </TouchableOpacity>
@@ -187,8 +190,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         padding: 5
     },
-    titleText: {
-        color: 'gold',
+    titleTextRECAP: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    titleTextIT: {
+        color: '#D3D3FF',
         fontWeight: 'bold',
     },
     friendRequestButtonContainer: {
@@ -207,7 +214,9 @@ const styles = StyleSheet.create({
         paddingTop: 10,
         paddingBottom: 100, // or however much is needed to fully see bottom captions
     },
-
+    titleCardView: {
+        flexDirection: 'row',
+    }
 
 })
 

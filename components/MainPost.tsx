@@ -61,7 +61,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
             if (!user) return;
             try {
                 const commentCount = await getDocs(collection(db, "posts", post.id, "comments"));
-                setNumLikes(commentCount.size)
+                setNumComments(commentCount.size)
 
             } catch (error) {
                 console.error("Error checking like status:", error);
@@ -224,19 +224,19 @@ const styles = StyleSheet.create({
 
     },
     username: {
-        color: "white",
+        color: "#D3D3FF",
         paddingHorizontal: 10
     },
     contentViewText: {
         padding: 100,
-        borderColor: "gold",
+        borderColor: "#D3D3FF",
         borderWidth: 1,
     },
     contentViewPicture: {
         width: "100%",
         height: 500,
         overflow: "hidden", // Hides top/bottom overflow
-        borderColor: "gold",
+        borderColor: "#D3D3FF",
         borderWidth: 1,
     },
     pictureContent: {
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     },
     userNameCaption: {
         fontWeight: "bold",
-        color: "gold"
+        color: "#D3D3FF"
     },
     likeText: {
         color: "red",

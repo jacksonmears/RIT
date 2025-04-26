@@ -7,10 +7,10 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     FlatList,
-    TouchableOpacity
+    TouchableOpacity, Image
 } from 'react-native';
 import {auth, db} from '@/firebase';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     doc,
     getDoc,
@@ -26,11 +26,15 @@ import {
     documentId
 } from "firebase/firestore";
 import {useRouter} from 'expo-router';
+import GroupPost from "@/components/GroupPost";
+import GroupMessage from "@/components/GroupMessage";
+import SearchCard from "@/components/SearchCard";
+
 
 const Page = () => {
     const user = auth.currentUser;
     const [search, setSearch] = useState('');
-    const [searchResults, setSearchResults] = useState<{ username: string, uid: string }[]>([]);
+    const [searchResults, setSearchResults] = useState<{ id: string, username: string, photoURL:string }[]>([]);
     const router = useRouter();
 
 
@@ -62,11 +66,21 @@ const Page = () => {
                 limit(10)
             );
 
+
             const querySnapshot = await getDocs(q);
-            const searchResults = querySnapshot.docs.map(doc => ({
-                username: doc.data().displayName,
-                uid: doc.data().uid
-            }));
+            const searchResults = await Promise.all(
+                querySnapshot.docs.map(async (docSnapshot) => {
+                    const userId = docSnapshot.data().uid;
+                    const friendDoc = await getDoc(doc(db, "users", userId));
+
+                    return {
+                        id: userId,
+                        username: docSnapshot.data().displayName,
+                        photoURL: friendDoc.exists() ? friendDoc.data().photoURL : null
+                    };
+                })
+            );
+
 
             setSearchResults(searchResults);
             console.log("Search Results:", searchResults);
@@ -101,38 +115,46 @@ const Page = () => {
                 </Pressable>
             </View>
 
+            {/*<FlatList*/}
+            {/*    data={searchResults}*/}
+            {/*    keyExtractor={(item, index) => index.toString()} // Key for each item*/}
+            {/*    renderItem={({ item }) => (*/}
+            {/*        <View style={styles.resultItem}>*/}
+            {/*            /!*{*!/*/}
+            {/*            /!*    !myFriendsUIDs.includes(item.uid) && (*!/*/}
+            {/*            /!*        <TouchableOpacity style={styles.friendReqButton} onPress={() => sendRequest(item.username)}>*!/*/}
+            {/*            /!*            <Text style={styles.resultText}>add friend</Text>*!/*/}
+            {/*            /!*        </TouchableOpacity>*!/*/}
+            {/*            /!*    )*!/*/}
+            {/*            /!*}*!/*/}
+
+            {/*            <TouchableOpacity style={styles.friendReqButton} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: item.uid }})}>*/}
+            {/*                /!*<Text style={styles.resultText}>see friend</Text>*!/*/}
+            {/*                <Text style={styles.resultText}>{item.username}</Text>*/}
+
+            {/*            </TouchableOpacity>*/}
+
+            {/*        </View>*/}
+            {/*    )}*/}
+            {/*    style={styles.resultsList}*/}
+            {/*    ListEmptyComponent={*/}
+            {/*        <Text style={styles.noResults}>No results found</Text>*/}
+            {/*    }*/}
+            {/*/>*/}
+
             <FlatList
+                style={styles.resultsList}
                 data={searchResults}
-                keyExtractor={(item, index) => index.toString()} // Key for each item
+                keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <View style={styles.resultItem}>
-                        {/*{*/}
-                        {/*    !myFriendsUIDs.includes(item.uid) && (*/}
-                        {/*        <TouchableOpacity style={styles.friendReqButton} onPress={() => sendRequest(item.username)}>*/}
-                        {/*            <Text style={styles.resultText}>add friend</Text>*/}
-                        {/*        </TouchableOpacity>*/}
-                        {/*    )*/}
-                        {/*}*/}
-
-                        <TouchableOpacity style={styles.friendReqButton} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: item.uid }})}>
-                            {/*<Text style={styles.resultText}>see friend</Text>*/}
-                            <Text style={styles.resultText}>{item.username}</Text>
-
-                        </TouchableOpacity>
-
+                    <View>
+                        <SearchCard info={item} />
                     </View>
                 )}
-                style={styles.resultsList}
-                ListEmptyComponent={
-                    <Text style={styles.noResults}>No results found</Text>
-                }
+                // ItemSeparatorComponent={() => <View style={styles.separator} />}
+                ListEmptyComponent={<Text style={styles.noResults}>No results found</Text>}
             />
 
-
-
-            {/*<Pressable onPress={sendRequest} style={styles.reqButton}>*/}
-            {/*    <Text> add {found} </Text>*/}
-            {/*</Pressable>*/}
 
         </View>
     )
@@ -169,7 +191,7 @@ const styles = StyleSheet.create({
     resultItem: {
         padding: 10,
         borderBottomWidth: 1,
-        borderBottomColor: 'gold',
+        borderBottomColor: '#D3D3FF',
         flexDirection: 'row',
         justifyContent: 'space-between',
     },

@@ -10,7 +10,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const { colors } = useTheme();
     const { buildHref } = useLinkBuilder();
-    const primaryColor = '#E5B773';
+    const primaryColor = '#D3D3FF';
     const secondaryColor = '#D3D3D3';
 
     // Define the icons with an explicit key union and a typed function.
