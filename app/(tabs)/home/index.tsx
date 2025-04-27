@@ -5,6 +5,8 @@ import {Link, useRouter} from 'expo-router';
 import {collection, addDoc, getDoc, doc, query, orderBy, limit, getDocs} from 'firebase/firestore';
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import MainPost from "@/components/MainPost";
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 
 const Page = () => {
     const [friends, setFriends] = useState<string[]>([]);
@@ -13,6 +15,8 @@ const Page = () => {
     const router = useRouter();
     const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, pfp: string, type: string }[] | null>(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [friendNotis, setFriendNotis] = useState<number>(0);
+    const [groupNotis, setGroupsNotis] = useState<number>(0);
 
 
     // useEffect(() => {
@@ -53,6 +57,22 @@ const Page = () => {
         }
         setPostIds(postIds);
     };
+
+    useEffect(() => {
+        const getNotis = async () => {
+            if (!user) return;
+            const userInfo = await getDoc(doc(db, "users", user.uid));
+            if (userInfo.exists()){
+                setFriendNotis(userInfo.data().friendRequests.length);
+                setGroupsNotis(userInfo.data().groupRequests.length);
+            }
+        }
+        getNotis()
+    }, []);
+
+    useEffect(() => {
+        console.log(friendNotis, groupNotis);
+    }, [friendNotis, groupNotis]);
 
 
     const getTimeAgo = (timestampDate: Date): string => {
@@ -160,7 +180,8 @@ const Page = () => {
                     <Text style={styles.titleTextIT}>It</Text>
                 </View>
                 <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/friendRequests')}>
-                    <Text style={styles.friendRequestText}>friend</Text>
+                    <Ionicons name="notifications-outline" size={24} color="#D3D3FF" />
+                    <Text style={styles.friendRequestText}>{friendNotis+groupNotis}</Text>
                 </TouchableOpacity>
             </View>
             <FlatList
@@ -199,7 +220,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     friendRequestButtonContainer: {
-
+        flexDirection: 'row',
     },
     friendRequestText: {
         color: 'white'

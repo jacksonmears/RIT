@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     header: {
         fontSize: 24,
         fontWeight: "bold",
-        color: "gold",
+        color: "#D3D3FF",
         textAlign: "center",
         marginBottom: 10, // Space before FlatList
     },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "gold",
+        color: "#D3D3FF",
     },
     add: {
         position: "absolute",

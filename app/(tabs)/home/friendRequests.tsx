@@ -1,13 +1,37 @@
-import { Text, View, StyleSheet, FlatList, Pressable } from "react-native";
+import { Text, View, StyleSheet, FlatList, Pressable, TouchableOpacity } from "react-native";
 import React, { useState, useEffect } from "react";
 import { auth, db } from '@/firebase';
 import { doc, getDoc, updateDoc, arrayRemove, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+
 
 const Page = () => {
     const [friendsUsername, setFriendsUsername] = useState<string[]>([]);
     const [friendsUID, setFriendsUID] = useState<string[]>([]);
+    const [groupIds, setGroupIds] = useState<string[]>([]);
+    const [groupsName, setGroupsName] = useState<string[]>([]);
     const user = auth.currentUser;
+    const router = useRouter();
+
+    const fetchGroupRequests = async () => {
+        if (!user) return;
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+            const groupRequests: string[] = userDoc.data().groupRequests || [];
+            setGroupIds(groupRequests);
+
+            const groupNames: string[] = [];
+
+            for (const uid of groupRequests) {
+                const groupDoc = await getDoc(doc(db, "groups", uid));
+                if (groupDoc.exists()) {
+                    groupNames.push(groupDoc.data().name || "Unknown");
+                }
+            }
+
+            setGroupsName(groupNames);
+        }
+    }
 
 
     const fetchFriendRequestsAndUsernames = async () => {
@@ -32,12 +56,13 @@ const Page = () => {
 
     useEffect(() => {
         fetchFriendRequestsAndUsernames();
+        fetchGroupRequests();
     }, []);
 
-    useEffect(() => {
-        console.log("UIDs:", friendsUID);
-        console.log("Usernames:", friendsUsername);
-    }, [friendsUsername]);
+    // useEffect(() => {
+    //     console.log("UIDs:", friendsUID);
+    //     console.log("Usernames:", friendsUsername);
+    // }, [friendsUsername]);
 
 
     const acceptFriend = async (displayName: string) => {
@@ -87,9 +112,9 @@ const Page = () => {
 
     return (
         <View style={styles.container}>
-            <Link href="/(tabs)/home">
-                <Text style={styles.text}>back to home page</Text>
-            </Link>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <Text style={styles.backButtonText}>back</Text>
+            </TouchableOpacity>
 
             {/*<Pressable onPress={() => console.log('Checking friend requests')} style={styles.button}>*/}
             {/*    <Text> Search for friends </Text>*/}
@@ -113,7 +138,31 @@ const Page = () => {
                             </View>
                         </View>
                     </View>
+
                 )}
+                style={{ flexGrow: 0 }}
+            />
+
+            <FlatList
+                data={groupsName}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                    <View style={styles.friendContainer}>
+                        <View style={styles.friendComponent}>
+                            <Text style={styles.text}>{item}</Text>
+
+                            <View style={styles.buttonGroup}>
+                                <Pressable onPress={() => acceptFriend(item)} style={styles.acceptButton}>
+                                    <Text>Accept</Text>
+                                </Pressable>
+                                <Pressable onPress={() => removeFriendRequest(item)} style={styles.declineButton}>
+                                    <Text>Decline</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
             />
 
         </View>
@@ -124,15 +173,12 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "black",
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: "flex-start",
+        alignItems: "flex-start"
     },
     text: {
         fontSize: 18,
         color: "white",
-    },
-    button: {
-        backgroundColor: "gold"
     },
     friendContainer: {
         alignItems: "center",
@@ -151,7 +197,6 @@ const styles = StyleSheet.create({
 
     buttonGroup: {
         flexDirection: "row",
-        gap: 10, // Optional if supported
     },
 
     acceptButton: {
@@ -167,7 +212,12 @@ const styles = StyleSheet.create({
         borderRadius: 7,
         marginLeft: 10,
     },
-
+    backButton: {
+        paddingLeft: 10,
+    },
+    backButtonText: {
+        color: "white",
+    }
 });
 
 export default Page;

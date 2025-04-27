@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     name: {
     },
     nameText: {
-        color: "gold",
+        color: "#D3D3FF",
         fontWeight: 'bold',
     },
     info: {
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "gold",
+        color: "#D3D3FF",
     },
     avatarContainer: {
         alignItems: 'center',
