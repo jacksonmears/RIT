@@ -1,4 +1,4 @@
-import {View, Text, Button, StyleSheet, FlatList, Pressable, TouchableOpacity } from 'react-native';
+import {View, Text, Button, StyleSheet, FlatList, Pressable, TouchableOpacity, Image} from 'react-native';
 import {auth, db, storage} from '@/firebase';
 import { Checkbox } from 'react-native-paper';
 import React, {useEffect, useState} from "react";
@@ -7,6 +7,8 @@ import { Link, useRouter, useLocalSearchParams } from "expo-router";
 import GroupCard from "@/components/GroupCard";
 import {getDownloadURL, ref as storageRef, uploadBytes} from "firebase/storage"; // Import reusable component
 import * as ImageManipulator from 'expo-image-manipulator';
+import Feather from "@expo/vector-icons/Feather";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 const Page = () => {
     const user = auth.currentUser;
@@ -17,7 +19,7 @@ const Page = () => {
     const [globalPath, setGlobalPath] = useState<string | null>(null);
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
-    const [selectedGroups, setSelectedGroups] = useState<{ [key: string]: boolean }>({});
+    const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
 
     useEffect(() => {
         if (user) {
@@ -36,28 +38,25 @@ const Page = () => {
         }
     }, [groups]);
 
-    const toggleSelection = (groupId: string) => {
-        setSelectedGroups(prev => ({
-            ...prev,
-            [groupId]: !prev[groupId], // Toggle the selection
-        }));
+    const toggleSelection = (id: string) => {
+        setSelectedGroups((prev) => {
+            const next = new Map(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.set(id, true);
+            }
+            return next;
+        });
     };
-
-    useEffect(() => {
-        const parsedGroups = Object.keys(selectedGroups)
-            .filter((groupId) => selectedGroups[groupId]) // Only keep selected groups (true)
-            .map((groupId) => ({ id: groupId })); // Convert to array format
-
-        console.log(parsedGroups); // Logs: [{ id: "2rD2G7tJhcCWnUOyezRM" }, { id: "GUTD5bGSCCcJ5vwGlSjR" }]
-    }, [selectedGroups]);
 
 
     const createPost = async () => {
-        if (!user) return;
-        const parsedGroups = Object.keys(selectedGroups)
-            .filter((groupId) => selectedGroups[groupId]) // Only keep selected groups (true)
+        if (!user || !selectedGroups) return;
+        const parsedGroups = [...selectedGroups.keys()]
+            .filter((groupId) => selectedGroups?.get(groupId)) // Only keep selected groups (true)
             .map((groupId) => ({ id: groupId }));
-        const hasSelectedGroup = Object.values(selectedGroups).some(value => value === true);
+        const hasSelectedGroup = [...selectedGroups?.values()].some(value => value === true);
 
         if (!user || (!parsedGroups || parsedGroups.length === 0 || !hasSelectedGroup)) {
             console.log("not parsed groups")
@@ -223,7 +222,42 @@ const Page = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.header}>assign group Page!</Text>
+
+
+            <View style={styles.topBar}>
+                <View style={styles.backArrowName}>
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <Feather name="x" size={20} color="#D3D3FF" />
+                    </TouchableOpacity>
+                    <Text style={styles.topBarText}>{user?.displayName}</Text>
+                </View>
+                {(selectedGroups?.size)==0 ?
+                    <Ionicons name="send-outline" size={20} color="#D3D3FF" />
+                    :
+                    <TouchableOpacity onPress={() => doneButton()}>
+                        <Ionicons name="send" size={20} color="#D3D3FF" />
+                    </TouchableOpacity>
+                }
+
+            </View>
+
+            {/*<FlatList*/}
+            {/*    style={styles.groups}*/}
+            {/*    data={groups}*/}
+            {/*    keyExtractor={(item) => item.id}*/}
+            {/*    renderItem={({ item }) => (*/}
+            {/*        <View style={styles.groupContainer}>*/}
+            {/*            <Pressable onPress={() => toggleSelection(item.id)} style={styles.groupRow}>*/}
+            {/*                <Checkbox*/}
+            {/*                    status={selectedGroups?.get(item.id) ? "checked" : "unchecked"}*/}
+            {/*                    onPress={() => toggleSelection(item.id)}*/}
+            {/*                />*/}
+            {/*                <Text style={styles.text}>{item.name}</Text>*/}
+            {/*            </Pressable>*/}
+            {/*        </View>*/}
+            {/*    )}*/}
+            {/*    contentContainerStyle={styles.listContent} // Adds padding*/}
+            {/*/>*/}
 
             <FlatList
                 style={styles.groups}
@@ -231,30 +265,35 @@ const Page = () => {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <View style={styles.groupContainer}>
-                        <Pressable onPress={() => toggleSelection(item.id)} style={styles.groupRow}>
+                        <TouchableOpacity onPress={() => toggleSelection(item.id)} style={styles.groupRow}>
+                            <View style={styles.backArrowName}>
+                                <Text style={styles.text}>{item.name}</Text>
+                            </View>
+
                             <Checkbox
-                                status={selectedGroups[item.id] ? "checked" : "unchecked"}
+                                status={selectedGroups?.get(item.id) ? "checked" : "unchecked"}
                                 onPress={() => toggleSelection(item.id)}
                             />
-                            <Text style={styles.text}>{item.name}</Text>
-                        </Pressable>
+                        </TouchableOpacity>
                     </View>
                 )}
                 contentContainerStyle={styles.listContent} // Adds padding
+                ListEmptyComponent={<Text style={styles.noResults}>You added all your friends!</Text>}
+
             />
 
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text>back</Text>
-            </TouchableOpacity>
+            {/*<TouchableOpacity style={styles.backButton} onPress={() => router.back()}>*/}
+            {/*    <Text>back</Text>*/}
+            {/*</TouchableOpacity>*/}
 
 
             {/*<TouchableOpacity style={styles.doneButton} onPress={() => printGroups()}>*/}
             {/*    <Text>done</Text>*/}
             {/*</TouchableOpacity>*/}
 
-            <TouchableOpacity style={styles.doneButton} onPress={() => doneButton()}>
-                <Text>done</Text>
-            </TouchableOpacity>
+            {/*<TouchableOpacity style={styles.doneButton} onPress={() => doneButton()}>*/}
+            {/*    <Text>done</Text>*/}
+            {/*</TouchableOpacity>*/}
 
         </View>
     );
@@ -265,64 +304,50 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "black",
-        padding: 20, // Adds spacing around content
-    },
-    header: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "gold",
-        textAlign: "center",
-        marginBottom: 10, // Space before FlatList
     },
     groups: {
-        flex: 1, // Allows FlatList to take up remaining space
+        flex: 1,
     },
     listContent: {
-        paddingBottom: 80, // Prevents overlap with "Create Group" button
+        paddingBottom: 80,
     },
     text: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "gold",
-    },
-    add: {
-        position: "absolute",
-        bottom: 70,
-        right: 20,
-        backgroundColor: "#444",
-        padding: 10,
-        borderRadius: 8,
-    },
-    join: {
-        position: "absolute",
-        bottom: 70,
-        left: 20,
-        backgroundColor: "#444",
-        padding: 10,
-        borderRadius: 8,
+        color: "white",
     },
     groupContainer: {
         alignItems: "center",
         justifyContent: "center",
-        width: "100%", // Ensures it takes full width
-    },
-    backButton: {
-        position: "absolute",
-        top: 0,
-        right: 20,
-        backgroundColor: "red",
-    },
-    doneButton: {
-        position: "absolute",
-        top: 0,
-        left: 20,
-        backgroundColor: "green",
+        width: "100%",
     },
     groupRow: {
         flexDirection: "row",
         alignItems: "center",
         padding: 10,
         borderBottomWidth: 1,
+        justifyContent: "space-between",
+        width: "90%",
+    },
+    topBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 15,
+        padding: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: "grey",
+    },
+    topBarText: {
+        color: "#D3D3FF",
+    },
+    backArrowName: {
+        flexDirection: 'row',
+        alignItems: "center",
+    },
+    noResults: {
+        fontSize: 16,
+        color: 'gray',
+        textAlign: 'center',
     },
 
 });

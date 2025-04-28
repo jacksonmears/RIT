@@ -1,17 +1,18 @@
-import { Text, View, StyleSheet, FlatList, Pressable, TouchableOpacity } from "react-native";
+import { Text, View, StyleSheet, FlatList, Pressable, TouchableOpacity, Image } from "react-native";
 import React, { useState, useEffect } from "react";
 import { auth, db } from '@/firebase';
 import {doc, getDoc, updateDoc, arrayRemove, onSnapshot, serverTimestamp, setDoc, collection} from "firebase/firestore";
 import { Link, useRouter } from "expo-router";
-
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Entypo from '@expo/vector-icons/Entypo';
+import Feather from '@expo/vector-icons/Feather';
 
 const Page = () => {
-    const [friendsUsername, setFriendsUsername] = useState<string[]>([]);
-    const [friendsUID, setFriendsUID] = useState<string[]>([]);
-    const [groupsName, setGroupsName] = useState<string[]>([]);
     const user = auth.currentUser;
     const router = useRouter();
     const [groupRequests, setGroupRequests] = useState<{ id: string, name: string, }[] | null>(null);
+    const [friendRequests, setFriendRequests] = useState<{ id: string, name: string, photoURL: string}[] | null>(null);
 
 
     const fetchGroupRequests = async () => {
@@ -43,19 +44,14 @@ const Page = () => {
         if (!user) return;
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
+
             const friendRequests: string[] = userDoc.data().friendRequests || [];
-            setFriendsUID(friendRequests);
 
-            const usernames: string[] = [];
-
-            for (const uid of friendRequests) {
-                const friendDoc = await getDoc(doc(db, "users", uid));
-                if (friendDoc.exists()) {
-                    usernames.push(friendDoc.data().displayName || "Unknown");
-                }
-            }
-
-            setFriendsUsername(usernames);
+            const postContents = await Promise.all(friendRequests.map(async (friend) => {
+                const friendDoc = await getDoc(doc(db, "users", friend));
+                return {id: friend, name: friendDoc.data()?.displayName, photoURL: friendDoc.data()?.photoURL};
+            }))
+            setFriendRequests(postContents)
         }
     };
 
@@ -129,21 +125,7 @@ const Page = () => {
     };
 
 
-    const removeGroupInvite = async (groupID: string) => {
-        if (user) {
-            const docRef = doc(db, "users", user.uid);
 
-            try {
-                await updateDoc(docRef, {
-                    groupRequests: arrayRemove(groupID)
-                });
-
-                console.log(`Removed group request from ${groupID}`);
-            } catch (error) {
-                console.error("Error removing group request: ", error);
-            }
-        }
-    };
 
     const acceptFriend = async (displayName: string) => {
         if (user) {
@@ -190,31 +172,60 @@ const Page = () => {
         }
     };
 
+    const removeGroupInvite = async (groupID: string) => {
+        if (user) {
+            const docRef = doc(db, "users", user.uid);
+
+            try {
+                await updateDoc(docRef, {
+                    groupRequests: arrayRemove(groupID)
+                });
+
+                console.log(`Removed group request from ${groupID}`);
+                await fetchGroupRequests();
+            } catch (error) {
+                console.error("Error removing group request: ", error);
+            }
+        }
+    };
+
     return (
         <View style={styles.container}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                <Text style={styles.backButtonText}>back</Text>
-            </TouchableOpacity>
+
+            <View style={styles.topBar}>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />
+                </TouchableOpacity>
+                <View style={styles.titleCardView}>
+                    <Text style={styles.titleTextIT}>{user?.displayName}</Text>
+                </View>
+            </View>
+
+
 
             {/*<Pressable onPress={() => console.log('Checking friend requests')} style={styles.button}>*/}
             {/*    <Text> Search for friends </Text>*/}
             {/*</Pressable>*/}
 
             <FlatList
-                data={friendsUsername}
+                data={friendRequests}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.friendContainer}>
                         <View style={styles.friendComponent}>
-                            <Text style={styles.text}>{item}</Text>
+                            <View style={styles.flexDirection}>
+                                <Image source={{ uri: item.photoURL }} style={styles.avatar} />
+                                <Text style={styles.text}>{item.name}</Text>
+                                <Text style={styles.greyText}>Friend</Text>
+                            </View>
 
                             <View style={styles.buttonGroup}>
-                                <Pressable onPress={() => acceptFriend(item)} style={styles.acceptButton}>
-                                    <Text>Accept</Text>
-                                </Pressable>
-                                <Pressable onPress={() => removeFriendRequest(item)} style={styles.declineButton}>
-                                    <Text>Decline</Text>
-                                </Pressable>
+                                <TouchableOpacity onPress={() => acceptFriend(item.id)} style={styles.acceptButton}>
+                                    <Entypo name="check" size={24} color="green" />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => removeFriendRequest(item.id)} style={styles.declineButton}>
+                                    <Feather name="x" size={24} color="red" />
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </View>
@@ -229,15 +240,18 @@ const Page = () => {
                 renderItem={({ item }) => (
                     <View style={styles.friendContainer}>
                         <View style={styles.friendComponent}>
-                            <Text style={styles.text}>{item.name}</Text>
+                            <View style={styles.flexDirection}>
+                                <Text style={styles.text}>{item.name}</Text>
+                                <Text style={styles.greyText}>Group</Text>
+                            </View>
 
                             <View style={styles.buttonGroup}>
-                                <Pressable onPress={() => acceptGroupInvite(item.id)} style={styles.acceptButton}>
-                                    <Text>Accept</Text>
-                                </Pressable>
-                                <Pressable onPress={() => removeGroupInvite(item.id)} style={styles.declineButton}>
-                                    <Text>Decline</Text>
-                                </Pressable>
+                                <TouchableOpacity onPress={() => acceptGroupInvite(item.id)} style={styles.acceptButton}>
+                                    <Entypo name="check" size={24} color="green" />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => removeGroupInvite(item.id)} style={styles.declineButton}>
+                                    <Feather name="x" size={24} color="red" />
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </View>
@@ -253,12 +267,10 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "black",
         flex: 1,
-        justifyContent: "flex-start",
-        alignItems: "flex-start"
     },
     text: {
         fontSize: 18,
-        color: "white",
+        color: '#D3D3FF',
     },
     friendContainer: {
         alignItems: "center",
@@ -271,8 +283,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         padding: 10,
         width: "90%",
-        borderBottomWidth: 1,
-        borderBottomColor: "white", // Add for visibility if needed
+        // borderBottomWidth: 1,
+        // borderBottomColor: "white", // Add for visibility if needed
     },
 
     buttonGroup: {
@@ -280,24 +292,53 @@ const styles = StyleSheet.create({
     },
 
     acceptButton: {
-        backgroundColor: "green",
+        // backgroundColor: "green",
         padding: 6,
         borderRadius: 7,
         marginLeft: 10,
     },
-
     declineButton: {
-        backgroundColor: "red",
+        // backgroundColor: "red",
         padding: 6,
         borderRadius: 7,
         marginLeft: 10,
-    },
-    backButton: {
-        paddingLeft: 10,
     },
     backButtonText: {
         color: "white",
-    }
+    },
+    topBar: {
+        flexDirection: 'row',
+        paddingVertical: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: "grey",
+        paddingHorizontal: 10,
+    },
+    titleTextRECAP: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    titleTextIT: {
+        color: '#D3D3FF',
+        fontWeight: 'bold',
+    },
+    titleCardView: {
+        flexDirection: 'row',
+    },
+    greyText: {
+        color: 'grey',
+        fontSize: 10,
+        marginTop: 12,
+    },
+    flexDirection: {
+        flexDirection: 'row',
+        alignItems: "center",
+    },
+    avatar: {
+        width: 25,
+        height: 25,
+        borderRadius: 60,
+        marginRight: 10,
+    },
 });
 
 export default Page;
