@@ -1,13 +1,15 @@
 import {View, Text, Button, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
 import {auth, db} from '@/firebase';
-import {Link} from "expo-router";
+import {Link, useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
 import {doc, onSnapshot, getDocs, collection, getDoc } from "firebase/firestore";
 import GroupCard from "@/components/GroupCard"; // Import reusable component
+import Entypo from '@expo/vector-icons/Entypo';
 
 const Page = () => {
     const user = auth.currentUser;
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
+    const router = useRouter();
 
 
     useEffect(() => {
@@ -42,12 +44,24 @@ const Page = () => {
 
     return (
         <View style={styles.container}>
+            <View style={styles.topBar}>
+                <View style={styles.backArrowName}>
+                    {/*<TouchableOpacity onPress={() => router.back()}>*/}
+                    {/*    <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />*/}
+                    {/*</TouchableOpacity>*/}
+                    <Text style={styles.topBarText}>{user?.displayName}</Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/groups/groupCreate')}>
+                    {/*<Text style={styles.topBarText}>Create</Text>*/}
+                    <Entypo name="add-to-list" size={24} color="#D3D3FF" />
+                </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
-                <Text style={styles.text}>refresh</Text>
-            </TouchableOpacity>
+            {/*<TouchableOpacity style={styles.refreshButton} onPress={refresh}>*/}
+            {/*    <Text style={styles.text}>refresh</Text>*/}
+            {/*</TouchableOpacity>*/}
 
-            <Text style={styles.header}>Group Page!</Text>
+            {/*<Text style={styles.header}>Group Page!</Text>*/}
 
             <FlatList
                 style={styles.groups}
@@ -57,13 +71,6 @@ const Page = () => {
 
                 contentContainerStyle={styles.listContent} // Adds padding
             />
-
-            <Link href="/(tabs)/groups/groupCreate" style={styles.add}>
-                <Text style={styles.text}>Create Group</Text>
-            </Link>
-            <Link href="/(tabs)/groups/groupJoin" style={styles.join}>
-                <Text style={styles.text}>Join Group</Text>
-            </Link>
         </View>
     );
 
@@ -73,7 +80,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "black",
-        padding: 20, // Adds spacing around content
     },
     header: {
         fontSize: 24,
@@ -87,6 +93,9 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingBottom: 80, // Prevents overlap with "Create Group" button
+        paddingTop: 80,
+        paddingHorizontal: 20,
+
     },
     text: {
         fontSize: 18,
@@ -114,6 +123,21 @@ const styles = StyleSheet.create({
         top: 0,
         left: 10,
         backgroundColor: "green",
+    },
+    topBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 15,
+        padding: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: "grey",
+    },
+    topBarText: {
+        color: "#D3D3FF",
+    },
+    backArrowName: {
+        flexDirection: 'row',
+        alignItems: "center",
     }
 });
 

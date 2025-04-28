@@ -28,13 +28,16 @@ import {
 import { auth, db } from "@/firebase";
 import GroupPost from "@/components/GroupPost"; // Import reusable component
 import GroupMessage from "@/components/GroupMessage"; // Import reusable component
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 import {Checkbox} from "react-native-paper";
 
 const Index = () => {
     // const { id } = useLocalSearchParams(); // Get the dynamic group ID from the URL
-    const { groupID } = useLocalSearchParams();
+    const { groupID, groupName } = useLocalSearchParams();
     const groupIDString = String(groupID);
+    const groupNameString = String(groupName);
     const router = useRouter();
     const [group, setGroup] = useState(null);
     const user = auth.currentUser;
@@ -184,12 +187,21 @@ const Index = () => {
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
-                <TouchableOpacity style={styles.goBackButton} onPress={() => router.back()}>
-                    <Text style={styles.buttonText}>Go Back</Text>
-                </TouchableOpacity>
+                {/*<TouchableOpacity style={styles.goBackButton} onPress={() => router.back()}>*/}
+                {/*    <Text style={styles.buttonText}>Go Back</Text>*/}
+                {/*</TouchableOpacity>*/}
 
-                <TouchableOpacity style={styles.addFriendButton} onPress={() => router.push(`/groups/${groupID}/addFriends`)}>
-                    <Text style={styles.buttonText}>Add Friend</Text>
+                {/*<TouchableOpacity style={styles.addFriendButton} onPress={() => router.push(`/groups/${groupID}/addFriends`)}>*/}
+                {/*    <Text style={styles.buttonText}>Add Friend</Text>*/}
+                {/*</TouchableOpacity>*/}
+                <View style={styles.backArrowName}>
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />
+                    </TouchableOpacity>
+                    <Text style={styles.topBarText}>{groupNameString}</Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push({pathname: "/groups/[groupID]/addFriends", params: {groupID: groupIDString, groupName: groupNameString}})}>
+                    <AntDesign name="adduser" size={18} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
 
@@ -231,17 +243,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#121212",
         paddingBottom: 55
-    },
-    topBar: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        paddingVertical: 15,
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1,
-        paddingHorizontal: 20,
     },
     goBackButton: {
         backgroundColor: "#28a745",
@@ -297,6 +298,21 @@ const styles = StyleSheet.create({
         // padding: 10,
         // marginHorizontal: 20,
         maxWidth: "70%",
+    },
+    topBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 15,
+        padding: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: "grey",
+    },
+    topBarText: {
+        color: "#D3D3FF",
+    },
+    backArrowName: {
+        flexDirection: 'row',
+        alignItems: "center",
     }
 
 });

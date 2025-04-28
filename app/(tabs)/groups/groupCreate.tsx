@@ -1,4 +1,4 @@
-import {View, Text, Button, StyleSheet, Animated, TextInput, Pressable} from 'react-native';
+import {View, Text, Button, StyleSheet, Animated, TextInput, Pressable, TouchableOpacity} from 'react-native';
 import React, { useEffect, useState } from "react";
 import { db, auth } from "@/firebase"
 import {Link, useRouter} from 'expo-router';
@@ -10,6 +10,7 @@ const Page = () => {
     const [userData, setUserData] = useState<Record<string, any> | null>(null);
     const [groupName, setGroupName] = useState("");
     const user = auth.currentUser;
+    const router = useRouter();
 
 
     const createGroup = async (groupName: string) => {
@@ -82,9 +83,10 @@ const Page = () => {
             <Pressable style={styles.button} onPress={() => createGroup(groupName)}>
                 <Text style={styles.text}>create group</Text>
             </Pressable>
-            <Link href="/(tabs)/groups" style={styles.back}>
+            <TouchableOpacity onPress={() => router.back()}>
                 <Text style={styles.text}>cancel</Text>
-            </Link>
+            </TouchableOpacity>
+
         </View>
     )
 }

@@ -1,11 +1,12 @@
 import {View, Text, Button, StyleSheet, ScrollView, StatusBar, TouchableOpacity, FlatList} from 'react-native';
 import React, { useEffect, useState } from "react";
 import { db, auth } from "@/firebase"
-import {Link, useRouter} from 'expo-router';
+import {Link, useRouter, } from 'expo-router';
 import {collection, addDoc, getDoc, doc, query, orderBy, limit, getDocs} from 'firebase/firestore';
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import MainPost from "@/components/MainPost";
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useIsFocused } from '@react-navigation/native';
 
 
 const Page = () => {
@@ -17,6 +18,7 @@ const Page = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [friendNotis, setFriendNotis] = useState<number>(0);
     const [groupNotis, setGroupsNotis] = useState<number>(0);
+    const isFocused = useIsFocused();
 
 
     // useEffect(() => {
@@ -24,7 +26,11 @@ const Page = () => {
     //     console.log(postIds)
     // }, [postIds]);
 
-
+    useEffect(() => {
+        if (isFocused) {
+            getNotis();
+        }
+    }, [isFocused]);
 
     const fetchFriendIds = async () => {
         if (!user) return;
@@ -58,15 +64,17 @@ const Page = () => {
         setPostIds(postIds);
     };
 
-    useEffect(() => {
-        const getNotis = async () => {
-            if (!user) return;
-            const userInfo = await getDoc(doc(db, "users", user.uid));
-            if (userInfo.exists()){
-                setFriendNotis(userInfo.data().friendRequests.length);
-                setGroupsNotis(userInfo.data().groupRequests.length);
-            }
+
+    const getNotis = async () => {
+        if (!user) return;
+        const userInfo = await getDoc(doc(db, "users", user.uid));
+        if (userInfo.exists()){
+            setFriendNotis(userInfo.data().friendRequests.length);
+            setGroupsNotis(userInfo.data().groupRequests.length);
         }
+    }
+
+    useEffect(() => {
         getNotis()
     }, []);
 
@@ -155,6 +163,7 @@ const Page = () => {
     const onRefresh = async () => {
         setRefreshing(true);
         await fetchFriendIds(); // this will automatically trigger fetchPosts → fetchPostContent via useEffect
+        await getNotis()
         setRefreshing(false);
     };
 
@@ -181,7 +190,11 @@ const Page = () => {
                 </View>
                 <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/friendRequests')}>
                     <Ionicons name="notifications-outline" size={24} color="#D3D3FF" />
-                    <Text style={styles.friendRequestText}>{friendNotis+groupNotis}</Text>
+                    {friendNotis+groupNotis>0 &&
+                        <View style={styles.redCircle}>
+                            <Text style={styles.redCircleText}>{friendNotis+groupNotis}</Text>
+                        </View>
+                    }
                 </TouchableOpacity>
             </View>
             <FlatList
@@ -209,7 +222,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        padding: 5
+        padding: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: "grey",
     },
     titleTextRECAP: {
         color: 'white',
@@ -237,6 +252,20 @@ const styles = StyleSheet.create({
     },
     titleCardView: {
         flexDirection: 'row',
+    },
+    redCircle: {
+        position: 'absolute',
+        right: -5,    // move it slightly to the right
+        backgroundColor: 'red',
+        borderRadius: 10,
+        width: 15,
+        height: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    redCircleText: {
+        fontSize: 10,
+        color: "white",
     }
 
 })
