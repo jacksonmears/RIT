@@ -5,12 +5,19 @@ import React, {useEffect, useState} from "react";
 import {doc, onSnapshot, getDocs, collection, getDoc } from "firebase/firestore";
 import GroupCard from "@/components/GroupCard"; // Import reusable component
 import Entypo from '@expo/vector-icons/Entypo';
+import { useIsFocused } from '@react-navigation/native';
 
 const Page = () => {
     const user = auth.currentUser;
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
+    const isFocused = useIsFocused();
 
+    useEffect(() => {
+        if (isFocused) {
+            refresh()
+        }
+    }, [isFocused]);
 
     useEffect(() => {
         getGroups()

@@ -68,17 +68,19 @@ const Page = () => {
 
             const postRef = await addDoc(collection(db, "posts"), {
                 sender_id: user.uid,
-                type: mode,
+                mode: mode,
                 caption: caption,
                 timestamp: serverTimestamp(),
             });
 
             const postID = postRef.id
 
-            const imageURL = await uploadPhoto(postID);
+            const postURL = mode === "photo"
+                ? await uploadPhoto(postID)
+                : await uploadVideo(postID);
 
             await updateDoc(doc(db, "posts", postID), {
-                content: encodeURIComponent(imageURL),
+                content: encodeURIComponent(postURL),
             });
 
 
@@ -102,15 +104,26 @@ const Page = () => {
             throw new Error('No user logged in');
         }
 
-        const uri =
-            localUri.startsWith('file://')
-                ? localUri
-                : `file://${localUri}`;
 
-        const response = await fetch(uri);
+        const response = await fetch(localUri);
         const blob     = await response.blob();
 
         const ref = storageRef(storage, `postPictures/${postID}.jpg`);
+        await uploadBytes(ref, blob);
+
+        return getDownloadURL(ref);
+    };
+
+    const uploadVideo = async (postID: string) => {
+        if (!auth.currentUser) {
+            throw new Error('No user logged in');
+        }
+
+
+        const response = await fetch(localUri);
+        const blob     = await response.blob();
+
+        const ref = storageRef(storage, `postVideos/${postID}.mov`);
         await uploadBytes(ref, blob);
 
         return getDownloadURL(ref);
@@ -197,7 +210,7 @@ const Page = () => {
             await Promise.all(
                 parsedGroups.map(async (group) => {
                     await setDoc(doc(db, "groups", group.id, "messages", postID), {
-                        type: mode,
+                        mode: mode,
                         timestamp: serverTimestamp(),
                     });
                 })

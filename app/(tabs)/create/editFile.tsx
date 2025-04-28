@@ -1,9 +1,10 @@
-import {View, Text, Image, StyleSheet, TouchableOpacity, Platform, TextInput} from "react-native";
+import {View, Text, Image, StyleSheet, TouchableOpacity, Platform, TextInput, ActivityIndicator} from "react-native";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Video from "react-native-video";
 
-const PreviewPage = () => {
+const Page = () => {
     const router = useRouter();
     const { fillerUri, fillerMode } = useLocalSearchParams();
     const localUri = String(fillerUri);
@@ -15,32 +16,47 @@ const PreviewPage = () => {
     //         ? `file://${localUri}`
     //         : localUri;
 
+    if (!fillerUri) {
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator color="#D3D3FF" />
+            </View>
+        );
+    }
 
-
-    const uri =
-        localUri.startsWith('file://')
-            ? localUri
-            : `file://${localUri}`;
+    const uri = !localUri.startsWith("file://")
+        ? `file://${localUri}`
+        : localUri;
 
     useEffect(() => {
         console.log("showing:", uri, mode);
-    }, []);
+    }, [uri, mode]);
 
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.shareButton} onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: localUri, fillerMode: mode, fillerCaption: caption}})}>
+            <TouchableOpacity style={styles.shareButton} onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption}})}>
                 <FontAwesome name="share" size={24} color="#D3D3FF" />
             </TouchableOpacity>
+
             <View style={styles.imageWrapper}>
-                <Image
-                    source={{ uri: uri }}
-                    style={styles.image}
-                    resizeMode="contain"
-                    onError={(e) => console.error("Image load error", e.nativeEvent.error)}
-                />
+                {mode==="photo" ?
+                    <Image
+                        source={{ uri }}
+                        style={styles.image}
+                        resizeMode="cover"
+                        onError={(e) => console.error("Image load error", e.nativeEvent.error)}
+                    />
+                    :
+                    <Video
+                        source={{ uri }}
+                        style={styles.video}
+                        resizeMode="cover"
+                        onError={(e) => console.error("Video load error", e)}
+                    />
+                }
             </View>
 
             <TextInput
@@ -83,6 +99,13 @@ const styles = StyleSheet.create({
         backgroundColor: "#222",
         borderRadius: 8
     },
+    video: {
+        width: 320,
+        height: 520,
+        resizeMode: "cover",
+        backgroundColor: "#222",
+        borderRadius: 8
+    },
     backButton: {
         marginTop: 10,
         marginLeft: 10,
@@ -103,4 +126,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default PreviewPage;
+export default Page;

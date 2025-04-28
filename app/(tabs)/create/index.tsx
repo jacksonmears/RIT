@@ -12,6 +12,7 @@ import {
 } from "react-native-vision-camera";
 import { auth, db } from '@/firebase';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 
 const Page = () => {
     const user = auth.currentUser;
@@ -26,6 +27,13 @@ const Page = () => {
     const [photo, setPhoto] = useState<PhotoFile | null>(null);
     const [video, setVideo] = useState<VideoFile | null>(null);
     const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
+    const isFocused = useIsFocused();
+
+    // useEffect(() => {
+    //     if (isFocused) {
+    //         refresh()
+    //     }
+    // }, [isFocused]);
 
     useEffect(() => {
         console.log(photo?.path)
@@ -65,33 +73,43 @@ const Page = () => {
 
     const handleRecordVideo = async () => {
         if (!cameraRef.current) return;
+
         try {
             cameraRef.current.startRecording({
-                onRecordingFinished: (video: VideoFile) => {
-                    setVideo(video);
-                    setPhoto(null);
+                onRecordingFinished: (videoFile: VideoFile) => {
+                    // 1️⃣ We immediately have the real video path
+                    console.log("✅ recorded:", videoFile.path);
+
+                    // 2️⃣ Stop the camera preview
+                    setIsCameraActive(false);
+
+                    // 3️⃣ Navigate with a guaranteed non-undefined path
+                    router.push({
+                        pathname: '/create/editFile',
+                        params: {
+                            fillerUri: videoFile.path,
+                            fillerMode: mode,
+                        },
+                    });
                 },
                 onRecordingError: (error: CameraCaptureError) => {
                     console.error('Recording error', error);
                 },
-            })
+            });
         } catch (e) {
-            console.error(e)
+            console.error(e);
         }
-    }
+    };
+
+    const handleStopVideo = async () => {
+        await cameraRef.current?.stopRecording();
+    };
 
     const switchMode = () => {
         (mode === "photo") ? setMode("video") : setMode("photo");
 
     }
 
-
-    const handleStopVideo = async () => {
-        await cameraRef.current?.stopRecording();
-        setIsCameraActive(false);
-        router.push({pathname: '/create/editFile', params: {fillerUri: video?.path, fillerMode: mode}});
-
-    }
 
     if (!cameraDevice) {
         return (
@@ -148,23 +166,23 @@ const Page = () => {
 
 
 
-                {photo && (
-                    <Image
-                        source={{ uri: photo.path }}
-                        style={styles.preview}
-                        resizeMode="cover"
-                    />
-                )}
-                {video && (
-                    <View style={styles.videoContainer}>
-                        <Video
-                            source={{ uri: video.path }}
-                            style={styles.video}
-                            controls
-                            resizeMode="contain"
-                        />
-                    </View>
-                )}
+                {/*{photo && (*/}
+                {/*    <Image*/}
+                {/*        source={{ uri: photo.path }}*/}
+                {/*        style={styles.preview}*/}
+                {/*        resizeMode="cover"*/}
+                {/*    />*/}
+                {/*)}*/}
+                {/*{video && (*/}
+                {/*    <View style={styles.videoContainer}>*/}
+                {/*        <Video*/}
+                {/*            source={{ uri: video.path }}*/}
+                {/*            style={styles.video}*/}
+                {/*            controls*/}
+                {/*            resizeMode="contain"*/}
+                {/*        />*/}
+                {/*    </View>*/}
+                {/*)}*/}
             </SafeAreaView>
         </View>
     );
