@@ -34,7 +34,7 @@ import SearchCard from "@/components/SearchCard";
 const Page = () => {
     const user = auth.currentUser;
     const [search, setSearch] = useState('');
-    const [searchResults, setSearchResults] = useState<{ id: string, username: string, photoURL:string }[]>([]);
+    const [searchResults, setSearchResults] = useState<{ id: string, username: string, photoURL:string}[]>([]);
     const router = useRouter();
 
 
@@ -72,12 +72,20 @@ const Page = () => {
                 querySnapshot.docs.map(async (docSnapshot) => {
                     const userId = docSnapshot.data().uid;
                     const friendDoc = await getDoc(doc(db, "users", userId));
+                    if (friendDoc.exists()) {
+                        return {
+                            id: userId,
+                            username: docSnapshot.data().displayName,
+                            photoURL: friendDoc.data().photoURL,
+                        };
+                    } else {
+                        return {
+                            id: userId,
+                            username: docSnapshot.data().displayName,
+                            photoURL: null,
+                        }
+                    }
 
-                    return {
-                        id: userId,
-                        username: docSnapshot.data().displayName,
-                        photoURL: friendDoc.exists() ? friendDoc.data().photoURL : null
-                    };
                 })
             );
 

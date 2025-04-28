@@ -27,6 +27,8 @@ const Page = () => {
     const [friendStatus, setFriendStatus] = useState<boolean>(false);
     const [requestStatus, setRequestStatus] = useState<boolean>(false);
     const [pfp, setPfp] = useState<string>('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
 
 
     useEffect(() => {
@@ -91,6 +93,8 @@ const Page = () => {
             setName(getInfo.data().displayName);
             setBio(getInfo.data().bio);
             setPfp(getInfo.data().photoURL);
+            setFirstName(getInfo.data().firstName);
+            setLastName(getInfo.data().lastName);
         }
         const fetchFriendCount = await getDocs(collection(db, "users", friend, "friends"));
         const fetchPostCount = await getDocs(collection(db, "users", friend, "posts"));
@@ -261,7 +265,7 @@ const Page = () => {
                     <View style={styles.pfpSeparator}></View>
                     <View style={styles.infoBox}>
                         <View style={styles.name}>
-                            <Text style={styles.nameText}>{name}</Text>
+                            <Text style={styles.nameText}>{firstName} {lastName}</Text>
                         </View>
                         <View style={styles.info}>
                             <View style={styles.postsInfo}>
