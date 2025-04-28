@@ -18,16 +18,19 @@ import * as ImagePicker from 'expo-image-picker';
 import { Link, useRouter } from 'expo-router'
 import {doc, getDoc, getDocs, collection, query, orderBy, limit, serverTimestamp} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
-
+import Entypo from "@expo/vector-icons/Entypo";
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
 
 const Page = () => {
     const user = auth.currentUser;
-    const [name, setName] = useState('');
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [pfp, setPfp] = useState<string>('');
+    const [firstName, setFirstName] = useState<string>('');
+    const [lastName, setLastName] = useState<string>('');
+
     const [bio, setBio] = useState('');
     const [postContents, setPostContents] = useState<{ id: string, content: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
@@ -37,8 +40,9 @@ const Page = () => {
         if (!user) return;
         const getInfo = await getDoc(doc(db,"users", user.uid));
         if (getInfo.exists()){
-            setName(getInfo.data().displayName);
             setBio(getInfo.data().bio);
+            setFirstName(getInfo.data().firstName);
+            setLastName(getInfo.data().lastName);
         }
         const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
         const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
@@ -114,7 +118,6 @@ const Page = () => {
 
     const refresh = () => {
         setPostContents(null);
-        setName('')
         setNumPosts(0);
         setNumFriends(0);
         setBio('');
@@ -136,14 +139,18 @@ const Page = () => {
 
         <View style={styles.container}>
             <View style={styles.topBar}>
-                <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
-                    <Text style={styles.text}>refresh</Text>
-                </TouchableOpacity>
+                {/*<TouchableOpacity style={styles.refreshButton} onPress={refresh}>*/}
+                {/*    <Text style={styles.text}>refresh</Text>*/}
+                {/*</TouchableOpacity>*/}
 
-                <TouchableOpacity style={styles.refreshButton} onPress={() => router.push("/account/editProfile")}>
-                    <Text style={styles.text}>edit profile</Text>
-                </TouchableOpacity>
 
+
+                <View style={styles.backArrowName}>
+                    {/*<TouchableOpacity onPress={() => router.back()}>*/}
+                    {/*    <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />*/}
+                    {/*</TouchableOpacity>*/}
+                    <Text style={styles.topBarText}>{user?.displayName}</Text>
+                </View>
                 <View style={styles.logout}>
                     <Button title="Logout" onPress={handleLogout} />
                 </View>
@@ -152,19 +159,24 @@ const Page = () => {
 
             <View style={styles.infoBar}>
                 <View style={styles.pfpAndInfo}>
-                    <View style={styles.avatarContainer}>
-                        {pfp ? (
-                            <Image source={{ uri: pfp }} style={styles.avatar} />
-                        ) : (
-                            <View style={[styles.avatar, styles.placeholder]}>
-                                <Text style={styles.placeholderText}>No Photo</Text>
+                    <TouchableOpacity onPress={() => router.push("/account/editProfile")}>
+                        <View style={styles.avatarContainer}>
+                            {pfp ? (
+                                <Image source={{ uri: pfp }} style={styles.avatar} />
+                            ) : (
+                                <View style={[styles.avatar, styles.placeholder]}>
+                                    <Text style={styles.placeholderText}>No Photo</Text>
+                                </View>
+                            )}
+                            <View style={styles.changePfp}>
+                                <Ionicons name="add-circle" size={24} color="white" />
                             </View>
-                        )}
-                    </View>
+                        </View>
+                    </TouchableOpacity>
                     <View style={styles.pfpSeparator}></View>
                     <View style={styles.infoBox}>
                         <View style={styles.name}>
-                            <Text style={styles.nameText}>{name}</Text>
+                            <Text style={styles.nameText}>{firstName} {lastName}</Text>
                         </View>
                         <View style={styles.info}>
                             <View style={styles.postsInfo}>
@@ -177,12 +189,18 @@ const Page = () => {
                                 <Text style={styles.genericText}>friends</Text>
                             </View>
                         </View>
+
                     </View>
                 </View>
                 <View style={styles.bioBox}>
                     <Text style={styles.genericText}>{bio}</Text>
                 </View>
+                <TouchableOpacity style={styles.editContainer}>
+                    <Text style={styles.nameText}>Edit profile</Text>
+                </TouchableOpacity>
             </View>
+
+
 
 
 
@@ -212,29 +230,26 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
         flex: 1,
     },
-    infoBar: {
-        paddingTop: 100,
-        paddingLeft: 40,
-
-    },
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        paddingHorizontal: 15,
+        padding: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: "grey",
+    },
+
+    infoBar: {
+        marginTop: 50,
+        marginHorizontal: 40,
     },
     pfpAndInfo: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    pfp: {
-        // backgroundColor: 'white',
-        borderRadius: 999,
-        width: 100,
-        height: 100,
-        borderWidth: 1,
-        borderColor: 'white',
-    },
     pfpSeparator: {
         width: 20
+
     },
     infoBox: {
 
@@ -255,15 +270,14 @@ const styles = StyleSheet.create({
 
     },
     bioBox: {
-        paddingLeft: 15,
-        paddingTop: 20,
+        marginTop: 10
     },
     genericText: {
         color: 'white',
     },
     groups: {
         flex: 1,
-        marginTop: 20,
+        paddingTop: 20
     },
     separator: {
         height: 20,
@@ -283,9 +297,6 @@ const styles = StyleSheet.create({
     },
     postContainer: {
         flex: 1,
-        paddingBottom: 55,
-        paddingHorizontal: 20,
-        paddingTop: 30
     },
     refreshButton: {
         // position: "absolute",
@@ -299,8 +310,6 @@ const styles = StyleSheet.create({
         color: "#D3D3FF",
     },
     avatarContainer: {
-        alignItems: 'center',
-        marginBottom: 20,
     },
     avatar: {
         width: 120,
@@ -315,6 +324,31 @@ const styles = StyleSheet.create({
     placeholderText: {
         color: 'white',
     },
+
+    topBarText: {
+        color: "#D3D3FF",
+    },
+    backArrowName: {
+        flexDirection: 'row',
+        alignItems: "center",
+    },
+    changePfp: {
+        backgroundColor: "black",
+        borderRadius: 999,
+        padding: 3,
+        position: 'absolute',
+        top: 85,
+        left: 80
+
+    },
+    editContainer: {
+        marginVertical: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: "#D3D3FF",
+    }
 });
 
 export default Page;

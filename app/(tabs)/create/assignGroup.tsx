@@ -10,17 +10,14 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 const Page = () => {
     const user = auth.currentUser;
-    const {fillerUri, fillerMode} = useLocalSearchParams();
-    const localUri = String(fillerUri);
+    const {fillerURI, fillerMode, fillerCaption} = useLocalSearchParams();
+    const caption = String(fillerCaption);
+    const localUri = String(fillerURI);
     const mode = String(fillerMode);
     const [globalPath, setGlobalPath] = useState<string | null>(null);
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<{ [key: string]: boolean }>({});
-    const { content, caption } = useLocalSearchParams();
-    const contentString = String(content); // Convert content to string
-    const captionString = String(caption); // Convert content to string
-
 
     useEffect(() => {
         if (user) {
@@ -55,7 +52,7 @@ const Page = () => {
     }, [selectedGroups]);
 
 
-    const createPost = async (content: string, caption:string) => {
+    const createPost = async () => {
         if (!user) return;
         const parsedGroups = Object.keys(selectedGroups)
             .filter((groupId) => selectedGroups[groupId]) // Only keep selected groups (true)
@@ -73,7 +70,7 @@ const Page = () => {
             const postRef = await addDoc(collection(db, "posts"), {
                 sender_id: user.uid,
                 type: mode,
-                caption: '',
+                caption: caption,
                 timestamp: serverTimestamp(),
             });
 
@@ -105,24 +102,44 @@ const Page = () => {
         if (!auth.currentUser) {
             throw new Error('No user logged in');
         }
-        const response = await fetch(localUri);
-        const blob = await response.blob();
 
-        // const resizedImage = await ImageManipulator.manipulateAsync(
-        //     localUri,
-        //     [{ resize: { width: 1080, height: 1350 } }],
-        //     { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-        // );
+        const uri =
+            localUri.startsWith('file://')
+                ? localUri
+                : `file://${localUri}`;
 
-        // const resizedImage = await resize(localUri)
+        const response = await fetch(uri);
+        const blob     = await response.blob();
 
-        // const encodedPath = encodeURIComponent(`postPictures/${postID}.jpg`);
         const ref = storageRef(storage, `postPictures/${postID}.jpg`);
-        // const resizedBlob = await fetch(resizedImage).then(res => res.blob());
-
         await uploadBytes(ref, blob);
+
         return getDownloadURL(ref);
-    }
+    };
+
+
+    // const uploadPhoto = async (postID: string) => {
+    //     if (!auth.currentUser) {
+    //         throw new Error('No user logged in');
+    //     }
+    //     const response = await fetch(localUri);
+    //     const blob = await response.blob();
+    //
+    //     // const resizedImage = await ImageManipulator.manipulateAsync(
+    //     //     localUri,
+    //     //     [{ resize: { width: 1080, height: 1350 } }],
+    //     //     { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+    //     // );
+    //
+    //     // const resizedImage = await resize(localUri)
+    //
+    //     // const encodedPath = encodeURIComponent(`postPictures/${postID}.jpg`);
+    //     const ref = storageRef(storage, `postPictures/${postID}.jpg`);
+    //     // const resizedBlob = await fetch(resizedImage).then(res => res.blob());
+    //
+    //     await uploadBytes(ref, blob);
+    //     return getDownloadURL(ref);
+    // }
 
 
     const resize = async (uri: string) => {
@@ -192,8 +209,8 @@ const Page = () => {
         }
     };
 
-    const doneButton = async (content: string, caption: string) => {
-        createPost(content, caption);
+    const doneButton = async () => {
+        createPost();
         router.push({
             pathname: "/create",
             params: { reset: "true" },
@@ -235,7 +252,7 @@ const Page = () => {
             {/*    <Text>done</Text>*/}
             {/*</TouchableOpacity>*/}
 
-            <TouchableOpacity style={styles.doneButton} onPress={() => doneButton(contentString, captionString)}>
+            <TouchableOpacity style={styles.doneButton} onPress={() => doneButton()}>
                 <Text>done</Text>
             </TouchableOpacity>
 

@@ -45,7 +45,7 @@ const Index = () => {
     const [posts, setPosts] = useState<{ id: string, type: string }[] | null>(null);
     // const [videoContents, setVideoContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string }[] | null>(null);
     // const [messageContents, setMessageContents] = useState<{ content: string, userName: string }[] | null>(null);
-    const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, type: string }[] | null>(null);
+    const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, type: string, firstName: string, lastName: string }[] | null>(null);
 
     const [message, setMessage] = useState("");
 
@@ -114,12 +114,16 @@ const Index = () => {
                         const userID = postSnap.data().sender_id;
                         const content = postSnap.data().content;
                         const type = postSnap.data().type;
-                        const displayName = await getDoc(doc(db, "users", userID));
+                        const friendDoc = await getDoc(doc(db, "users", userID));
                         let userName = ''
                         let pfp = ''
-                        if (displayName.exists()) {
-                            userName = displayName.data().displayName;
-                            pfp = displayName.data().photoURL;
+                        let firstName = ''
+                        let lastName = ''
+                        if (friendDoc.exists()) {
+                            userName = friendDoc.data().displayName;
+                            pfp = friendDoc.data().photoURL;
+                            firstName = friendDoc.data().firstName;
+                            lastName = friendDoc.data().lastName;
                         }
 
                         // let timestamp = "Unknown date";
@@ -136,9 +140,9 @@ const Index = () => {
                         //     console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
                         // }
 
-                        return { groupID: groupIDString, id: post.id, content: content, caption: "null", userName: userName, pfp: pfp, type: type };
+                        return { groupID: groupIDString, id: post.id, content: content, caption: "null", userName: userName, pfp: pfp, type: type, firstName: firstName, lastName: lastName };
                     } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", type: "failed" };
+                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", type: "failed", firstName: '', lastName: '' };
                     }
                 }
                 else {
@@ -149,17 +153,21 @@ const Index = () => {
                         const userID = postSnap.data().sender_id;
                         const type = postSnap.data().type;
                         const content = postSnap.data().content;
-                        const displayName = await getDoc(doc(db, "users", userID));
+                        const friendDoc = await getDoc(doc(db, "users", userID));
                         let userName = ''
                         let pfp = ''
-                        if (displayName.exists()) {
-                            userName = displayName.data().displayName;
-                            pfp = displayName.data().photoURL;
+                        let firstName = ''
+                        let lastName = ''
+                        if (friendDoc.exists()) {
+                            userName = friendDoc.data().displayName;
+                            pfp = friendDoc.data().photoURL;
+                            firstName = friendDoc.data().firstName;
+                            lastName = friendDoc.data().lastName;
                         }
 
-                        return { groupID: groupIDString, id: post.id, content: content, caption: postSnap.data().caption, userName: userName, pfp: pfp, type: type };
+                        return { groupID: groupIDString, id: post.id, content: content, caption: postSnap.data().caption, userName: userName, pfp: pfp, type: type, firstName: firstName, lastName: lastName };
                     } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", type: "failed" };
+                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", type: "failed", firstName: '', lastName: '' };
                     }
                 }
             }));

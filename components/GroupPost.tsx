@@ -12,6 +12,8 @@ interface Post {
     userName: string;
     pfp: string;
     type: string;
+    firstName: string;
+    lastName: string;
 }
 
 interface PostCompProps {
@@ -25,13 +27,12 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const user = auth.currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
     const [likeText, setLikeText] = useState("like");
-
+    const content = decodeURIComponent(post.content);
 
 
 
 
     useEffect(() => {
-        console.log(post.content)
         const likeFunc = async () => {
             if (!user) return;
 
@@ -71,23 +72,23 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
             {user?.displayName === post.userName ? (
                 <View style={styles.postView}>
                     <View style={styles.nameContentContainer}>
-                        <View style={styles.contentView}>
+                        <View style={styles.imageWrapper}>
                             <TouchableOpacity onPress={() => router.push({
                                 pathname: '/(tabs)/groups/[groupID]/post',
                                 params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
                             })}>
-                                {post.type === "picture" ?
-                                    <Image source={{ uri: post.content }} style={styles.pictureContent} />
+                                {post.type === "photo" ?
+                                    <Image source={{ uri: content }} style={styles.pictureContent} />
                                     :
                                     <Text style={styles.contentText}>{post.content}</Text>
                                 }
                             </TouchableOpacity>
                         </View>
 
-                        <View style={styles.captionBar}>
-                            <Text style={styles.userNameCaption}>{post.userName} </Text>
-                            <Text> {post.caption}</Text>
-                        </View>
+                        {/*<View style={styles.captionBar}>*/}
+                        {/*    <Text style={styles.userNameCaption}>{post.userName} </Text>*/}
+                        {/*    <Text> {post.caption}</Text>*/}
+                        {/*</View>*/}
                     </View>
                 </View>
             ) : (
@@ -110,25 +111,25 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                             </View>
                         </View>
                         <View style={styles.nameContentContainer}>
-                            <View style={styles.topBar}>
-                                <Text>{post.userName}</Text>
-                            </View>
-                            <View style={styles.contentView}>
+                            <View style={styles.imageWrapper}>
                                 <TouchableOpacity onPress={() => router.push({
                                     pathname: '/(tabs)/groups/[groupID]/post',
                                     params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
                                 })}>
-                                    {post.type === "picture" ?
-                                        <Image source={{ uri: post.content }} style={styles.pictureContent} />
+                                    {post.type === "photo" ?
+                                        <Image source={{ uri: content }} style={styles.pictureContent} />
                                         :
                                         <Text style={styles.contentText}>{post.content}</Text>
                                     }
+                                    <View style={styles.overlay}>
+                                        <Text style={styles.overlayText}>{post.firstName} {post.lastName}</Text>
+                                    </View>
                                 </TouchableOpacity>
                             </View>
-                            <View style={styles.captionBar}>
-                                <Text style={styles.userNameCaption}>{post.userName} </Text>
-                                <Text> {post.caption}</Text>
-                            </View>
+                            {/*<View style={styles.captionBar}>*/}
+                            {/*    <Text style={styles.userNameCaption}>{post.userName} </Text>*/}
+                            {/*    <Text> {post.caption}</Text>*/}
+                            {/*</View>*/}
                         </View>
                     </View>
                 </View>
@@ -143,38 +144,35 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 const styles = StyleSheet.create({
     postView: {
         justifyContent: "center",
-        paddingLeft: 10,
+        marginLeft: 10,
     },
     flexFixer: {
         flexDirection: "row",
     },
     sideSeparator: {
-        padding: 0,
         alignItems: "center",
         justifyContent: "flex-end",
-        paddingRight: 10
+        marginRight: 10
     },
     nameContentContainer: {
     },
     topBar: {
         backgroundColor: "grey",
-        // padding: 20,
     },
     contentView: {
-        // backgroundColor: "grey",
-        // padding: 100,
-        borderColor: "gold",
-        borderWidth: 1
+        borderColor: "#D3D3FF",
+        borderWidth: 1,
+        borderRadius: 8
     },
     bottomBar: {
         backgroundColor: "white",
-        padding: 20,
+        padding: 10,
         flexDirection: "row",
     },
     captionBar: {
         alignItems: "center",
         backgroundColor: "grey",
-        padding: 20,
+        padding: 10,
         flexDirection: "row",
     },
     userNameCaption: {
@@ -184,20 +182,19 @@ const styles = StyleSheet.create({
         color: "white",
     },
     pfpBoxPosition: {
-        // paddingBottom: 10,
     },
     pfpBox: {
-        // backgroundColor: "white",
-        // padding: 20,
-        // borderRadius: 999
+
     },
     avatarContainer: {
         alignItems: 'center',
-        // marginBottom: 20,
     },
     pictureContent: {
         width: 200,
-        height: 200,
+        height: 300,
+        resizeMode: "cover",
+        backgroundColor: "#222",
+        borderRadius: 8
     },
     avatar: {
         width: 30,
@@ -212,6 +209,26 @@ const styles = StyleSheet.create({
     placeholderText: {
         color: 'white',
     },
+    overlay: {
+        position: "absolute",
+        top: 8,
+        left: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    imageWrapper: {
+        position: "relative",
+        marginVertical: 10,
+        borderRadius: 8,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "#D3D3FF",
+    },
+    overlayText: {
+        color: "#D3D3FF",
+        fontWeight: "bold"
+    }
 });
 
 export default GroupPost;
