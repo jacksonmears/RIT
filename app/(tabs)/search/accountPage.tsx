@@ -26,6 +26,8 @@ const Page = () => {
     const router = useRouter();
     const [friendStatus, setFriendStatus] = useState<boolean>(false);
     const [requestStatus, setRequestStatus] = useState<boolean>(false);
+    const [pfp, setPfp] = useState<string>('');
+
 
     useEffect(() => {
         const fetchUserPosts = async () => {
@@ -88,6 +90,7 @@ const Page = () => {
         if (getInfo.exists()){
             setName(getInfo.data().displayName);
             setBio(getInfo.data().bio);
+            setPfp(getInfo.data().photoURL);
         }
         const fetchFriendCount = await getDocs(collection(db, "users", friend, "friends"));
         const fetchPostCount = await getDocs(collection(db, "users", friend, "posts"));
@@ -252,7 +255,9 @@ const Page = () => {
             </View>
             <View style={styles.infoBar}>
                 <View style={styles.pfpAndInfo}>
-                    <View style={styles.pfp}></View>
+                    <View>
+                        <Image source={{ uri: pfp }} style={styles.pfp} />
+                    </View>
                     <View style={styles.pfpSeparator}></View>
                     <View style={styles.infoBox}>
                         <View style={styles.name}>
@@ -441,7 +446,7 @@ const styles = StyleSheet.create({
     },
     separator: {
         width: 20,
-    }
+    },
 });
 
 export default Page;

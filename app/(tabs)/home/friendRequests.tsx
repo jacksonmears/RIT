@@ -1,37 +1,42 @@
 import { Text, View, StyleSheet, FlatList, Pressable, TouchableOpacity } from "react-native";
 import React, { useState, useEffect } from "react";
 import { auth, db } from '@/firebase';
-import { doc, getDoc, updateDoc, arrayRemove, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import {doc, getDoc, updateDoc, arrayRemove, onSnapshot, serverTimestamp, setDoc, collection} from "firebase/firestore";
 import { Link, useRouter } from "expo-router";
 
 
 const Page = () => {
     const [friendsUsername, setFriendsUsername] = useState<string[]>([]);
     const [friendsUID, setFriendsUID] = useState<string[]>([]);
-    const [groupIds, setGroupIds] = useState<string[]>([]);
     const [groupsName, setGroupsName] = useState<string[]>([]);
     const user = auth.currentUser;
     const router = useRouter();
+    const [groupRequests, setGroupRequests] = useState<{ id: string, name: string, }[] | null>(null);
+
 
     const fetchGroupRequests = async () => {
         if (!user) return;
+
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-            const groupRequests: string[] = userDoc.data().groupRequests || [];
-            setGroupIds(groupRequests);
+        if (!userDoc.exists()) return;
 
-            const groupNames: string[] = [];
+        const incomingIds: string[] = userDoc.data().groupRequests || [];
 
-            for (const uid of groupRequests) {
-                const groupDoc = await getDoc(doc(db, "groups", uid));
-                if (groupDoc.exists()) {
-                    groupNames.push(groupDoc.data().name || "Unknown");
-                }
-            }
+        const detailed = await Promise.all(
+            incomingIds.map(async (groupId) => {
+                const groupDoc = await getDoc(doc(db, "groups", groupId));
+                return {
+                    id:   groupId,
+                    name: groupDoc.exists()
+                        ? (groupDoc.data().name as string)
+                        : "Unknown",
+                };
+            })
+        );
 
-            setGroupsName(groupNames);
-        }
-    }
+        setGroupRequests(detailed);
+    };
+
 
 
     const fetchFriendRequestsAndUsernames = async () => {
@@ -64,6 +69,81 @@ const Page = () => {
     //     console.log("Usernames:", friendsUsername);
     // }, [friendsUsername]);
 
+    const acceptGroupInvite = async (groupId: string) => {
+        if (!user) return;
+        console.log(groupId);
+        try {
+            const groupNameRef = doc(db, "groups", groupId);
+            const docSnap = await getDoc(groupNameRef);
+            if (docSnap.exists()) {
+                const groupName = docSnap.data().name;
+                addGroupUserSide(groupId, groupName);
+                addGroupCollectionSide(groupId);
+                removeGroupInvite(groupId);
+                console.log("group added successfully.");
+                fetchGroupRequests()
+            }
+            else {
+                console.log("group adding failed.");
+            }
+
+        } catch (err) {
+            console.error(err);
+        }
+
+
+    }
+
+
+
+    const addGroupUserSide = async (groupID: string, groupName: string) => {
+        if (!auth.currentUser) return;
+
+        const docRef = doc(db, "users", auth.currentUser.uid, "groups", groupID);
+
+        try {
+            await setDoc(docRef, {
+                name: groupName,
+            });
+
+            console.log(`Group ${groupID} added to user ${auth.currentUser.uid}`);
+        } catch (error) {
+            console.log(`Group ${groupID} already exists.`);
+        }
+    };
+
+    const addGroupCollectionSide = async (groupID: string) => {
+        if (!user) return;
+
+        const colRef = collection(db, "groups", groupID, "users");
+        try {
+            await setDoc(doc(colRef, user.uid), {
+                name: user.displayName,
+            });
+            console.log(`User ${user.uid} added to group ${groupID}`);
+        } catch (error) {
+            console.log(`user in ${groupID} already exists.`);
+
+        }
+
+    };
+
+
+    const removeGroupInvite = async (groupID: string) => {
+        if (user) {
+            const docRef = doc(db, "users", user.uid);
+
+            try {
+                await updateDoc(docRef, {
+                    groupRequests: arrayRemove(groupID)
+                });
+
+                console.log(`Removed group request from ${groupID}`);
+            } catch (error) {
+                console.error("Error removing group request: ", error);
+            }
+        }
+    };
 
     const acceptFriend = async (displayName: string) => {
         if (user) {
@@ -144,18 +224,18 @@ const Page = () => {
             />
 
             <FlatList
-                data={groupsName}
+                data={groupRequests}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.friendContainer}>
                         <View style={styles.friendComponent}>
-                            <Text style={styles.text}>{item}</Text>
+                            <Text style={styles.text}>{item.name}</Text>
 
                             <View style={styles.buttonGroup}>
-                                <Pressable onPress={() => acceptFriend(item)} style={styles.acceptButton}>
+                                <Pressable onPress={() => acceptGroupInvite(item.id)} style={styles.acceptButton}>
                                     <Text>Accept</Text>
                                 </Pressable>
-                                <Pressable onPress={() => removeFriendRequest(item)} style={styles.declineButton}>
+                                <Pressable onPress={() => removeGroupInvite(item.id)} style={styles.declineButton}>
                                     <Text>Decline</Text>
                                 </Pressable>
                             </View>
