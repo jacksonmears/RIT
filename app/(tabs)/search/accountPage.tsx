@@ -8,7 +8,7 @@ import {Link, useLocalSearchParams, useRouter} from 'expo-router'
 import {doc, getDoc, getDocs, collection, query, orderBy, limit, setDoc} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
 import {string} from "prop-types";
-import friendRequests from "@/app/(tabs)/home/friendRequests";
+import friendRequests from "@/app/(tabs)/home/notifications";
 
 
 const { width, height } = Dimensions.get('window');

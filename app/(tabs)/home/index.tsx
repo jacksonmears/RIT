@@ -188,7 +188,7 @@ const Page = () => {
                     <Text style={styles.titleTextRECAP}>Recap</Text>
                     <Text style={styles.titleTextIT}>It</Text>
                 </View>
-                <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/friendRequests')}>
+                <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/notifications')}>
                     <Ionicons name="notifications-outline" size={24} color="#D3D3FF" />
                     {friendNotis+groupNotis>0 &&
                         <View style={styles.redCircle}>
