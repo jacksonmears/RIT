@@ -91,7 +91,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     return (
         <View style={styles.postView}>
 
-            {(post.type === "picture") ?
+            {(post.type === "photo") ?
                 <View>
                     <View>
                         <View style={styles.topBar}>
@@ -140,7 +140,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                         </View>
                         <View style={styles.captionBar}>
                             <Text style={styles.userNameCaption}>{post.userName} </Text>
-                            <Text style={styles.username}> {post.caption}</Text>
+                            <Text style={styles.username}>{post.caption}</Text>
                         </View>
                         <Text style={styles.timeText}>{post.timestamp}</Text>
                     </View>
@@ -190,7 +190,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                     </View>
                     <View style={styles.captionBar}>
                         <Text style={styles.userNameCaption}>{post.userName} </Text>
-                        <Text style={styles.username}> {post.caption}</Text>
+                        <Text style={styles.username}>{post.caption}</Text>
                     </View>
                     <Text style={styles.timeText}>{post.timestamp}</Text>
                 </View>
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     pictureContent: {
         backgroundColor: "grey",
         width: "100%",
-        resizeMode: "contain",
+        resizeMode: "cover",
         height: '100%',
     },
     bottomBar: {

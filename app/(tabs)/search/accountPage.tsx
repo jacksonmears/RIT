@@ -36,7 +36,7 @@ const Page = () => {
             if (!friend) return;
             try {
                 const postsRef = collection(db, "users", friend, "posts");
-                const orderedQuery = query(postsRef, orderBy("createdAt", "asc")); // or "asc"
+                const orderedQuery = query(postsRef, orderBy("timestamp", "asc")); // or "asc"
                 const usersDocs = await getDocs(orderedQuery);
 
                 const postList = usersDocs.docs.map((doc) => ({
@@ -51,6 +51,9 @@ const Page = () => {
         };
         fetchUserPosts();
     }, []);
+
+
+
 
     useEffect(() => {
         getBioInfo()
@@ -326,6 +329,8 @@ const Page = () => {
                             <AccountPost post={item} />
                         </View>
                     )}
+                    // contentContainerStyle={styles.flatListContentContainer}
+                    // ItemSeparatorComponent={() => <View style={styles.separator} />}
                     numColumns={3}
                 />
             </View>
@@ -393,9 +398,8 @@ const styles = StyleSheet.create({
     },
     postContainer: {
         flex: 1,
-        paddingBottom: 55,
-        paddingHorizontal: 20,
     },
+
     topBar: {
 
     },
