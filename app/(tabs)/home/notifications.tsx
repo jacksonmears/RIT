@@ -100,6 +100,7 @@ const Page = () => {
         try {
             await setDoc(docRef, {
                 name: groupName,
+                timestamp: serverTimestamp(),
             });
 
             console.log(`Group ${groupID} added to user ${auth.currentUser.uid}`);
@@ -115,6 +116,7 @@ const Page = () => {
         try {
             await setDoc(doc(colRef, user.uid), {
                 name: user.displayName,
+                timestamp: serverTimestamp(),
             });
             console.log(`User ${user.uid} added to group ${groupID}`);
         } catch (error) {
@@ -139,7 +141,7 @@ const Page = () => {
             const friendFriendDocRef = doc(db, "users", friend, "friends", user.uid);
 
             try {
-                const friendData = { dateAdded: serverTimestamp() };
+                const friendData = { timestamp: serverTimestamp() };
 
                 await setDoc(userFriendDocRef, friendData);
                 await setDoc(friendFriendDocRef, friendData);

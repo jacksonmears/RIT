@@ -39,14 +39,9 @@ const Index = () => {
     const groupIDString = String(groupID);
     const groupNameString = String(groupName);
     const router = useRouter();
-    const [group, setGroup] = useState(null);
     const user = auth.currentUser;
-    const [friends, setFriends] = useState<{ id: string, name: string}[] | null>(null);
     const [posts, setPosts] = useState<{ id: string, type: string }[] | null>(null);
-    // const [videoContents, setVideoContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string }[] | null>(null);
-    // const [messageContents, setMessageContents] = useState<{ content: string, userName: string }[] | null>(null);
     const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, type: string, firstName: string, lastName: string }[] | null>(null);
-
     const [message, setMessage] = useState("");
 
     useEffect(() => {
@@ -56,7 +51,6 @@ const Index = () => {
     useEffect(() => {
         getPostContent()
     }, [posts]);
-
 
 
 

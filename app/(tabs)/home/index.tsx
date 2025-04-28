@@ -14,7 +14,7 @@ const Page = () => {
     const [postIds, setPostIds] = useState<string[]>([]);
     const user = auth.currentUser;
     const router = useRouter();
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, pfp: string, type: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, pfp: string, mode: string }[] | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const [friendNotis, setFriendNotis] = useState<number>(0);
     const [groupNotis, setGroupsNotis] = useState<number>(0);
@@ -115,7 +115,7 @@ const Page = () => {
 
                 if (postSnap.exists()) {
                     const userID = postSnap.data().sender_id;
-                    const type = postSnap.data().type;
+                    const mode = postSnap.data().mode;
                     const userInfo = await getDoc(doc(db, "users", userID));
                     let userName = ''
                     let pfp = ''
@@ -148,9 +148,9 @@ const Page = () => {
 
 
 
-                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp, type: type };
+                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
                 } else {
-                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", pfp: "failed", type: "failed" };
+                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", pfp: "failed", mode: "failed" };
                 }
             }));
 

@@ -1,16 +1,17 @@
 import {View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator} from "react-native";
 import { useRouter } from "expo-router";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useRef} from "react";
 import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
 import {auth,db} from "@/firebase";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Video from "react-native-video";
 
 
 interface Post {
     id: string;
-    type: string;
+    mode: string;
     content: string;
     caption: string;
     userName: string;
@@ -91,7 +92,6 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     return (
         <View style={styles.postView}>
 
-            {(post.type === "photo") ?
                 <View>
                     <View>
                         <View style={styles.topBar}>
@@ -110,7 +110,16 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                         </View>
                         <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{contentT: post.content}})}>
                             <View style={styles.contentViewPicture}>
-                                <Image source={{ uri: content }} style={styles.pictureContent} />
+                                {post.mode==="photo" ?
+                                    <Image source={{ uri: content }} style={styles.pictureContent} />
+                                    :
+                                    <Video
+                                        source={{ uri: content }}
+                                        style={styles.videoContent}
+                                        resizeMode={'cover'}
+                                        repeat={true}
+                                    />
+                                }
                                 {/*<Text style={styles.username}>{post.content}</Text>*/}
                             </View>
                         </TouchableOpacity>
@@ -145,56 +154,6 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                         <Text style={styles.timeText}>{post.timestamp}</Text>
                     </View>
                 </View>
-                :
-                <View>
-                    <View style={styles.topBar}>
-                        <View style={styles.pfpBox}>
-                            <View style={styles.avatarContainer}>
-                                {post.pfp? (
-                                    <Image source={{ uri: post.pfp }} style={styles.avatar} />
-                                ) : (
-                                    <View style={[styles.avatar, styles.placeholder]}>
-                                        <Text style={styles.placeholderText}>No Photo</Text>
-                                    </View>
-                                )}
-                            </View>
-                        </View>
-                        <Text style={styles.username}>{post.userName}</Text>
-                    </View>
-                    <View style={styles.contentViewText}>
-                        <Text style={styles.username}>{post.content}</Text>
-                    </View>
-                    <View style={styles.bottomBar}>
-                        <TouchableOpacity onPress={() => likeBeta()}>
-                            <View style={styles.likeAssetContainer}>
-                                {likeStatus ?
-                                    <AntDesign name="heart" size={24} color={"red"} />
-                                    :
-                                    <AntDesign name="hearto" size={24} color={"white"} />
-                                }
-
-                            </View>
-                        </TouchableOpacity>
-                        <Text style={styles.numLikesText}>{numLikes}</Text>
-
-                        <View>
-                            <TouchableOpacity onPress={() => router.push({
-                                pathname: '/(tabs)/home/post',
-                                params: { idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
-                            })}>
-                                <FontAwesome name="comment-o" size={22} color={"white"} />
-                            </TouchableOpacity>
-                        </View>
-                        <Text style={styles.numLikesText}>{numComments}</Text>
-
-                    </View>
-                    <View style={styles.captionBar}>
-                        <Text style={styles.userNameCaption}>{post.userName} </Text>
-                        <Text style={styles.username}>{post.caption}</Text>
-                    </View>
-                    <Text style={styles.timeText}>{post.timestamp}</Text>
-                </View>
-            }
 
 
         </View>
@@ -243,6 +202,12 @@ const styles = StyleSheet.create({
         backgroundColor: "grey",
         width: "100%",
         resizeMode: "cover",
+        height: '100%',
+    },
+    videoContent: {
+        backgroundColor: "grey",
+        width: "100%",
+        resizeMode: "contain",
         height: '100%',
     },
     bottomBar: {
