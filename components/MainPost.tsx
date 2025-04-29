@@ -35,8 +35,6 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const [numComments, setNumComments] = useState<number>(0);
 
 
-
-
     useEffect(() => {
         console.log(content)
         const likeFunc = async () => {
@@ -108,7 +106,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                             </View>
                             <Text style={styles.username}>{post.userName}</Text>
                         </View>
-                        <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{contentT: post.content}})}>
+                        <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{idT: post.id, contentT: encodeURIComponent(content), captionT: post.caption, userNameT: post.userName, mode: post.mode, photoURL: encodeURIComponent(post.pfp)}})}>
                             <View style={styles.contentViewPicture}>
                                 {post.mode==="photo" ?
                                     <Image source={{ uri: content }} style={styles.pictureContent} />
@@ -117,7 +115,8 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                         source={{ uri: content }}
                                         style={styles.videoContent}
                                         resizeMode={'cover'}
-                                        repeat={true}
+                                        // repeat={true}
+                                        paused={true}
                                     />
                                 }
                                 {/*<Text style={styles.username}>{post.content}</Text>*/}
@@ -139,7 +138,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                             <View>
                                 <TouchableOpacity onPress={() => router.push({
                                     pathname: '/(tabs)/home/post',
-                                    params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName }
+                                    params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName, mode: post.mode },
                                 })}>
                                     <FontAwesome name="comment-o" size={22} color={"white"} />
                                 </TouchableOpacity>

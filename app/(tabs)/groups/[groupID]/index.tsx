@@ -40,8 +40,8 @@ const Index = () => {
     const groupNameString = String(groupName);
     const router = useRouter();
     const user = auth.currentUser;
-    const [posts, setPosts] = useState<{ id: string, type: string }[] | null>(null);
-    const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, type: string, firstName: string, lastName: string }[] | null>(null);
+    const [posts, setPosts] = useState<{ id: string, mode: string }[] | null>(null);
+    const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, mode: string, firstName: string, lastName: string }[] | null>(null);
     const [message, setMessage] = useState("");
 
     useEffect(() => {
@@ -87,7 +87,7 @@ const Index = () => {
 
             const postsRef = querySnapshot.docs.map(doc => ({
                 id: doc.id,
-                type: doc.data().type,
+                mode: doc.data().mode,
                 // ...doc.data()
             }));
             setPosts(postsRef);
@@ -102,12 +102,12 @@ const Index = () => {
 
         try {
             const postContents = await Promise.all(posts.map(async (post) => {
-                if (post.type === "text"){
+                if (post.mode === "text"){
                     const postSnap = await getDoc(doc(db, "groups", groupIDString, "messages", post.id));
                     if (postSnap.exists()) {
                         const userID = postSnap.data().sender_id;
                         const content = postSnap.data().content;
-                        const type = postSnap.data().type;
+                        const mode = postSnap.data().mode;
                         const friendDoc = await getDoc(doc(db, "users", userID));
                         let userName = ''
                         let pfp = ''
@@ -134,9 +134,9 @@ const Index = () => {
                         //     console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
                         // }
 
-                        return { groupID: groupIDString, id: post.id, content: content, caption: "null", userName: userName, pfp: pfp, type: type, firstName: firstName, lastName: lastName };
+                        return { groupID: groupIDString, id: post.id, content: content, caption: "null", userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName };
                     } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", type: "failed", firstName: '', lastName: '' };
+                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '' };
                     }
                 }
                 else {
@@ -145,7 +145,7 @@ const Index = () => {
 
                     if (postSnap.exists()) {
                         const userID = postSnap.data().sender_id;
-                        const type = postSnap.data().type;
+                        const mode = postSnap.data().mode;
                         const content = postSnap.data().content;
                         const friendDoc = await getDoc(doc(db, "users", userID));
                         let userName = ''
@@ -159,9 +159,9 @@ const Index = () => {
                             lastName = friendDoc.data().lastName;
                         }
 
-                        return { groupID: groupIDString, id: post.id, content: content, caption: postSnap.data().caption, userName: userName, pfp: pfp, type: type, firstName: firstName, lastName: lastName };
+                        return { groupID: groupIDString, id: post.id, content: content, caption: postSnap.data().caption, userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName };
                     } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", type: "failed", firstName: '', lastName: '' };
+                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '' };
                     }
                 }
             }));
@@ -176,7 +176,7 @@ const Index = () => {
         if (!user || message.length < 1) return;
         await addDoc(collection(db, "groups", groupIDString, "messages"), {
             sender_id: user.uid,
-            type: "text",
+            mode: "text",
             content: message,
             timestamp: serverTimestamp(),
         });
@@ -214,7 +214,7 @@ const Index = () => {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <View style={[styles.messageContainer, {alignSelf: user?.displayName === item.userName ? "flex-end" : "flex-start",},]}>
-                        {item.type !== "text" ? (
+                        {item.mode !== "text" ? (
                         <GroupPost post={item} />
                         ) : (
                         <GroupMessage post={item} />

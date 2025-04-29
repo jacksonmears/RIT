@@ -19,7 +19,7 @@ const Page = () => {
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [bio, setBio] = useState('');
-    const [postContents, setPostContents] = useState<{ id: string, content: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, mode: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
     const {friendID} = useLocalSearchParams();
     const friend = String(friendID);
@@ -42,6 +42,7 @@ const Page = () => {
                 const postList = usersDocs.docs.map((doc) => ({
                     id: doc.id,
                     timestamp: doc.data().timestamp,
+                    mode: doc.data().mode,
                 }));
 
                 setPosts(postList);
@@ -153,9 +154,9 @@ const Page = () => {
 
                 if (postSnap.exists()) {
 
-                    return { id: post.id, content: postSnap.data().content };
+                    return { id: post.id, content: postSnap.data().content, mode: postSnap.data().mode };
                 } else {
-                    return { id: post.id, content: "Content not found"};
+                    return { id: post.id, content: "Content not found", mode: "failed"};
                 }
             }));
 
@@ -298,25 +299,22 @@ const Page = () => {
                 {/*</TouchableOpacity>*/}
 
                 {friendStatus ? (
-                    <TouchableOpacity
-                        style={styles.followButton}
-                        // onPress={handleUnfollow} // do something when unfollowing
-                    >
+                    <View style={styles.followButton}>
                         <Text style={styles.followText}>friends</Text>
-                    </TouchableOpacity>
+                    </View>
                 ) : (
                     <TouchableOpacity
-                        style={styles.followButton}
-                        onPress={sendRequest} // do something when following
+                        style={styles.notFollowedButton}
+                        onPress={sendRequest}
                     >
-                        <Text style={styles.followText}>{requestStatus ? "request pending" : "request"}</Text>
+                        <Text style={styles.notFollowedText}>{requestStatus ? "request pending" : "request"}</Text>
                     </TouchableOpacity>
                 )}
 
                 <View style={styles.separator}></View>
-                <TouchableOpacity style={styles.messageButton}>
-                    <Text style={styles.messageText}>message</Text>
-                </TouchableOpacity>
+                {/*<TouchableOpacity style={styles.messageButton}>*/}
+                {/*    <Text style={styles.messageText}>message</Text>*/}
+                {/*</TouchableOpacity>*/}
             </View>
 
             <View style={styles.postContainer}>
@@ -417,9 +415,7 @@ const styles = StyleSheet.create({
     backButtonText: {
         color: "white"
     },
-    followText: {
-        color: "white",
-    },
+
     messageText: {
         color: "white",
     },
@@ -431,12 +427,12 @@ const styles = StyleSheet.create({
         paddingBottom: 10
 
     },
-    followButton: {
+    notFollowedButton: {
         flex: 1,
-        backgroundColor: "blue",
+        backgroundColor: "#D3D3FF",
         alignItems: "center",
         padding: 4,
-        borderRadius: 2,
+        borderRadius: 4,
     },
     followingButton: {
         flex: 1,
@@ -455,6 +451,21 @@ const styles = StyleSheet.create({
     separator: {
         width: 20,
     },
+    followButton: {
+        flex: 1,
+        alignItems: "center",
+        padding: 4,
+        borderRadius: 4,
+        borderWidth: 2,
+        borderColor: "#D3D3FF",
+    },
+    followText: {
+        color: "white",
+    },
+    notFollowedText: {
+        color: "black",
+    },
+
 });
 
 export default Page;

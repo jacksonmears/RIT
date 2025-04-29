@@ -3,11 +3,13 @@ import { useRouter } from "expo-router";
 import React, {useEffect, useState} from "react";
 import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
 import {auth,db} from "@/firebase";
+import Video from "react-native-video";
 
 
 interface Post {
     id: string;
     content: string;
+    mode: string;
 }
 
 interface PostCompProps {
@@ -24,11 +26,21 @@ const AccountPost: React.FC<PostCompProps> = ({ post }) => {
 
     return (
         <View style={[styles.contentView, { width: itemWidth, height: itemHeight }]}>
-            <Image
-                source={{ uri: content }}
-                style={{ width: itemWidth, height: itemHeight }}
-                resizeMode="cover"
-            />
+            {post.mode==="photo" ?
+                <Image
+                    source={{ uri: content }}
+                    style={{ width: itemWidth, height: itemHeight }}
+                    resizeMode="cover"
+                />
+            :
+                <Video
+                    source={{ uri: content }}
+                    style={{ width: itemWidth, height: itemHeight }}
+                    resizeMode={'cover'}
+                    paused={true}
+                />
+            }
+
         </View>
     );
 };
@@ -42,6 +54,9 @@ const styles = StyleSheet.create({
     contentText: {
         textAlign: "center",
     },
+    videoContent: {
+
+    }
 
 });
 

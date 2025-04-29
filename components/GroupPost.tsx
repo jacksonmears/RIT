@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, {useEffect, useState} from "react";
 import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
 import {auth,db} from "@/firebase";
+import Video from "react-native-video";
 
 interface Post {
     groupID: string;
@@ -11,7 +12,7 @@ interface Post {
     caption: string;
     userName: string;
     pfp: string;
-    type: string;
+    mode: string;
     firstName: string;
     lastName: string;
 }
@@ -75,9 +76,9 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                         <View style={styles.imageWrapper}>
                             <TouchableOpacity onPress={() => router.push({
                                 pathname: '/(tabs)/groups/[groupID]/post',
-                                params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
+                                params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName, mode: post.mode, photoURL: encodeURIComponent(post.pfp) }
                             })}>
-                                {post.type === "photo" ?
+                                {post.mode === "photo" ?
                                     <Image source={{ uri: content }} style={styles.pictureContent} />
                                     :
                                     <Text style={styles.contentText}>{post.content}</Text>
@@ -114,12 +115,18 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                             <View style={styles.imageWrapper}>
                                 <TouchableOpacity onPress={() => router.push({
                                     pathname: '/(tabs)/groups/[groupID]/post',
-                                    params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName }
+                                    params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName, mode: post.mode, photoURL: encodeURIComponent(post.pfp) }
                                 })}>
-                                    {post.type === "photo" ?
+                                    {post.mode === "photo" ?
                                         <Image source={{ uri: content }} style={styles.pictureContent} />
                                         :
-                                        <Text style={styles.contentText}>{post.content}</Text>
+                                        <Video
+                                            source={{ uri: content }}
+                                            style={styles.videoContent}
+                                            resizeMode={'cover'}
+                                            // repeat={true}
+                                            paused={true}
+                                        />
                                     }
                                     <View style={styles.overlay}>
                                         <Text style={styles.overlayText}>{post.firstName} {post.lastName}</Text>
@@ -193,6 +200,12 @@ const styles = StyleSheet.create({
         width: 200,
         height: 300,
         resizeMode: "cover",
+        backgroundColor: "#222",
+        borderRadius: 8
+    },
+    videoContent: {
+        width: 200,
+        height: 300,
         backgroundColor: "#222",
         borderRadius: 8
     },
