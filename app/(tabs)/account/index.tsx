@@ -30,9 +30,8 @@ const Page = () => {
     const [pfp, setPfp] = useState<string>('');
     const [firstName, setFirstName] = useState<string>('');
     const [lastName, setLastName] = useState<string>('');
-
     const [bio, setBio] = useState('');
-    const [postContents, setPostContents] = useState<{ id: string, content: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, mode: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
     const router = useRouter();
 
@@ -104,9 +103,9 @@ const Page = () => {
 
                 if (postSnap.exists()) {
 
-                    return { id: post.id, content: postSnap.data().content };
+                    return { id: post.id, content: postSnap.data().content, mode: postSnap.data().mode };
                 } else {
-                    return { id: post.id, content: "Content not found"};
+                    return { id: post.id, content: "Content not found", mode: "failed"};
                 }
             }));
 

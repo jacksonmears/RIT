@@ -7,26 +7,39 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
+import Video from "react-native-video";
 
 export default function Page() {
-    const { contentT } = useLocalSearchParams();
+    const { idT, contentT, captionT, userNameT, mode, photoURL } = useLocalSearchParams();
     const content = String(contentT);
     const router = useRouter();
+    const photoURLString = String(photoURL)
 
     useEffect(() => {
-        console.log('Loading image URL:', content);
+        console.log(photoURL);
     }, []);
 
 
     return (
         <View style={styles.container}>
             <View style={styles.top70}>
-                <Image
-                    source={{ uri: content }}
-                    style={styles.image}
-                    resizeMode="contain"
-                    onError={(e) => console.error('Image load error', e.nativeEvent.error)}
-                />
+                {mode==="photo" ?
+                    <Image
+                        source={{ uri: content }}
+                        style={styles.image}
+                        resizeMode="cover"
+                        onError={(e) => console.error('Image load error', e.nativeEvent.error)}
+                    />
+                :
+                    <Video
+                        source={{ uri: content }}
+                        style={styles.videoContent}
+                        resizeMode={'cover'}
+                        repeat={true}
+                    />
+                }
+
+
             </View>
 
             <TouchableOpacity
@@ -35,6 +48,14 @@ export default function Page() {
             >
                 <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
+
+            <View style={styles.profileUser}>
+                <View style={styles.upperProfile}>
+                    <Image source={{ uri: photoURLString }} style={styles.avatar} />
+                    <Text style={styles.profileText}>{userNameT}</Text>
+                </View>
+                <Text style={styles.profileCaption}>{captionT}</Text>
+            </View>
         </View>
     );
 }
@@ -66,4 +87,34 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
     },
+    videoContent: {
+        backgroundColor: "grey",
+        width: "100%",
+        resizeMode: "contain",
+        height: '100%',
+    },
+    profileUser: {
+        position: 'absolute',
+        bottom: 45,
+        left: 20,
+        height: 100,
+    },
+    avatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 60,
+    },
+    upperProfile: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    profileText: {
+        color: "#D3D3FF",
+        fontWeight: "bold",
+        marginLeft: 10,
+    },
+    profileCaption: {
+        color: "#D3D3FF",
+        marginTop: 10
+    }
 });
