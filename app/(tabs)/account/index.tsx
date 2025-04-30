@@ -31,9 +31,10 @@ const Page = () => {
     const [firstName, setFirstName] = useState<string>('');
     const [lastName, setLastName] = useState<string>('');
     const [bio, setBio] = useState('');
-    const [postContents, setPostContents] = useState<{ id: string, content: string, mode: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, caption:string, mode: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
     const router = useRouter();
+    const [refreshing, setRefreshing] = useState(false);
 
     const getBioInfo = async () => {
         if (!user) return;
@@ -103,9 +104,9 @@ const Page = () => {
 
                 if (postSnap.exists()) {
 
-                    return { id: post.id, content: postSnap.data().content, mode: postSnap.data().mode };
+                    return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, mode: postSnap.data().mode };
                 } else {
-                    return { id: post.id, content: "Content not found", mode: "failed"};
+                    return { id: post.id, content: "Content not found", caption: "failed", mode: "failed"};
                 }
             }));
 
@@ -115,7 +116,7 @@ const Page = () => {
         }
     };
 
-    const refresh = () => {
+    const onRefresh = () => {
         setPostContents(null);
         setNumPosts(0);
         setNumFriends(0);
@@ -209,12 +210,17 @@ const Page = () => {
                     data={postContents}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
-                        <View style={styles.itemContainer}>
-                            <AccountPost post={item} />
-                        </View>
+                        <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {idT: user?.uid, contentT: item.content, captionT: item.caption, userNameT: user?.displayName, mode: item.mode, photoURL: encodeURIComponent(pfp)}})}>
+                            <View style={styles.itemContainer}>
+                                <AccountPost post={item} />
+                            </View>
+                        </TouchableOpacity>
+
                     )}
                     // contentContainerStyle={styles.flatListContentContainer}
                     // ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    refreshing={refreshing}              // 👈 NEW
+                    onRefresh={onRefresh}                // 👈 NEW
                     numColumns={3}
                 />
             </View>

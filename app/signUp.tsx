@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     suText: {
         fontSize: 25,
         fontWeight: "bold",
-        color: "gold",
+        color: '#D3D3FF',
     },
     back: {
         borderRadius: 8,

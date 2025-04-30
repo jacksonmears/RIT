@@ -81,7 +81,13 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                 {post.mode === "photo" ?
                                     <Image source={{ uri: content }} style={styles.pictureContent} />
                                     :
-                                    <Text style={styles.contentText}>{post.content}</Text>
+                                    <Video
+                                        source={{ uri: content }}
+                                        style={styles.videoContent}
+                                        resizeMode={'cover'}
+                                        // repeat={true}
+                                        paused={true}
+                                    />
                                 }
                             </TouchableOpacity>
                         </View>

@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     siText: {
         fontSize: 25,
         fontWeight: "bold",
-        color: "gold",
+        color: '#D3D3FF',
     },
     su: {
         alignSelf: "center",
