@@ -1,4 +1,13 @@
-import {View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator} from "react-native";
+import {
+    View,
+    Text,
+    Image,
+    StyleSheet,
+    TouchableOpacity,
+    ActivityIndicator,
+    Modal,
+    TouchableWithoutFeedback, Dimensions
+} from "react-native";
 import { useRouter } from "expo-router";
 import React, {useEffect, useState, useRef} from "react";
 import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
@@ -33,7 +42,8 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const [likeText, setLikeText] = useState("like");
     const [numLikes, setNumLikes] = useState<number>(0);
     const [numComments, setNumComments] = useState<number>(0);
-
+    const [sheetVisible, setSheetVisible] = useState(false);
+    const screenHeight = Dimensions.get('window').height;
 
     useEffect(() => {
         console.log(content)
@@ -87,24 +97,55 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
         }
     }
 
+    const deletePostTesting = () => {
+        console.log("deletePostTesting");
+    }
+
     return (
         <View style={styles.postView}>
+            <Modal
+                visible={sheetVisible}
+                animationType="slide"
+                transparent={true}                   // <–– make the modal background transparent
+                onRequestClose={() => setSheetVisible(false)}
+            >
+                {/* 1) overlay to catch taps outside the panel */}
+                <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>
+                    <View style={styles.overlay} />
+                </TouchableWithoutFeedback>
 
+                {/* 2) the actual panel */}
+                <View style={[styles.panel, { height: screenHeight * 0.66 }]}>
+                    <Text style={styles.panelTitle}>Your Options Here</Text>
+                    {/* … your checkboxes, buttons, etc. … */}
+                    <TouchableOpacity onPress={() => setSheetVisible(false)}>
+                        <Text style={styles.closeText}>Close</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
                 <View>
                     <View>
                         <View style={styles.topBar}>
-                            <View style={styles.pfpBox}>
-                                <View style={styles.avatarContainer}>
-                                    {post.pfp? (
-                                        <Image source={{ uri: post.pfp }} style={styles.avatar} />
-                                    ) : (
-                                        <View style={[styles.avatar, styles.placeholder]}>
-                                            <Text style={styles.placeholderText}>No Photo</Text>
-                                        </View>
-                                    )}
+                            <View style={styles.leftSideTopBar}>
+                                <View style={styles.pfpBox}>
+                                    <View style={styles.avatarContainer}>
+                                        {post.pfp? (
+                                            <Image source={{ uri: post.pfp }} style={styles.avatar} />
+                                        ) : (
+                                            <View style={[styles.avatar, styles.placeholder]}>
+                                                <Text style={styles.placeholderText}>No Photo</Text>
+                                            </View>
+                                        )}
+                                    </View>
                                 </View>
+                                <Text style={styles.username}>{post.userName}</Text>
                             </View>
-                            <Text style={styles.username}>{post.userName}</Text>
+                            <TouchableOpacity onPress={() => setSheetVisible(true)}>
+                                <Text style={styles.username}>...</Text>
+                            </TouchableOpacity>
+                            {/*<View>*/}
+                            {/*    <Text style={styles.username}>...</Text>*/}
+                            {/*</View>*/}
                         </View>
                         <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{idT: post.id, contentT: encodeURIComponent(content), captionT: post.caption, userNameT: post.userName, mode: post.mode, photoURL: encodeURIComponent(post.pfp)}})}>
                             <View style={styles.contentViewPicture}>
@@ -167,7 +208,7 @@ const styles = StyleSheet.create({
         padding: 5,
         flexDirection: "row",
         alignItems: "center",
-        // backgroundColor: "grey",
+        justifyContent: "space-between",
     },
     avatarContainer: {
         alignItems: 'center',
@@ -245,6 +286,32 @@ const styles = StyleSheet.create({
     },
     placeholderText: {
         color: 'white',
+    },
+    leftSideTopBar: {
+        flexDirection: "row",
+        alignItems: "center",
+
+    },
+    overlay: {
+        flex: 1,
+        backgroundColor: 'transparent',     // invisible—but catches taps
+    },
+    panel: {
+        width: '100%',
+        backgroundColor: '#222',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        padding: 16,
+    },
+    panelTitle: {
+        color: '#fff',
+        fontSize: 18,
+        marginBottom: 12,
+    },
+    closeText: {
+        color: '#D3D3FF',
+        marginTop: 20,
+        textAlign: 'center',
     },
 });
 
