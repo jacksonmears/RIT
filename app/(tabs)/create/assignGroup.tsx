@@ -20,6 +20,7 @@ const Page = () => {
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
+    const [selectAll, setSelectAll] = useState<boolean>(false);
 
     useEffect(() => {
         if (user) {
@@ -37,6 +38,10 @@ const Page = () => {
             getGroups();
         }
     }, [groups]);
+
+    useEffect(() => {
+        console.log(selectedGroups);
+    }, [selectedGroups]);
 
     const toggleSelection = (id: string) => {
         setSelectedGroups((prev) => {
@@ -233,6 +238,21 @@ const Page = () => {
         }, 0);
     }
 
+    const selectAllFunction = () => {
+        const dummySelect = !selectAll
+        if (!groups) return;
+        if (dummySelect) {
+            const next = new Map<string, boolean>();
+            groups.forEach(g => next.set(g.id, true));
+            setSelectedGroups(next);
+        }else {
+            const next = new Map<string, boolean>();
+            setSelectedGroups(next);
+        }
+        setSelectAll(dummySelect);
+
+    }
+
     return (
         <View style={styles.container}>
 
@@ -271,6 +291,24 @@ const Page = () => {
             {/*    )}*/}
             {/*    contentContainerStyle={styles.listContent} // Adds padding*/}
             {/*/>*/}
+            <View style={styles.groupContainer}>
+                <TouchableOpacity style={styles.groupRow}>
+                    <View style={styles.backArrowName}>
+                        <Text style={styles.text}>
+                            {(selectAll ?
+                                "unselect all"
+                                :
+                                "select all"
+                            )}
+                        </Text>
+                    </View>
+
+                    <Checkbox
+                        status={selectAll ? "checked" : "unchecked"}
+                        onPress={selectAllFunction}
+                    />
+                </TouchableOpacity>
+            </View>
 
             <FlatList
                 style={styles.groups}

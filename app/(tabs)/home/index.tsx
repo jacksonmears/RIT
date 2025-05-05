@@ -1,8 +1,22 @@
-import {View, Text, Button, StyleSheet, ScrollView, StatusBar, TouchableOpacity, FlatList} from 'react-native';
+import {
+    View,
+    Text,
+    Button,
+    TouchableWithoutFeedback,
+    StyleSheet,
+    Dimensions,
+    ScrollView,
+    StatusBar,
+    TouchableOpacity,
+    Modal,
+    FlatList,
+    RefreshControl,
+    Image
+} from 'react-native';
 import React, { useEffect, useState } from "react";
 import { db, auth } from "@/firebase"
 import {Link, useRouter, } from 'expo-router';
-import {collection, addDoc, getDoc, doc, query, orderBy, limit, getDocs} from 'firebase/firestore';
+import {collection, addDoc, getDoc, doc, query, orderBy, limit, getDocs, onSnapshot} from 'firebase/firestore';
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import MainPost from "@/components/MainPost";
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -19,7 +33,8 @@ const Page = () => {
     const [friendNotis, setFriendNotis] = useState<number>(0);
     const [groupNotis, setGroupsNotis] = useState<number>(0);
     const isFocused = useIsFocused();
-
+    const [sheetVisible, setSheetVisible] = useState(false);
+    const screenHeight = Dimensions.get('window').height;
 
     // useEffect(() => {
     //     console.log(friends);
@@ -27,10 +42,17 @@ const Page = () => {
     // }, [postIds]);
 
     useEffect(() => {
-        if (isFocused) {
-            getNotis();
+        if (user?.uid) {
+            const unsubscribe = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                console.log("Snapshot triggered", docSnap.data());
+                getNotis(); // your function to update UI
+            });
+
+            return () => unsubscribe();
         }
-    }, [isFocused]);
+    }, [user]);
+
+
 
     const fetchFriendIds = async () => {
         if (!user) return;
@@ -180,14 +202,22 @@ const Page = () => {
         fetchPostContent();
     }, [postIds]);
 
+    // const postPanel = () => {
+    //     return (
+    //         <View style={styles.postPanelContainer}>
+    //             <Text>wassgood</Text>
+    //         </View>
+    //     )
+    // }
+
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.topBar}>
-                <View style={styles.titleCardView}>
-                    <Text style={styles.titleTextRECAP}>Recap</Text>
-                    <Text style={styles.titleTextIT}>It</Text>
-                </View>
+                    <View style={styles.titleCardView}>
+                        <Text style={styles.titleTextRECAP}>Recap</Text>
+                        <Text style={styles.titleTextIT}>It</Text>
+                    </View>
                 <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/notifications')}>
                     <Ionicons name="notifications-outline" size={24} color="#D3D3FF" />
                     {friendNotis+groupNotis>0 &&
@@ -197,19 +227,71 @@ const Page = () => {
                     }
                 </TouchableOpacity>
             </View>
+            <Modal
+                visible={sheetVisible}
+                animationType="slide"
+                transparent={true}                   // <–– make the modal background transparent
+                onRequestClose={() => setSheetVisible(false)}
+            >
+                {/* 1) overlay to catch taps outside the panel */}
+                <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>
+                    <View style={styles.overlay} />
+                </TouchableWithoutFeedback>
+
+                {/* 2) the actual panel */}
+                <View style={[styles.panel, { height: screenHeight * 0.66 }]}>
+                    <Text style={styles.panelTitle}>Your Options Here</Text>
+                    {/* … your checkboxes, buttons, etc. … */}
+                    <TouchableOpacity onPress={() => setSheetVisible(false)}>
+                        <Text style={styles.closeText}>Close</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
             <FlatList
                 style={styles.groups}
                 data={postContents}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => <MainPost post={item} />}
+                renderItem={({ item }) =>
+                    (
+                    <View>
+                        {/*<View style={styles.topBarPost}>*/}
+                        {/*    <View style={styles.leftSideTopBar}>*/}
+                        {/*        <View style={styles.pfpBox}>*/}
+                        {/*            <View style={styles.avatarContainer}>*/}
+                        {/*                {item.pfp? (*/}
+                        {/*                    <Image source={{ uri: item.pfp }} style={styles.avatar} />*/}
+                        {/*                ) : (*/}
+                        {/*                    <View style={[styles.avatar, styles.placeholder]}>*/}
+                        {/*                        <Text style={styles.placeholderText}>No Photo</Text>*/}
+                        {/*                    </View>*/}
+                        {/*                )}*/}
+                        {/*            </View>*/}
+                        {/*        </View>*/}
+                        {/*        <Text style={styles.username}>{item.userName}</Text>*/}
+                        {/*    </View>*/}
+                        {/*    <TouchableOpacity onPress={() => setSheetVisible(true)}>*/}
+                        {/*        <Text style={styles.username}>...</Text>*/}
+                        {/*    </TouchableOpacity>*/}
+                        {/*</View>*/}
+                        <MainPost post={item} />
+                    </View>
+
+                    )
+            }
                 contentContainerStyle={styles.flatListContentContainer}
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
                 keyboardShouldPersistTaps="handled"
-                refreshing={refreshing}              // 👈 NEW
-                onRefresh={onRefresh}                // 👈 NEW
+                refreshControl={(
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                )}
             />
 
-        </View>
+            {/*<View style={styles.postPanelContainer}>*/}
+            {/*    <Text>Your Options Here</Text>*/}
+            {/*</View>*/}
+
+
+        </SafeAreaView>
     );
 };
 
@@ -266,8 +348,63 @@ const styles = StyleSheet.create({
     redCircleText: {
         fontSize: 10,
         color: "white",
-    }
+    },
+    overlay: {
+        flex: 1,
+        backgroundColor: 'transparent',     // invisible—but catches taps
+    },
+    panel: {
+        width: '100%',
+        backgroundColor: '#222',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        padding: 16,
+    },
+    panelTitle: {
+        color: '#fff',
+        fontSize: 18,
+        marginBottom: 12,
+    },
+    closeText: {
+        color: '#D3D3FF',
+        marginTop: 20,
+        textAlign: 'center',
+    },
+    leftSideTopBar: {
+        flexDirection: "row",
+        alignItems: "center",
 
+    },
+    avatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 60,
+    },
+    pfpBox: {
+
+    },
+    username: {
+        color: "#D3D3FF",
+        paddingHorizontal: 10
+    },
+    avatarContainer: {
+        alignItems: 'center',
+        // marginBottom: 20,
+    },
+    placeholder: {
+        backgroundColor: '#444',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    placeholderText: {
+        color: 'white',
+    },
+    topBarPost: {
+        padding: 5,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
 })
 
 export default Page;

@@ -8,7 +8,7 @@ import {
     ScrollView,
     TouchableOpacity,
     Pressable,
-    TextInput
+    TextInput, RefreshControl
 } from "react-native";
 import {Link, useLocalSearchParams, useRouter} from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -23,7 +23,7 @@ import {
     orderBy,
     limit,
     setDoc,
-    addDoc, serverTimestamp
+    addDoc, serverTimestamp, onSnapshot, startAfter, Timestamp
 } from "firebase/firestore";
 import { auth, db } from "@/firebase";
 import GroupPost from "@/components/GroupPost"; // Import reusable component
@@ -41,17 +41,32 @@ const Index = () => {
     const router = useRouter();
     const user = auth.currentUser;
     const [posts, setPosts] = useState<{ id: string, mode: string }[] | null>(null);
-    const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, mode: string, firstName: string, lastName: string }[] | null>(null);
+    const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, mode: string, firstName: string, lastName: string, timestamp: Timestamp }[] | null>(null);
     const [message, setMessage] = useState("");
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [loadMorePosts, setLoadMorePosts] = useState<boolean>(false);
+    // const [lastVisible, setLastVisible] = useState<{ groupID: string, id: string } | null>(null);
+    const [morePosts, setMorePosts] = useState<{ id: string, mode: string }[] | null>(null);
 
     useEffect(() => {
-        getPostIds()
+        const unsubscribe = onSnapshot(collection(db, "groups", groupIDString, "messages"), async () => {
+            await getPostIds(); // Refresh posts when collection is updated
+        });
+
+        return () => {
+            unsubscribe(); // Clean up the listener on unmount
+        };
     }, [groupIDString]);
+
 
     useEffect(() => {
         getPostContent()
     }, [posts]);
 
+
+    // const unsubscribe = onSnapshot(collection(db, "groups", groupIDString, "messages"), async () => {
+    //     await getPostIds()
+    // });
 
 
     // useEffect(() => {
@@ -97,6 +112,33 @@ const Index = () => {
         }
     };
 
+    const getMorePosts = async () => {
+        console.log("refreshing... ")
+        const lastVisible = messageContents?.[messageContents.length - 1];
+        if (!lastVisible || loadingMore) return;
+        setLoadingMore(true);
+        const nextQuery = query(
+            collection(db, "groups", groupIDString, "messages"),
+            orderBy("timestamp", "desc"),
+            startAfter(lastVisible.timestamp),
+            limit(20)
+        );
+        const querySnapshot = await getDocs(nextQuery);
+        const postsRef = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            mode: doc.data().mode,
+            // ...doc.data()
+        }));
+
+        setPosts(prevPosts => {
+            const safePrevPosts = prevPosts ?? [];
+            return [...safePrevPosts, ...postsRef];
+        });
+        console.log(postsRef);
+        setLoadingMore(false);
+    };
+
+
     const getPostContent = async () => {
         if (!posts) return;
 
@@ -108,6 +150,8 @@ const Index = () => {
                         const userID = postSnap.data().sender_id;
                         const content = postSnap.data().content;
                         const mode = postSnap.data().mode;
+                        const timestamp = postSnap.data().timestamp;
+
                         const friendDoc = await getDoc(doc(db, "users", userID));
                         let userName = ''
                         let pfp = ''
@@ -134,9 +178,9 @@ const Index = () => {
                         //     console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
                         // }
 
-                        return { groupID: groupIDString, id: post.id, content: content, caption: "null", userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName };
+                        return { groupID: groupIDString, id: post.id, content: content, caption: "null", userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName, timestamp: timestamp };
                     } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '' };
+                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '', timestamp: '' };
                     }
                 }
                 else {
@@ -147,6 +191,7 @@ const Index = () => {
                         const userID = postSnap.data().sender_id;
                         const mode = postSnap.data().mode;
                         const content = postSnap.data().content;
+                        const timestamp = postSnap.data().timestamp;
                         const friendDoc = await getDoc(doc(db, "users", userID));
                         let userName = ''
                         let pfp = ''
@@ -159,9 +204,9 @@ const Index = () => {
                             lastName = friendDoc.data().lastName;
                         }
 
-                        return { groupID: groupIDString, id: post.id, content: content, caption: postSnap.data().caption, userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName };
+                        return { groupID: groupIDString, id: post.id, content: content, caption: postSnap.data().caption, userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName, timestamp: timestamp };
                     } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '' };
+                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '', timestamp: '' };
                     }
                 }
             }));
@@ -171,6 +216,10 @@ const Index = () => {
             console.error("Error fetching post content:", error);
         }
     };
+
+    const testingRefresh = () => {
+        console.log("Refreshing...");
+    }
 
     const pushTextMessage = async () => {
         if (!user || message.length < 1) return;
@@ -183,7 +232,7 @@ const Index = () => {
 
         setMessage(""); // Clear the input after sending
 
-        await getPostIds(); // Refresh messages
+        // await getPostIds(); // Refresh messages
     }
 
     return (
@@ -221,6 +270,9 @@ const Index = () => {
                         )}
                     </View>
                 )}
+                onEndReached={getMorePosts}
+                onEndReachedThreshold={0.00001}
+                // ListFooterComponent={loadingMore ? <ActivityIndicator size="small" /> : null}
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
 
