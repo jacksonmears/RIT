@@ -31,7 +31,7 @@ const RootLayout = () => {
         const inAuthGroup = segments[0] === '(tabs)';
 
 
-        if (user && !inAuthGroup) {
+        if (user && !inAuthGroup && user.emailVerified) {
             console.log("user logged in")
             router.replace('/(tabs)/home');
         } else if (!user && inAuthGroup) {

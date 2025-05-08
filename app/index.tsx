@@ -14,14 +14,23 @@ const Index = () => {
     const signIn = async () => {
         setLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            if (!user.emailVerified) {
+                alert("Please verify your email before signing in.");
+                await auth.signOut();
+                return;
+            }
+
+            // Continue to your app’s home screen, etc.
         } catch (e: any) {
             const err = e as FirebaseError;
             alert('Sign in failed: ' + err.message);
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     return (
 
@@ -34,6 +43,7 @@ const Index = () => {
                     autoCapitalize="none"
                     keyboardType="email-address"
                     placeholder="Email"
+                    maxLength={256}
                 />
                 <TextInput
                 style={styles.input}
@@ -41,6 +51,7 @@ const Index = () => {
                 onChangeText={setPassword}
                 secureTextEntry
                 placeholder="Password"
+                maxLength={100}
                 />
                 {loading ? (
                     <ActivityIndicator size='small' style={{ margin:28 }} />

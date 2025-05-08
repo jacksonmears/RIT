@@ -10,7 +10,18 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import React, {useEffect, useState, useRef} from "react";
-import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
+import {
+    doc,
+    getDoc,
+    deleteDoc,
+    collection,
+    getDocs,
+    addDoc,
+    setDoc,
+    serverTimestamp,
+    query,
+    orderBy, limit
+} from "firebase/firestore";
 import {auth,db} from "@/firebase";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
@@ -80,6 +91,8 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
         commentFunc();
     }, []);
 
+
+
     const likeBeta = async () => {
         if (!user) return;
         if (!likeStatus) try {
@@ -103,26 +116,27 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 
     return (
         <View style={styles.postView}>
-            <Modal
-                visible={sheetVisible}
-                animationType="slide"
-                transparent={true}                   // <–– make the modal background transparent
-                onRequestClose={() => setSheetVisible(false)}
-            >
-                {/* 1) overlay to catch taps outside the panel */}
-                <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>
-                    <View style={styles.overlay} />
-                </TouchableWithoutFeedback>
+            {/*<Modal*/}
+            {/*    visible={sheetVisible}*/}
+            {/*    animationType="slide"*/}
+            {/*    transparent={true}                   // <–– make the modal background transparent*/}
+            {/*>*/}
+            {/*    /!* 1) overlay to catch taps outside the panel *!/*/}
+            {/*    <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>*/}
+            {/*        <View style={styles.overlay} />*/}
+            {/*    </TouchableWithoutFeedback>*/}
 
-                {/* 2) the actual panel */}
-                <View style={[styles.panel, { height: screenHeight * 0.66 }]}>
-                    <Text style={styles.panelTitle}>Your Options Here</Text>
-                    {/* … your checkboxes, buttons, etc. … */}
-                    <TouchableOpacity onPress={() => setSheetVisible(false)}>
-                        <Text style={styles.closeText}>Close</Text>
-                    </TouchableOpacity>
-                </View>
-            </Modal>
+            {/*    /!* 2) the actual panel *!/*/}
+            {/*    <View style={[styles.panel, { height: screenHeight * 0.66 }]}>*/}
+            {/*        /!*<TouchableOpacity onPress={() => handleDeletePost()}>*!/*/}
+            {/*        /!*    <Text style={styles.panelTitle}>delete post</Text>*!/*/}
+            {/*        /!*</TouchableOpacity>*!/*/}
+            {/*        /!* … your checkboxes, buttons, etc. … *!/*/}
+            {/*        /!*<TouchableOpacity onPress={() => setSheetVisible(false)}>*!/*/}
+            {/*        /!*    <Text style={styles.closeText}>Close</Text>*!/*/}
+            {/*        /!*</TouchableOpacity>*!/*/}
+            {/*    </View>*/}
+            {/*</Modal>*/}
                 <View>
                     <View>
                         <View style={styles.topBar}>
@@ -306,7 +320,7 @@ const styles = StyleSheet.create({
     panelTitle: {
         color: '#fff',
         fontSize: 18,
-        marginBottom: 12,
+        marginTop: 50,
     },
     closeText: {
         color: '#D3D3FF',

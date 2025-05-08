@@ -5,14 +5,15 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     updateProfile,
-    validatePassword
+    validatePassword,
+    sendEmailVerification
 } from "@firebase/auth";
 import { FirebaseError } from "@firebase/util";
 import { Link, useRouter } from "expo-router";
 import {deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const Index = () => {
-    const [firstName, setFirstName] = useState("");
+    const [firstName, setFirstName] = useState<string>("");
     const [lastName, setLastName] = useState("");
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -78,11 +79,17 @@ const Index = () => {
             const user = auth.currentUser;
             await handleUpdateProfile(user);
 
+            if (user) {
+                await sendEmailVerification(user);
+                alert('Verification email sent. Please check your inbox and verify before logging in.');
+            }
+
 
 
             // alert('Check your email');
-            signIn()
-            router.push('/');
+            // signIn()
+            // router.push('/');
+            router.push('/')
         } catch (error: unknown) {
             if (error instanceof FirebaseError) {
                 alert("Registration failed: " + error.message);
@@ -95,17 +102,17 @@ const Index = () => {
         }
     };
 
-    const signIn = async () => {
-        setLoading(true);
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-        } catch (e: any) {
-            const err = e as FirebaseError;
-            alert('Sign in failed: ' + err.message);
-        } finally {
-            setLoading(false);
-        }
-    }
+    // const signIn = async () => {
+    //     setLoading(true);
+    //     try {
+    //         await signInWithEmailAndPassword(auth, email, password);
+    //     } catch (e: any) {
+    //         const err = e as FirebaseError;
+    //         alert('Sign in failed: ' + err.message);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // }
 
     const handleUpdateProfile = async (user: any) => {
         try {
@@ -142,6 +149,7 @@ const Index = () => {
             <KeyboardAvoidingView behavior="padding">
                 <View style={styles.nameContainer}>
                     <TextInput
+                        maxLength={30}
                         style={styles.firstName}
                         value={firstName}
                         onChangeText={setFirstName}
@@ -156,6 +164,7 @@ const Index = () => {
                         autoCapitalize="none"
                         keyboardType="default"
                         placeholder="Last Name"
+                        maxLength={30}
                     />
                 </View>
                 <TextInput
@@ -165,6 +174,7 @@ const Index = () => {
                     autoCapitalize="none"
                     keyboardType="default"
                     placeholder="Username"
+                    maxLength={30}
                 />
                 <TextInput
                     style={styles.input}
@@ -173,6 +183,7 @@ const Index = () => {
                     autoCapitalize="none"
                     keyboardType="email-address"
                     placeholder="Email"
+                    maxLength={256}
                 />
                 <TextInput
                     style={styles.input}
@@ -182,6 +193,8 @@ const Index = () => {
                     autoComplete="password"  // Add this for Android support
                     textContentType="password"  // Helps iOS recognize the field correctly
                     placeholder="Password"
+                    maxLength={100}
+
                 />
                 <TextInput
                     style={styles.input}
@@ -191,6 +204,8 @@ const Index = () => {
                     autoComplete="password"  // Add this for Android support
                     textContentType="password"  // Helps iOS recognize the field correctly
                     placeholder="Confirm Password"
+                    maxLength={100}
+
                 />
                 {loading ? (
                     <ActivityIndicator size='small' style={{ margin:28 }} />
