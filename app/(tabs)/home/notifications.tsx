@@ -222,7 +222,7 @@ const Page = () => {
                             </View>
 
                             <View style={styles.buttonGroup}>
-                                <TouchableOpacity onPress={() => acceptFriend(item.id)} style={styles.acceptButton}>
+                                <TouchableOpacity onPress={() => acceptFriend(item.name)} style={styles.acceptButton}>
                                     <Entypo name="check" size={24} color="green" />
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => removeFriendRequest(item.id)} style={styles.declineButton}>

@@ -218,6 +218,9 @@ const Page = () => {
                         mode: mode,
                         timestamp: serverTimestamp(),
                     });
+                    await setDoc(doc(db, "posts", postID, "groups", group.id), {
+                        timestamp: serverTimestamp(),
+                    })
                 })
             );
             console.log("Post added to all selected groups");

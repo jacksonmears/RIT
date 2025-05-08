@@ -31,7 +31,7 @@ const Page = () => {
     const [firstName, setFirstName] = useState<string>('');
     const [lastName, setLastName] = useState<string>('');
     const [bio, setBio] = useState('');
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption:string, mode: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<{ id: string, content: string, caption:string, mode: string, userID: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
     const router = useRouter();
     const [refreshing, setRefreshing] = useState(false);
@@ -96,7 +96,7 @@ const Page = () => {
 
 
     const getPostContent = async () => {
-        if (!posts) return;
+        if (!posts || !user) return;
         try {
             const postContents = await Promise.all(posts.map(async (post) => {
                 const postRef = doc(db, "posts", post.id);
@@ -104,9 +104,9 @@ const Page = () => {
 
                 if (postSnap.exists()) {
 
-                    return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, mode: postSnap.data().mode };
+                    return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, mode: postSnap.data().mode, userID: user.uid };
                 } else {
-                    return { id: post.id, content: "Content not found", caption: "failed", mode: "failed"};
+                    return { id: post.id, content: "Content not found", caption: "failed", mode: "failed", userID: "failed"};
                 }
             }));
 
