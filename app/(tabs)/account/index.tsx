@@ -159,7 +159,7 @@ const Page = () => {
 
             <View style={styles.infoBar}>
                 <View style={styles.pfpAndInfo}>
-                    <TouchableOpacity onPress={() => router.push("/account/editProfile")}>
+                    <TouchableOpacity onPress={() => router.push("/account/editPfp")}>
                         <View style={styles.avatarContainer}>
                             {pfp ? (
                                 <Image source={{ uri: pfp }} style={styles.avatar} />
@@ -195,7 +195,7 @@ const Page = () => {
                 <View style={styles.bioBox}>
                     <Text style={styles.genericText}>{bio}</Text>
                 </View>
-                <TouchableOpacity style={styles.editContainer}>
+                <TouchableOpacity style={styles.editContainer} onPress={() => router.push("/account/editProfile")}>
                     <Text style={styles.nameText}>Edit profile</Text>
                 </TouchableOpacity>
             </View>

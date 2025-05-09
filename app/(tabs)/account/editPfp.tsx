@@ -1,4 +1,4 @@
-// src/screens/editProfile.tsx
+// src/screens/editPfp.tsx
 
 import React, { useState, useEffect } from 'react';
 import {
