@@ -4,6 +4,7 @@ import {User} from "firebase/auth";
 import {auth} from "@/firebase";
 import { setUserId } from "firebase/analytics";
 import { View, ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const RootLayout = () => {
     const [initializing, setInitializing] = useState(true);
@@ -54,11 +55,14 @@ const RootLayout = () => {
 
 
     return (
-        <Stack>
-            <Stack.Screen name="index" options={{headerShown: false}} />
-            <Stack.Screen name="signUp" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-        </Stack>
+        <GestureHandlerRootView>
+            <Stack>
+                <Stack.Screen name="index" options={{headerShown: false}} />
+                <Stack.Screen name="signUp" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{headerShown: false}} />
+            </Stack>
+        </GestureHandlerRootView>
+
     )
 
 };
