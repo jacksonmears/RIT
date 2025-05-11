@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Modal,
-    TouchableWithoutFeedback, Dimensions
+    TouchableWithoutFeedback, Dimensions, StyleProp, ViewStyle
 } from "react-native";
 import { useRouter } from "expo-router";
 import React, {useEffect, useState, useRef} from "react";
@@ -41,11 +41,12 @@ interface Post {
 
 interface PostCompProps {
     post: Post;
+    style?: StyleProp<ViewStyle>;
 }
 
 
 
-const GroupPost: React.FC<PostCompProps> = ({ post }) => {
+const GroupPost: React.FC<PostCompProps> = ({ post, style }) => {
     const router = useRouter();
     const content = decodeURIComponent(post.content);
     const user = auth.currentUser;
@@ -115,28 +116,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     }
 
     return (
-        <View style={styles.postView}>
-            {/*<Modal*/}
-            {/*    visible={sheetVisible}*/}
-            {/*    animationType="slide"*/}
-            {/*    transparent={true}                   // <–– make the modal background transparent*/}
-            {/*>*/}
-            {/*    /!* 1) overlay to catch taps outside the panel *!/*/}
-            {/*    <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>*/}
-            {/*        <View style={styles.overlay} />*/}
-            {/*    </TouchableWithoutFeedback>*/}
-
-            {/*    /!* 2) the actual panel *!/*/}
-            {/*    <View style={[styles.panel, { height: screenHeight * 0.66 }]}>*/}
-            {/*        /!*<TouchableOpacity onPress={() => handleDeletePost()}>*!/*/}
-            {/*        /!*    <Text style={styles.panelTitle}>delete post</Text>*!/*/}
-            {/*        /!*</TouchableOpacity>*!/*/}
-            {/*        /!* … your checkboxes, buttons, etc. … *!/*/}
-            {/*        /!*<TouchableOpacity onPress={() => setSheetVisible(false)}>*!/*/}
-            {/*        /!*    <Text style={styles.closeText}>Close</Text>*!/*/}
-            {/*        /!*</TouchableOpacity>*!/*/}
-            {/*    </View>*/}
-            {/*</Modal>*/}
+        <View style={[styles.postView, style]}>
                 <View>
                     <View>
                         <View style={styles.topBar}>
@@ -169,7 +149,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                     <Video
                                         source={{ uri: content }}
                                         style={styles.videoContent}
-                                        resizeMode={'cover'}
+                                        // resizeMode={'cover'}
                                         // repeat={true}
                                         paused={true}
                                     />
@@ -217,6 +197,8 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 const styles = StyleSheet.create({
     postView: {
         justifyContent: "center",
+        backgroundColor: "black",
+        overflow: "hidden",
     },
     topBar: {
         padding: 5,
@@ -246,23 +228,22 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     contentViewPicture: {
-        width: "100%",
-        height: 500,
-        overflow: "hidden", // Hides top/bottom overflow
-        borderColor: "#D3D3FF",
-        borderWidth: 1,
+        width: '100%',
+        height: 500,            // fixed container height
+        overflow: 'hidden',     // cut off anything outside
+        backgroundColor: 'black',
+        justifyContent: 'center', // center letterbox bars
+        alignItems: 'center',
     },
     pictureContent: {
-        backgroundColor: "grey",
-        width: "100%",
-        resizeMode: "cover",
+        width: '100%',
         height: '100%',
+        resizeMode: 'contain',  // or 'cover' if you want to fill and crop
     },
     videoContent: {
-        backgroundColor: "grey",
-        width: "100%",
-        resizeMode: "contain",
+        width: '100%',
         height: '100%',
+        resizeMode: 'contain',  // or 'cover' if you want to fill and crop
     },
     bottomBar: {
         flexDirection: "row",
