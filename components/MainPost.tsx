@@ -77,20 +77,20 @@ const GroupPost: React.FC<PostCompProps> = ({ post, style }) => {
         likeFunc();
     }, [likeStatus]);
 
-    useEffect(() => {
-        const commentFunc = async () => {
-            if (!user) return;
-            try {
-                const commentCount = await getDocs(collection(db, "posts", post.id, "comments"));
-                setNumComments(commentCount.size)
-
-            } catch (error) {
-                console.error("Error checking like status:", error);
-            }
-        };
-
-        commentFunc();
-    }, []);
+    // useEffect(() => {
+    //     const commentFunc = async () => {
+    //         if (!user) return;
+    //         try {
+    //             const commentCount = await getDocs(collection(db, "posts", post.id, "comments"));
+    //             setNumComments(commentCount.size)
+    //
+    //         } catch (error) {
+    //             console.error("Error checking like status:", error);
+    //         }
+    //     };
+    //
+    //     commentFunc();
+    // }, []);
 
 
 
@@ -170,15 +170,15 @@ const GroupPost: React.FC<PostCompProps> = ({ post, style }) => {
                             </TouchableOpacity>
                             <Text style={styles.numLikesText}>{numLikes}</Text>
 
-                            <View>
-                                <TouchableOpacity onPress={() => router.push({
-                                    pathname: '/(tabs)/home/post',
-                                    params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName, mode: post.mode },
-                                })}>
-                                    <FontAwesome name="comment-o" size={22} color={"white"} />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={styles.numLikesText}>{numComments}</Text>
+                            {/*<View>*/}
+                            {/*    <TouchableOpacity onPress={() => router.push({*/}
+                            {/*        pathname: '/(tabs)/home/post',*/}
+                            {/*        params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName, mode: post.mode },*/}
+                            {/*    })}>*/}
+                            {/*        <FontAwesome name="comment-o" size={22} color={"white"} />*/}
+                            {/*    </TouchableOpacity>*/}
+                            {/*</View>*/}
+                            {/*<Text style={styles.numLikesText}>{numComments}</Text>*/}
 
                         </View>
                         <View style={styles.captionBar}>
