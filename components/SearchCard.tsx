@@ -8,6 +8,8 @@ interface User {
     id: string;
     username: string,
     photoURL: string,
+    firstName: string,
+    lastName: string,
 }
 
 interface UserCompProps {
@@ -24,29 +26,29 @@ const SearchCard: React.FC<UserCompProps> = ({ info }) => {
 
     return (
 
-        <View style={styles.resultItem}>
-
-            <TouchableOpacity style={styles.friendReqButton} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: info.id }})}>
-                <View style={styles.avatarView}>
-                    <Image source={{ uri: info.photoURL }} style={styles.avatar} />
-                    <Text style={styles.resultText}>{info.username}</Text>
+        <TouchableOpacity style={styles.resultItem} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: info.id }})}>
+            <View style={styles.avatarView}>
+                <Image source={{ uri: info.photoURL }} style={styles.avatar} />
+                <View style={styles.namesView}>
+                    <Text style={styles.userNameText}>{info.username}</Text>
+                    <Text style={styles.nameText}>{info.firstName} {info.lastName}</Text>
                 </View>
-            </TouchableOpacity>
-        </View>
+            </View>
+        </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
     resultItem: {
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#D3D3FF',
+        padding: 15,
+        // borderWidth: 1,
+        // borderColor: '#D3D3FF',
         flexDirection: 'row',
-        alignItems: 'center',
+        marginBottom: 2,
     },
     avatar: {
-        width: 25,
-        height: 25,
+        width: 40,
+        height: 40,
         borderRadius: 20,
         marginRight: 10,
         // backgroundColor: '#ccc',
@@ -55,12 +57,20 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         padding: 1,
     },
-    resultText: {
+    userNameText: {
         fontSize: 16,
         color: 'white',
     },
+    nameText: {
+      color: 'grey',
+      fontSize: 12
+    },
     avatarView: {
         flexDirection: 'row',
+        alignItems: 'center',
+    },
+    namesView: {
+
     }
 });
 
