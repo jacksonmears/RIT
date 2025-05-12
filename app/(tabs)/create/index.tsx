@@ -29,19 +29,10 @@ const Page = () => {
     const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
     const isFocused = useIsFocused();
 
-    // useEffect(() => {
-    //     if (isFocused) {
-    //         refresh()
-    //     }
-    // }, [isFocused]);
-
     useEffect(() => {
-        console.log(photo?.path)
-    }, [photo]);
+        setIsCameraActive(isFocused);
+    }, [isFocused]);
 
-    useEffect(() => {
-        console.log(video?.path)
-    }, [video]);
 
     useEffect(() => {
         (async () => {
@@ -128,7 +119,6 @@ const Page = () => {
         );
     }
 
-    // 8) Everything’s ready — render the live camera + controls + preview
     return (
         <View style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
@@ -164,25 +154,6 @@ const Page = () => {
                     </View>
                 }
 
-
-
-                {/*{photo && (*/}
-                {/*    <Image*/}
-                {/*        source={{ uri: photo.path }}*/}
-                {/*        style={styles.preview}*/}
-                {/*        resizeMode="cover"*/}
-                {/*    />*/}
-                {/*)}*/}
-                {/*{video && (*/}
-                {/*    <View style={styles.videoContainer}>*/}
-                {/*        <Video*/}
-                {/*            source={{ uri: video.path }}*/}
-                {/*            style={styles.video}*/}
-                {/*            controls*/}
-                {/*            resizeMode="contain"*/}
-                {/*        />*/}
-                {/*    </View>*/}
-                {/*)}*/}
             </SafeAreaView>
         </View>
     );
