@@ -264,7 +264,7 @@ const Page = () => {
     const renderFlatList = () => (
         <View style={styles.postContainer}>
             <FlatList
-                style={styles.groups}
+                style={[styles.groups, {marginTop: height*0.02, marginBottom: height*0.07}]}
                 data={postContents}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
@@ -351,12 +351,11 @@ const styles = StyleSheet.create({
     },
     groups: {
         flex: 1,
-        paddingTop: 20
     },
     itemContainer: {
         flex: 1 / 3,
-        paddingVertical: 0.5,
-        paddingHorizontal: 0.5,
+        // paddingVertical: 0.5,
+        // paddingHorizontal: 0.5,
     },
     postContainer: {
         flex: 1,
