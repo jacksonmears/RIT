@@ -43,10 +43,19 @@ const Page = () => {
     const isFocused = useIsFocused();
     const animatedValue = useRef(new Animated.Value(0)).current;
     const [isRecording, setRecording] = useState<boolean>(false);
+    const TOP_OFFSET = height * 0.10;
+    const BOTTOM_OFFSET = height * 0.20;
 
     useEffect(() => {
-        setIsCameraActive(isFocused);
-    }, [isFocused]);
+        if (!isFocused && isRecording) {
+            cameraRef.current?.stopRecording();
+            setRecording(false);
+            animatedValue.setValue(0);
+            setVideo(null);
+        }
+    }, [isFocused, isRecording]);
+
+
 
 
     useEffect(() => {
@@ -126,14 +135,23 @@ const Page = () => {
 
     }
 
-    const handleRecordingPressed = () => {
-        (isRecording) ? endRecording() : beginRecording()
-        setRecording(!isRecording);
-    }
+    const handleRecordingPressed = async () => {
+        if (isRecording) {
+            await handleStopVideo();
+            endRecording();
+            setRecording(false);
+        } else {
+            // START
+            beginRecording();
+            await handleRecordVideo();
+            setRecording(true);
+        }
+    };
 
 
 
-    const beginRecording = () => {
+
+    const endRecording = async () => {
         if (!animatedValue) return;
 
         const animations = (val: any) => {
@@ -147,7 +165,7 @@ const Page = () => {
 
     };
 
-    const endRecording = () => {
+    const beginRecording =  () => {
         if (!animatedValue) return;
 
         const animations = ({val}: { val: any }) => {
@@ -158,6 +176,7 @@ const Page = () => {
             }).start();
         }
         animations({val: animatedValue});
+
     }
 
     const backgroundColor = animatedValue?.interpolate({
@@ -197,15 +216,24 @@ const Page = () => {
         <View style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
 
-                <Camera
-                    key={mode}
-                    ref={cameraRef}
-                    style={styles.camera}
-                    device={cameraDevice}
-                    isActive={isCameraActive}
-                    video={mode === "video"}
-                    photo={mode === "photo"}
-                />
+                {isFocused && (
+                    <View style={[styles.cameraContainer, { top: TOP_OFFSET, bottom: BOTTOM_OFFSET}]}>
+                        <Camera
+                            key={mode}
+                            ref={cameraRef}
+                            style={styles.camera}
+                            device={cameraDevice}
+                            isActive={true}
+                            video={mode === "video"}
+                            photo={mode === "photo"}
+                        />
+                    </View>
+                )}
+
+
+                <TouchableOpacity style={styles.backButton} onPress={() => router.push("/home")}>
+                    <Text style={styles.backText}>GO BACK</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity style={styles.switchModeButton} onPress={() => switchCamera()}>
                     <MaterialIcons name="cameraswitch" size={36} color="white" />
@@ -278,7 +306,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     camera: {
-        flex: 1
+        flex: 1,
     },
     text: {
         color: 'white',
@@ -287,13 +315,13 @@ const styles = StyleSheet.create({
     },
     switchModeButton: {
         position: "absolute",
-        bottom: '13%',
+        bottom: '8%',
         right: '10%',
     },
     recordingButton: {
         position: 'absolute',
         left: '50%',
-        bottom: '15%'
+        bottom: '10%'
     },
     centerWrapper: {
         justifyContent: 'center',
@@ -305,6 +333,22 @@ const styles = StyleSheet.create({
         position: 'absolute',
         zIndex: 0, // Ensure the circle stays behind the animated button
     },
+    cameraContainer: {
+        position: 'absolute',
+        top: '10%',
+        height: '70%',
+        width: '100%'
+
+    },
+    backButton: {
+        position: 'absolute',
+        left: '8%',
+        top: '4%',
+        backgroundColor: 'white'
+    },
+    backText: {
+        color: 'black'
+    }
 
 });
 

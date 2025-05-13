@@ -253,10 +253,10 @@ export default function CardStack() {
 
     const renderTopBar = () => (
         <View style={styles.topBar}>
-            <View style={styles.titleCardView}>
+            <TouchableOpacity onPress={() => router.push({pathname: '/home/practiceFile', params: {screen: "weiner"}})} style={styles.titleCardView}>
                 <Text style={styles.titleTextRECAP}>Recap</Text>
                 <Text style={styles.titleTextIT}>It</Text>
-            </View>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/notifications')}>
                 <Ionicons name="notifications-outline" size={24} color="#D3D3FF" />
                 {friendNotis+groupNotis>0 &&
