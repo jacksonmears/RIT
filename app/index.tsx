@@ -1,14 +1,17 @@
-import { Text, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, TextInput, ActivityIndicator,Button } from "react-native";
-import { useState } from "react";
+import { Text, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Dimensions, TextInput, ActivityIndicator } from "react-native";
+import { useState, useEffect } from "react";
 import { auth } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, validatePassword } from "@firebase/auth";
+import { signInWithEmailAndPassword } from "@firebase/auth";
 import { FirebaseError } from "@firebase/util";
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
+
+const { width, height } = Dimensions.get("window");
 
 const Index = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
 
     const signIn = async () => {
@@ -23,7 +26,6 @@ const Index = () => {
                 return;
             }
 
-            // Continue to your app’s home screen, etc.
         } catch (e: any) {
             const err = e as FirebaseError;
             alert('Sign in failed: ' + err.message);
@@ -32,12 +34,41 @@ const Index = () => {
         }
     };
 
-    return (
+    const renderButtons = () => (
+        <View style={styles.buttonContainer}>
+            <TouchableOpacity
+                style={styles.loginButton}
+                onPress={signIn}
+                disabled={loading}
+            >
+                <Text style={styles.loginText}>Login</Text>
+            </TouchableOpacity>
 
+            <TouchableOpacity
+                onPress={() => router.push("/forgotPassword")}
+                disabled={loading}
+            >
+                <Text style={styles.secondaryText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            <View style={styles.signupContainer}>
+                <Text style={styles.secondaryText}>Don't have an account? </Text>
+                <TouchableOpacity
+                    onPress={() => router.push("/signUp")}
+                    disabled={loading}
+                >
+                    <Text style={styles.signupText}>Create Account</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    return (
         <View style={styles.container}>
             <KeyboardAvoidingView behavior="padding">
                 <TextInput
                     style={styles.input}
+                    editable={!loading}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -46,34 +77,23 @@ const Index = () => {
                     maxLength={256}
                 />
                 <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholder="Password"
-                maxLength={100}
+                    style={styles.input}
+                    editable={!loading}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    placeholder="Password"
+                    maxLength={100}
                 />
                 {loading ? (
-                    <ActivityIndicator size='small' style={{ margin:28 }} />
+                    <ActivityIndicator size="small" style={styles.loader} />
                 ) : (
-                    <>
-                        <TouchableOpacity style={styles.si} onPress={signIn}>
-                            <Text style={styles.siText}>Login</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.su}>
-                            <Link href={"/signUp"}>
-                                <Text style={styles.suText}>Create Account</Text>
-                            </Link>
-                        </TouchableOpacity>
-
-                    </>
+                    renderButtons()
                 )}
             </KeyboardAvoidingView>
         </View>
-
-        )
+    );
 };
-
 
 const styles = StyleSheet.create({
     container: {
@@ -82,34 +102,41 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     input: {
-        marginVertical: 4,
-        marginHorizontal: 40,
-        borderWidth: 1,
-        borderRadius: 4,
-        padding: 20,
+        marginVertical: height * 0.002,
+        marginHorizontal: width * 0.1,
+        borderRadius: width * 0.03,
+        padding: height * 0.02,
         backgroundColor: "white",
     },
-    si: {
-        padding: 12,
-        borderRadius: 8,
-        alignItems: 'center',
+    loader: {
+        margin: height * 0.05,
     },
-    siText: {
-        fontSize: 25,
-        fontWeight: "bold",
-        color: '#D3D3FF',
-    },
-    su: {
+    buttonContainer: {
         alignSelf: "center",
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 4,
+        alignItems: "center",
     },
-    suText: {
-        fontSize: 15,
+    loginButton: {
+        marginVertical: height * 0.01,
+    },
+    loginText: {
+        fontSize: width * 0.06,
+        fontWeight: "bold",
+        color: "#D3D3FF",
+    },
+    secondaryText: {
+        fontSize: width * 0.035,
         fontWeight: "bold",
         color: "grey",
-    }
-})
+    },
+    signupContainer: {
+        marginTop: height * 0.05,
+        flexDirection: "row",
+    },
+    signupText: {
+        fontSize: width * 0.035,
+        fontWeight: "bold",
+        color: "#D3D3FF",
+    },
+});
 
 export default Index;
