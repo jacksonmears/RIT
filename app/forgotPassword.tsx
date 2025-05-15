@@ -1,9 +1,8 @@
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, Dimensions } from 'react-native';
 import { auth } from '@/firebase';
 import { useRouter } from "expo-router";
-import React, { useState, useEffect} from 'react';
+import React, { useState} from 'react';
 import { sendPasswordResetEmail } from "@firebase/auth";
-import cardActions from "react-native-paper/src/components/Card/CardActions";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const { width, height } = Dimensions.get("window");
@@ -34,7 +33,7 @@ const Page = () => {
             <View style={styles.bottomContainer}>
                 <View style={styles.instructionsContainer}>
                     <Text style={styles.instructionsText}>
-                        Enter your email, phone, or username and we'll send you a link to get back into your account.
+                        Enter your email and we'll send you a link to get back into your account.
                     </Text>
                 </View>
                 <TextInput

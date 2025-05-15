@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments, Link } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import {useEffect, useState} from "react";
 import {User} from "firebase/auth";
 import {auth} from "@/firebase";
@@ -14,16 +14,13 @@ const RootLayout = () => {
 
 
     const onAuthStateChanged = (user: User | null) => {
-        console.log('onAuthStateChanged', user);
         setUser(user);
         if (user) setUserId(auth, user.uid);
         if (initializing) setInitializing(false);
     };
 
     useEffect(() => {
-        const subscriber = auth.onAuthStateChanged(onAuthStateChanged);
-
-        return subscriber;
+        return auth.onAuthStateChanged(onAuthStateChanged);
     }, []);
 
     useEffect(() => {
@@ -33,7 +30,6 @@ const RootLayout = () => {
 
 
         if (user && !inAuthGroup && user.emailVerified) {
-            console.log("user logged in")
             router.replace('/(tabs)/home');
         } else if (!user && inAuthGroup) {
             router.replace('/');
