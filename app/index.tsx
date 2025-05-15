@@ -1,5 +1,5 @@
 import { Text, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Dimensions, TextInput, ActivityIndicator } from "react-native";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { auth } from '@/firebase';
 import { signInWithEmailAndPassword } from "@firebase/auth";
 import { FirebaseError } from "@firebase/util";
