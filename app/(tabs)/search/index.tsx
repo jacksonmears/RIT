@@ -25,36 +25,30 @@ import {
     FieldPath,
     documentId
 } from "firebase/firestore";
+import Animated, {
+    useSharedValue,
+    withTiming,
+    useAnimatedStyle,
+    withDecay, runOnJS, withDelay
+} from 'react-native-reanimated';
 import {useRouter} from 'expo-router';
 import GroupPost from "@/components/GroupPost";
 import GroupMessage from "@/components/GroupMessage";
-import SearchCard from "@/components/SearchCard";
+import AnimatedSearchCard from "@/components/AnimatedSearchCard";
+import {useIsFocused} from "@react-navigation/native";
 
 
 const Page = () => {
     const user = auth.currentUser;
     const [search, setSearch] = useState('');
-    const [searchResults, setSearchResults] = useState<{ id: string, username: string, photoURL:string}[]>([]);
+    const [searchResults, setSearchResults] = useState<{ id: string, username: string, photoURL:string, firstName: string, lastName: string}[]>([]);
     const router = useRouter();
-
-
-    // const handleSearch = async () => {
-    //     setFound('');
-    //     if (search == user?.displayName){
-    //         return;
-    //     } else {
-    //         const docRef = doc(db, "displayName", search);
-    //         const docSnap = await getDoc(docRef);
-    //         docSnap.exists() ? setFound(docSnap.data().uid) : setFound('');
-    //         console.log(docSnap.data());
-    //     }
-    // }
-
-
+    const [debouncedSearch, setDebouncedSearch] = useState(search);
+    const [searchVersion, setSearchVersion] = useState(0);
+    const isFocused = useIsFocused();
 
 
     const searchUsers = async () => {
-        // if (!search) return [];
 
         try {
             const usersRef = collection(db, "displayName");
@@ -77,21 +71,24 @@ const Page = () => {
                             id: userId,
                             username: docSnapshot.data().displayName,
                             photoURL: friendDoc.data().photoURL,
+                            firstName: friendDoc.data().firstName,
+                            lastName: friendDoc.data().lastName,
                         };
                     } else {
                         return {
                             id: userId,
                             username: docSnapshot.data().displayName,
                             photoURL: null,
+                            firstName: "failed",
+                            lastName: "failed"
                         }
                     }
 
                 })
             );
 
-
             setSearchResults(searchResults);
-            console.log("Search Results:", searchResults);
+            // setSearchVersion(v => v+1);
 
         } catch (error) {
             console.error("Error searching users:", error);
@@ -99,13 +96,41 @@ const Page = () => {
         }
     };
 
+    // useEffect(() => {
+    //     searchUsers();
+    //
+    // }, [search]);
+
+
+    // useEffect(() => {
+    //     if (isFocused) {
+    //         setSearchResults([]);
+    //         searchUsers();
+    //
+    //     } else {
+    //         setSearchResults([]);
+    //     }
+    // }, [isFocused]);
+    //
+    // useEffect(() => {
+    //     console.log(search)
+    // }, [search]);
+
     useEffect(() => {
-        searchUsers(); // Trigger the search whenever search state changes
-    }, [search]); // This effect runs when 'search' state changes
+        searchUsers()
+    }, [search]);
 
 
-
-
+    // useEffect(() => {
+    //     const handler = setTimeout(() => {
+    //         setDebouncedSearch(search);
+    //     }, 200);             // ← 300 ms buffer
+    //     return () => clearTimeout(handler);
+    // }, [search]);
+    //
+    // useEffect(() => {
+    //     searchUsers();
+    // }, [debouncedSearch]);
 
 
 
@@ -118,48 +143,23 @@ const Page = () => {
                     value={search}
                     onChangeText={setSearch}
                 />
-                <Pressable onPress={() => searchUsers()} style={styles.searchButton}>
-                    <Text> Search </Text>
-                </Pressable>
             </View>
 
-            {/*<FlatList*/}
-            {/*    data={searchResults}*/}
-            {/*    keyExtractor={(item, index) => index.toString()} // Key for each item*/}
-            {/*    renderItem={({ item }) => (*/}
-            {/*        <View style={styles.resultItem}>*/}
-            {/*            /!*{*!/*/}
-            {/*            /!*    !myFriendsUIDs.includes(item.uid) && (*!/*/}
-            {/*            /!*        <TouchableOpacity style={styles.friendReqButton} onPress={() => sendRequest(item.username)}>*!/*/}
-            {/*            /!*            <Text style={styles.resultText}>add friend</Text>*!/*/}
-            {/*            /!*        </TouchableOpacity>*!/*/}
-            {/*            /!*    )*!/*/}
-            {/*            /!*}*!/*/}
 
-            {/*            <TouchableOpacity style={styles.friendReqButton} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: item.uid }})}>*/}
-            {/*                /!*<Text style={styles.resultText}>see friend</Text>*!/*/}
-            {/*                <Text style={styles.resultText}>{item.username}</Text>*/}
-
-            {/*            </TouchableOpacity>*/}
-
-            {/*        </View>*/}
-            {/*    )}*/}
-            {/*    style={styles.resultsList}*/}
-            {/*    ListEmptyComponent={*/}
-            {/*        <Text style={styles.noResults}>No results found</Text>*/}
-            {/*    }*/}
-            {/*/>*/}
 
             <FlatList
                 style={styles.resultsList}
                 data={searchResults}
+                extraData={searchVersion}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View>
-                        <SearchCard info={item} />
-                    </View>
+                renderItem={({ item, index }) => (
+                    <AnimatedSearchCard
+                        // key={`${search}-${item.id}`}
+                        item={item}
+                        index={index}
+                        version={searchVersion}
+                    />
                 )}
-                // ItemSeparatorComponent={() => <View style={styles.separator} />}
                 ListEmptyComponent={<Text style={styles.noResults}>No results found</Text>}
             />
 
@@ -172,7 +172,6 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "black",
         flex: 1,
-        justifyContent: "flex-start",
     },
     searchContainer: {
         flexDirection: "row",
@@ -180,18 +179,10 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         marginTop: 20,
-        marginRight: 5,
-        marginLeft: 40,
+        marginHorizontal: 40,
         borderRadius: 4,
         padding: 10,
         backgroundColor: "white",
-    },
-    searchButton: {
-        justifyContent: "center",
-        backgroundColor: "white",
-        borderRadius: 4,
-        marginRight: 40,
-        marginTop: 20
     },
     resultsList: {
         marginTop: 20,
@@ -212,10 +203,6 @@ const styles = StyleSheet.create({
         color: 'gray',
         textAlign: 'center',
     },
-    friendReqButton: {
-        borderRadius: 4,
-        padding: 1,
-    }
 })
 
 export default Page;
