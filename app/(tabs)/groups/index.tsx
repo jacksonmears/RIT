@@ -6,18 +6,16 @@ import {doc, onSnapshot, getDocs, collection, getDoc } from "firebase/firestore"
 import GroupCard from "@/components/GroupCard"; // Import reusable component
 import Entypo from '@expo/vector-icons/Entypo';
 import { useIsFocused } from '@react-navigation/native';
+import AnimatedGroupCard from "@/components/AnimatedGroupCard";
 
 const Page = () => {
     const user = auth.currentUser;
     const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
     const router = useRouter();
     const isFocused = useIsFocused();
+    const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        if (isFocused) {
-            refresh()
-        }
-    }, [isFocused]);
+
 
     useEffect(() => {
         getGroups()
@@ -43,40 +41,35 @@ const Page = () => {
     const refresh = () => {
         setGroups([]);
         getGroups();
+        setRefreshing(false)
     }
 
-    // useEffect(() => {
-    //     console.log(groups);
-    // }, [groups]);
+
 
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
-                    {/*<TouchableOpacity onPress={() => router.back()}>*/}
-                    {/*    <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />*/}
-                    {/*</TouchableOpacity>*/}
                     <Text style={styles.topBarText}>{user?.displayName}</Text>
                 </View>
                 <TouchableOpacity onPress={() => router.push('/groups/groupCreate')}>
-                    {/*<Text style={styles.topBarText}>Create</Text>*/}
                     <Entypo name="add-to-list" size={24} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
-
-            {/*<TouchableOpacity style={styles.refreshButton} onPress={refresh}>*/}
-            {/*    <Text style={styles.text}>refresh</Text>*/}
-            {/*</TouchableOpacity>*/}
-
-            {/*<Text style={styles.header}>Group Page!</Text>*/}
 
             <FlatList
                 style={styles.groups}
                 data={groups}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => <GroupCard group={item} />}
-
-                contentContainerStyle={styles.listContent} // Adds padding
+                renderItem={({ item, index }) => (
+                    <AnimatedGroupCard
+                        item={item}
+                        index={index}
+                    />
+                )}
+                refreshing={refreshing}
+                onRefresh={refresh}
+                ListEmptyComponent={<Text style={styles.noResults}>No results found</Text>}
             />
         </View>
     );
@@ -96,6 +89,7 @@ const styles = StyleSheet.create({
         marginBottom: 10, // Space before FlatList
     },
     groups: {
+        marginTop: 50,
         flex: 1, // Allows FlatList to take up remaining space
     },
     listContent: {
@@ -145,7 +139,12 @@ const styles = StyleSheet.create({
     backArrowName: {
         flexDirection: 'row',
         alignItems: "center",
-    }
+    },
+    noResults: {
+        fontSize: 16,
+        color: 'gray',
+        textAlign: 'center',
+    },
 });
 
 

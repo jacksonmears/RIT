@@ -1,26 +1,32 @@
+import React, {useEffect, useState} from 'react';
 import {
-    View,
-    Text,
-    Button,
-    TouchableWithoutFeedback,
-    StyleSheet,
     Dimensions,
-    ScrollView,
-    StatusBar,
-    TouchableOpacity,
-    Modal,
-    FlatList,
-    RefreshControl,
-    Image
+    StyleSheet,
+    View,
+    Text, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
-import React, { useEffect, useState } from "react";
-import { db, auth } from "@/firebase"
-import {Link, useRouter, } from 'expo-router';
-import {collection, addDoc, getDoc, doc, query, orderBy, limit, getDocs, onSnapshot} from 'firebase/firestore';
-import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
-import MainPost from "@/components/MainPost";
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useIsFocused } from '@react-navigation/native';
+import {auth, db} from "@/firebase";
+import {useRouter} from "expo-router";
+import {collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query} from "firebase/firestore";
+import {AnimatedPost} from "@/components/AnimatedPost";
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withDecay, runOnJS
+} from 'react-native-reanimated';
+import Ionicons from "@expo/vector-icons/Ionicons";
+
+const { height, width } = Dimensions.get('window');
+type PostType = {
+    id: string;
+    content: string;
+    caption: string;
+    userName: string;
+    timestamp: string;
+    pfp: string;
+    mode: string;
+};
 
 
 const Page = () => {
@@ -28,81 +34,58 @@ const Page = () => {
     const [postIds, setPostIds] = useState<string[]>([]);
     const user = auth.currentUser;
     const router = useRouter();
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption: string, userName: string, timestamp:string, pfp: string, mode: string }[] | null>(null);
-    const [refreshing, setRefreshing] = useState(false);
-    const [friendNotis, setFriendNotis] = useState<number>(0);
-    const [groupNotis, setGroupsNotis] = useState<number>(0);
-    const isFocused = useIsFocused();
-    const [sheetVisible, setSheetVisible] = useState(false);
-    const screenHeight = Dimensions.get('window').height;
+    const [postContents, setPostContents] = useState<PostType[] | []>([]);
+    const [friendNotifications, setFriendNotifications] = useState<number>(0);
+    const [groupNotifications, setGroupsNotifications] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isRefreshingPosts, setIsRefreshingPosts] = useState<boolean>(false);
+    const pullDownOffset = useSharedValue(0);
+    const isRefreshing = useSharedValue(false);
+    const REFRESH_TRIGGER_HEIGHT = 100;
+    const MAX_PULL_DOWN_HEIGHT = 101;
+    const BOX_HEIGHT   = 650;
+    const MAX_POSITION = 0;
+    const MIN_POSITION = - ((postContents.length - 1) * BOX_HEIGHT );
+    const position   = useSharedValue(0);
+    const startY     = useSharedValue(0);
 
-    // useEffect(() => {
-    //     console.log(friends);
-    //     console.log(postIds)
-    // }, [postIds]);
 
     useEffect(() => {
-        if (user?.uid) {
-            const unsubscribe = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
-                console.log("Snapshot triggered", docSnap.data());
-                getNotis(); // your function to update UI
+        if (user && user.uid) {
+            const snapshot = onSnapshot(doc(db, "users", user.uid), () => {
+                getNotifications().catch((err) => {
+                    console.error("Error fetching notifications:", err);
+                });
             });
-
-            return () => unsubscribe();
+            return () => snapshot();
         }
     }, [user]);
 
-
-
-    const fetchFriendIds = async () => {
-        if (!user) return;
-
-        const friendSnap = await getDocs(collection(db, "users", user.uid, "friends"));
-        let friendIds: string[] = [];
-
-        friendSnap.forEach((doc) => {
-            friendIds.push(doc.id);
-        });
-        setFriends(friendIds);
-    }
-
-    const fetchPosts = async () => {
-        if (!user) return;
-        const postIds: string[] = [];
-
-        for (const friendId of friends) {
-            const q = query(
-                collection(db, "users", friendId, "posts"),
-                orderBy("timestamp", "desc"),
-                limit(1)
-            );
-
-            const snapshot = await getDocs(q);
-
-            if (!snapshot.empty) {
-                postIds.push(snapshot.docs[0].id);
-            }
-        }
-        setPostIds(postIds);
-    };
-
-
-    const getNotis = async () => {
-        if (!user) return;
-        const userInfo = await getDoc(doc(db, "users", user.uid));
-        if (userInfo.exists()){
-            setFriendNotis(userInfo.data().friendRequests.length);
-            setGroupsNotis(userInfo.data().groupRequests.length);
-        }
-    }
-
     useEffect(() => {
-        getNotis()
+        fetchFriendIds().catch((err) => {
+            console.error("Error fetching friendIds:", err);
+        });
     }, []);
 
     useEffect(() => {
-        console.log(friendNotis, groupNotis);
-    }, [friendNotis, groupNotis]);
+        fetchPosts().catch((err) => {
+            console.error("Error fetching posts:", err);
+        });
+    }, [friends]);
+
+    useEffect(() => {
+        fetchPostContent().catch((err) => {
+            console.error("Error fetching postContent:", err);
+        });
+    }, [postIds]);
+
+
+    useEffect(() => {
+        getNotifications().catch((err) => {
+            console.error("Error fetching notifications:", err);
+        });
+    }, []);
+
 
 
     const getTimeAgo = (timestampDate: Date): string => {
@@ -127,187 +110,223 @@ const Page = () => {
     };
 
 
+    const fetchFriendIds = async () => {
+        if (!user) return;
+
+        try {
+            const friendSnap = await getDocs(collection(db, "users", user.uid, "friends"));
+            let friendIds: string[] = [];
+
+            friendSnap.forEach((doc) => {
+                friendIds.push(doc.id);
+            });
+            setFriends(friendIds);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    const fetchPosts = async () => {
+        if (!user) return;
+        const postIds: string[] = [];
+
+        try  {
+            for (const friendId of friends) {
+                const q = query(
+                    collection(db, "users", friendId, "posts"),
+                    orderBy("timestamp", "desc"),
+                    limit(1)
+                );
+
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    postIds.push(snapshot.docs[0].id);
+                }
+            }
+            setPostIds(postIds);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+
+    const getNotifications = async () => {
+        if (!user) return;
+        const userInfo = await getDoc(doc(db, "users", user.uid));
+        if (userInfo.exists()){
+            setFriendNotifications(userInfo.data().friendRequests.length);
+            setGroupsNotifications(userInfo.data().groupRequests.length);
+        }
+    }
+
+
+
 
 
     const fetchPostContent = async () => {
-        if (!postIds || !user) return;
+        if (!postIds.length || !user) return;
 
         try {
-            const postContents = await Promise.all(postIds.map(async (post) => {
+            isRefreshingPosts && setIsLoading(true);
+            const raw = await Promise.all(postIds.map(async (post) => {
                 const postRef = doc(db, "posts", post);
                 const postSnap = await getDoc(postRef);
-
-                if (postSnap.exists()) {
-                    const userID = postSnap.data().sender_id;
-                    const mode = postSnap.data().mode;
-                    const userInfo = await getDoc(doc(db, "users", userID));
-                    let userName = ''
-                    let pfp = ''
-                    if (userInfo.exists()) {
-                        userName = userInfo.data().displayName;
-                        pfp = userInfo.data().photoURL;
-                    }
+                if (!postSnap.exists()) return null;
 
 
-
-                    // let timestamp = postSnap.data().timestamp.toDate().toDateString();
-
-                    let timestamp = "Unknown date";
-
-                    const rawTimestamp = postSnap.data().timestamp;
-                    if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
-                        try {
-                            const dateObj = rawTimestamp.toDate();
-                            timestamp = getTimeAgo(dateObj);
-                        } catch (error) {
-                            console.error("Error converting timestamp:", error);
-                        }
-                    } else {
-                        console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
-                    }
-
-                    console.log("Raw timestamp:", postSnap.data().timestamp);
-
-
-
-
-
-                    return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
-                } else {
-                    return { id: post, content: "Content not found", caption: "failed", userName: "failed", timestamp: "failed", pfp: "failed", mode: "failed" };
+                const userID = postSnap.data().sender_id;
+                const mode = postSnap.data().mode;
+                const userInfo = await getDoc(doc(db, "users", userID));
+                let userName = ''
+                let pfp = ''
+                if (userInfo.exists()) {
+                    userName = userInfo.data().displayName;
+                    pfp = userInfo.data().photoURL;
                 }
-            }));
 
-            setPostContents(postContents);
+
+                let timestamp = "Unknown date";
+                const rawTimestamp = postSnap.data().timestamp;
+                if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
+                    try {
+                        const dateObj = rawTimestamp.toDate();
+                        timestamp = getTimeAgo(dateObj);
+                    } catch (error) {
+                        console.error("Error converting timestamp:", error);
+                    }
+                }
+
+
+                return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
+            }))
+            const validPosts = raw.filter((p): p is PostType => p !== null);
+            setPostContents(validPosts)
+
+            isRefreshingPosts && setIsLoading(false);
         } catch (error) {
             console.error("Error fetching post content:", error);
         }
     };
 
     const onRefresh = async () => {
-        setRefreshing(true);
-        await fetchFriendIds(); // this will automatically trigger fetchPosts → fetchPostContent via useEffect
-        await getNotis()
-        setRefreshing(false);
+        setIsRefreshingPosts(true)
+        await fetchFriendIds();
+        await getNotifications()
+        isRefreshing.value = false;
+        pullDownOffset.value = 0;
+        setIsRefreshingPosts(false);
     };
 
 
-    useEffect(() => {
-        fetchFriendIds();
-    }, []);
 
-    useEffect(() => {
-        fetchPosts();
-    }, [friends]);
 
-    useEffect(() => {
-        fetchPostContent();
-    }, [postIds]);
 
-    // const postPanel = () => {
-    //     return (
-    //         <View style={styles.postPanelContainer}>
-    //             <Text>wassgood</Text>
-    //         </View>
-    //     )
-    // }
+
+    const panGesture = Gesture.Pan()
+        .onStart(() => {
+            startY.value = position.value;
+        })
+        .onUpdate((event) => {
+            let newPosition = startY.value + event.translationY;
+
+            if (newPosition > MAX_POSITION) {
+                pullDownOffset.value = Math.min(event.translationY, MAX_PULL_DOWN_HEIGHT);
+                newPosition = MAX_POSITION;
+            } else {
+                pullDownOffset.value = 0;
+            }
+
+            newPosition = Math.max(MIN_POSITION, Math.min(MAX_POSITION, newPosition));
+            position.value = newPosition;
+        })
+        .onEnd((event) => {
+            if (pullDownOffset.value >= REFRESH_TRIGGER_HEIGHT && !isRefreshing.value) {
+                isRefreshing.value = true;
+                runOnJS(onRefresh)();
+            } else {
+                pullDownOffset.value = 0;
+            }
+
+            position.value = withDecay({
+                velocity: event.velocityY,
+                deceleration: 0.997,
+                clamp: [MIN_POSITION, MAX_POSITION],
+            });
+        });
+
+
+    const animatedRefreshStyle = useAnimatedStyle(() => ({
+        height: pullDownOffset.value,
+        opacity: pullDownOffset.value > 10 ? 1 : 0,
+    }));
+
+
+
+    const renderTopBar = () => (
+        <View style={styles.topBar}>
+            <View style={styles.titleCardView}>
+                <Text style={styles.titleTextRECAP}>Recap</Text>
+                <Text style={styles.titleTextIT}>It</Text>
+            </View>
+            <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/notifications')}>
+                <Ionicons name="notifications-outline" size={width/20} color="#D3D3FF" />
+                {friendNotifications+groupNotifications>0 &&
+                    <View style={styles.redCircle}>
+                        <Text style={styles.redCircleText}>{friendNotifications+groupNotifications}</Text>
+                    </View>
+                }
+            </TouchableOpacity>
+        </View>
+    )
 
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.topBar}>
-                    <View style={styles.titleCardView}>
-                        <Text style={styles.titleTextRECAP}>Recap</Text>
-                        <Text style={styles.titleTextIT}>It</Text>
-                    </View>
-                <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/notifications')}>
-                    <Ionicons name="notifications-outline" size={24} color="#D3D3FF" />
-                    {friendNotis+groupNotis>0 &&
-                        <View style={styles.redCircle}>
-                            <Text style={styles.redCircleText}>{friendNotis+groupNotis}</Text>
-                        </View>
-                    }
-                </TouchableOpacity>
-            </View>
-            <Modal
-                visible={sheetVisible}
-                animationType="slide"
-                transparent={true}                   // <–– make the modal background transparent
-                onRequestClose={() => setSheetVisible(false)}
-            >
-                {/* 1) overlay to catch taps outside the panel */}
-                <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>
-                    <View style={styles.overlay} />
-                </TouchableWithoutFeedback>
+        <View style={styles.superContainer}>
+            {renderTopBar()}
+            <Animated.View style={[{ justifyContent: 'center', alignItems: 'center' }, animatedRefreshStyle]}>
+                <ActivityIndicator size="small" color="#888" />
+            </Animated.View>
 
-                {/* 2) the actual panel */}
-                <View style={[styles.panel, { height: screenHeight * 0.66 }]}>
-                    <Text style={styles.panelTitle}>Your Options Here</Text>
-                    {/* … your checkboxes, buttons, etc. … */}
-                    <TouchableOpacity onPress={() => setSheetVisible(false)}>
-                        <Text style={styles.closeText}>Close</Text>
-                    </TouchableOpacity>
-                </View>
-            </Modal>
-            <FlatList
-                style={styles.groups}
-                data={postContents}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) =>
-                    (
-                    <View>
-                        {/*<View style={styles.topBarPost}>*/}
-                        {/*    <View style={styles.leftSideTopBar}>*/}
-                        {/*        <View style={styles.pfpBox}>*/}
-                        {/*            <View style={styles.avatarContainer}>*/}
-                        {/*                {item.pfp? (*/}
-                        {/*                    <Image source={{ uri: item.pfp }} style={styles.avatar} />*/}
-                        {/*                ) : (*/}
-                        {/*                    <View style={[styles.avatar, styles.placeholder]}>*/}
-                        {/*                        <Text style={styles.placeholderText}>No Photo</Text>*/}
-                        {/*                    </View>*/}
-                        {/*                )}*/}
-                        {/*            </View>*/}
-                        {/*        </View>*/}
-                        {/*        <Text style={styles.username}>{item.userName}</Text>*/}
-                        {/*    </View>*/}
-                        {/*    <TouchableOpacity onPress={() => setSheetVisible(true)}>*/}
-                        {/*        <Text style={styles.username}>...</Text>*/}
-                        {/*    </TouchableOpacity>*/}
-                        {/*</View>*/}
-                        <MainPost post={item} />
+            {isLoading || isRefreshingPosts ?
+                <ActivityIndicator size="small" style={styles.loader} />
+            :
+                <GestureDetector gesture={panGesture} >
+                    <View >
+                        {postContents.map((post, index) => (
+                            <AnimatedPost
+                                key={post.id}
+                                post={post}
+                                index={index}
+                                scrollY={position}
+                                boxHeight={BOX_HEIGHT}
+                            />
+                        ))}
                     </View>
-
-                    )
+                </GestureDetector>
             }
-                contentContainerStyle={styles.flatListContentContainer}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-                keyboardShouldPersistTaps="handled"
-                refreshControl={(
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                )}
-            />
 
-            {/*<View style={styles.postPanelContainer}>*/}
-            {/*    <Text>Your Options Here</Text>*/}
-            {/*</View>*/}
-
-
-        </SafeAreaView>
+        </View>
     );
-};
+
+
+
+}
 
 const styles = StyleSheet.create({
-    container: {
+    superContainer: {
         flex: 1,
         backgroundColor: 'black',
+    },
+    loader: {
+        margin: height * 0.05,
     },
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        padding: 10,
-        borderBottomWidth: 0.5,
+        paddingHorizontal: width/20,
+        padding: width/50,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
     },
     titleTextRECAP: {
@@ -321,92 +340,23 @@ const styles = StyleSheet.create({
     friendRequestButtonContainer: {
         flexDirection: 'row',
     },
-    friendRequestText: {
-        color: 'white'
-    },
-    groups: {
-        flex: 1,
-    },
-    separator: {
-        height: 20,
-    },
-    flatListContentContainer: {
-        paddingTop: 10,
-        paddingBottom: 100, // or however much is needed to fully see bottom captions
-    },
     titleCardView: {
         flexDirection: 'row',
     },
     redCircle: {
         position: 'absolute',
-        right: -5,    // move it slightly to the right
+        right: -(width/100),
         backgroundColor: 'red',
-        borderRadius: 10,
-        width: 15,
-        height: 15,
+        borderRadius: width/40,
+        width: width/30,
+        height: width/30,
         justifyContent: 'center',
         alignItems: 'center',
     },
     redCircleText: {
-        fontSize: 10,
+        fontSize: height/100,
         color: "white",
     },
-    overlay: {
-        flex: 1,
-        backgroundColor: 'transparent',     // invisible—but catches taps
-    },
-    panel: {
-        width: '100%',
-        backgroundColor: '#222',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        padding: 16,
-    },
-    panelTitle: {
-        color: '#fff',
-        fontSize: 18,
-        marginBottom: 12,
-    },
-    closeText: {
-        color: '#D3D3FF',
-        marginTop: 20,
-        textAlign: 'center',
-    },
-    leftSideTopBar: {
-        flexDirection: "row",
-        alignItems: "center",
-
-    },
-    avatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 60,
-    },
-    pfpBox: {
-
-    },
-    username: {
-        color: "#D3D3FF",
-        paddingHorizontal: 10
-    },
-    avatarContainer: {
-        alignItems: 'center',
-        // marginBottom: 20,
-    },
-    placeholder: {
-        backgroundColor: '#444',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    placeholderText: {
-        color: 'white',
-    },
-    topBarPost: {
-        padding: 5,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-})
+});
 
 export default Page;

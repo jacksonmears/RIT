@@ -1,33 +1,10 @@
-import {
-    View,
-    Text,
-    Image,
-    StyleSheet,
-    TouchableOpacity,
-    ActivityIndicator,
-    Modal,
-    TouchableWithoutFeedback, Dimensions
-} from "react-native";
-import { useRouter } from "expo-router";
-import React, {useEffect, useState, useRef} from "react";
-import {
-    doc,
-    getDoc,
-    deleteDoc,
-    collection,
-    getDocs,
-    addDoc,
-    setDoc,
-    serverTimestamp,
-    query,
-    orderBy, limit
-} from "firebase/firestore";
-import {auth,db} from "@/firebase";
+import {Dimensions, Image, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle} from "react-native";
+import {useRouter} from "expo-router";
+import React, {useEffect, useState} from "react";
+import {collection, deleteDoc, doc, getDoc, getDocs, setDoc} from "firebase/firestore";
+import {auth, db} from "@/firebase";
 import AntDesign from '@expo/vector-icons/AntDesign';
-import EvilIcons from '@expo/vector-icons/EvilIcons';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import Video from "react-native-video";
-
+import {ResizeMode, Video as VideoAV} from 'expo-av';
 
 interface Post {
     id: string;
@@ -41,11 +18,12 @@ interface Post {
 
 interface PostCompProps {
     post: Post;
+    style?: StyleProp<ViewStyle>;
 }
 
 
 
-const GroupPost: React.FC<PostCompProps> = ({ post }) => {
+const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const router = useRouter();
     const content = decodeURIComponent(post.content);
     const user = auth.currentUser;
@@ -55,6 +33,10 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const [numComments, setNumComments] = useState<number>(0);
     const [sheetVisible, setSheetVisible] = useState(false);
     const screenHeight = Dimensions.get('window').height;
+    const {width, height} = Dimensions.get('window');
+    const POST_WIDTH = width;
+    const POST_HEIGHT = height*0.7;
+    const [croppedContent, setCroppedContent] = useState<string>("")
 
     useEffect(() => {
         console.log(content)
@@ -76,20 +58,21 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
         likeFunc();
     }, [likeStatus]);
 
-    useEffect(() => {
-        const commentFunc = async () => {
-            if (!user) return;
-            try {
-                const commentCount = await getDocs(collection(db, "posts", post.id, "comments"));
-                setNumComments(commentCount.size)
 
-            } catch (error) {
-                console.error("Error checking like status:", error);
-            }
-        };
-
-        commentFunc();
-    }, []);
+    // useEffect(() => {
+    //     const commentFunc = async () => {
+    //         if (!user) return;
+    //         try {
+    //             const commentCount = await getDocs(collection(db, "posts", post.id, "comments"));
+    //             setNumComments(commentCount.size)
+    //
+    //         } catch (error) {
+    //             console.error("Error checking like status:", error);
+    //         }
+    //     };
+    //
+    //     commentFunc();
+    // }, []);
 
 
 
@@ -114,29 +97,10 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
         console.log("deletePostTesting");
     }
 
-    return (
-        <View style={styles.postView}>
-            {/*<Modal*/}
-            {/*    visible={sheetVisible}*/}
-            {/*    animationType="slide"*/}
-            {/*    transparent={true}                   // <–– make the modal background transparent*/}
-            {/*>*/}
-            {/*    /!* 1) overlay to catch taps outside the panel *!/*/}
-            {/*    <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>*/}
-            {/*        <View style={styles.overlay} />*/}
-            {/*    </TouchableWithoutFeedback>*/}
 
-            {/*    /!* 2) the actual panel *!/*/}
-            {/*    <View style={[styles.panel, { height: screenHeight * 0.66 }]}>*/}
-            {/*        /!*<TouchableOpacity onPress={() => handleDeletePost()}>*!/*/}
-            {/*        /!*    <Text style={styles.panelTitle}>delete post</Text>*!/*/}
-            {/*        /!*</TouchableOpacity>*!/*/}
-            {/*        /!* … your checkboxes, buttons, etc. … *!/*/}
-            {/*        /!*<TouchableOpacity onPress={() => setSheetVisible(false)}>*!/*/}
-            {/*        /!*    <Text style={styles.closeText}>Close</Text>*!/*/}
-            {/*        /!*</TouchableOpacity>*!/*/}
-            {/*    </View>*/}
-            {/*</Modal>*/}
+
+    return (
+        <View style={[styles.postView, style]}>
                 <View>
                     <View>
                         <View style={styles.topBar}>
@@ -166,12 +130,13 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                 {post.mode==="photo" ?
                                     <Image source={{ uri: content }} style={styles.pictureContent} />
                                     :
-                                    <Video
+                                    <VideoAV
                                         source={{ uri: content }}
-                                        style={styles.videoContent}
-                                        resizeMode={'cover'}
+                                        style={[styles.videoContent, {width: POST_WIDTH, height: POST_HEIGHT}]}
+                                        // resizeMode={'cover'}
                                         // repeat={true}
-                                        paused={true}
+                                        // paused={true}
+                                        resizeMode={ResizeMode.COVER}
                                     />
                                 }
                                 {/*<Text style={styles.username}>{post.content}</Text>*/}
@@ -190,15 +155,15 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                             </TouchableOpacity>
                             <Text style={styles.numLikesText}>{numLikes}</Text>
 
-                            <View>
-                                <TouchableOpacity onPress={() => router.push({
-                                    pathname: '/(tabs)/home/post',
-                                    params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName, mode: post.mode },
-                                })}>
-                                    <FontAwesome name="comment-o" size={22} color={"white"} />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={styles.numLikesText}>{numComments}</Text>
+                            {/*<View>*/}
+                            {/*    <TouchableOpacity onPress={() => router.push({*/}
+                            {/*        pathname: '/(tabs)/home/post',*/}
+                            {/*        params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName, mode: post.mode },*/}
+                            {/*    })}>*/}
+                            {/*        <FontAwesome name="comment-o" size={22} color={"white"} />*/}
+                            {/*    </TouchableOpacity>*/}
+                            {/*</View>*/}
+                            {/*<Text style={styles.numLikesText}>{numComments}</Text>*/}
 
                         </View>
                         <View style={styles.captionBar}>
@@ -217,6 +182,8 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 const styles = StyleSheet.create({
     postView: {
         justifyContent: "center",
+        backgroundColor: "black",
+        overflow: "hidden",
     },
     topBar: {
         padding: 5,
@@ -246,23 +213,22 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     contentViewPicture: {
-        width: "100%",
-        height: 500,
-        overflow: "hidden", // Hides top/bottom overflow
-        borderColor: "#D3D3FF",
-        borderWidth: 1,
+        width: '100%',
+        height: 500,            // fixed container height
+        overflow: 'hidden',     // cut off anything outside
+        backgroundColor: 'black',
+        justifyContent: 'center', // center letterbox bars
+        alignItems: 'center',
     },
     pictureContent: {
-        backgroundColor: "grey",
-        width: "100%",
-        resizeMode: "cover",
+        width: '100%',
         height: '100%',
+        resizeMode: 'contain',  // or 'cover' if you want to fill and crop
     },
     videoContent: {
-        backgroundColor: "grey",
-        width: "100%",
-        resizeMode: "contain",
-        height: '100%',
+        // width: '100%',
+        // height: '100%',
+        // resizeMode: 'contain',  // or 'cover' if you want to fill and crop
     },
     bottomBar: {
         flexDirection: "row",
@@ -329,4 +295,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default GroupPost;
+export default MainPost;

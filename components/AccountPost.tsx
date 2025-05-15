@@ -24,7 +24,7 @@ import {
 } from "firebase/firestore";
 import {auth,db} from "@/firebase";
 import Video from "react-native-video";
-
+import {ResizeMode, Video as VideoAV} from "expo-av";
 
 interface Post {
     id: string;
@@ -41,13 +41,12 @@ interface PostCompProps {
 
 const AccountPost: React.FC<PostCompProps> = ({ post }) => {
     const { width, height } = useWindowDimensions();
-    const itemWidth = width*33 / 100;
-    const itemHeight = height / 5;
+    const POST_WIDTH = width*0.333333333333333333333333333333333;
+    const POST_HEIGHT = height*0.17;
     const content = decodeURIComponent(post.content);
     const user = auth.currentUser;
     const router = useRouter();
     const [sheetVisible, setSheetVisible] = useState<boolean>(false);
-    const screenHeight = Dimensions.get('window').height;
 
     const deleteCollection = async (collectionPath: string, batchSize: number) => {
         const collectionRef = collection(db, "posts", post.id, collectionPath);
@@ -85,7 +84,7 @@ const AccountPost: React.FC<PostCompProps> = ({ post }) => {
     }
 
     return (
-        <View style={[styles.contentView, { width: itemWidth, height: itemHeight }]}>
+        <View style={[styles.contentView, { width: POST_WIDTH, height: POST_HEIGHT }]}>
             {post.userID===user?.uid &&
                 <>
                     <Modal
@@ -99,7 +98,7 @@ const AccountPost: React.FC<PostCompProps> = ({ post }) => {
                         </TouchableWithoutFeedback>
 
                         {/* 2) the actual panel */}
-                        <View style={[styles.panel, { height: screenHeight * 0.66 }]}>
+                        <View style={[styles.panel, { height: height * 0.8 }]}>
                             <TouchableOpacity onPress={() => handleDeletePost()}>
                                 <Text style={styles.modalButtonText}>delete post</Text>
                             </TouchableOpacity>
@@ -119,15 +118,17 @@ const AccountPost: React.FC<PostCompProps> = ({ post }) => {
             {post.mode==="photo" ?
                 <Image
                     source={{ uri: content }}
-                    style={{ width: itemWidth, height: itemHeight }}
+                    style={{ width: POST_WIDTH, height: POST_HEIGHT }}
                     resizeMode="cover"
                 />
             :
-                <Video
+                <VideoAV
                     source={{ uri: content }}
-                    style={{ width: itemWidth, height: itemHeight }}
-                    resizeMode={'cover'}
-                    paused={true}
+                    style={[styles.videoContent, {width: POST_WIDTH, height: POST_HEIGHT}]}
+                    // resizeMode={'cover'}
+                    // repeat={true}
+                    // paused={true}
+                    resizeMode={ResizeMode.COVER}
                 />
             }
 
@@ -174,7 +175,14 @@ const styles = StyleSheet.create({
     },
     modalButtonText: {
         color: "white",
-    }
+    },
+    videoContent: {
+        borderWidth: 0.75,
+        borderColor: "#D3D3FF"
+        // width: '100%',
+        // height: '100%',
+        // resizeMode: 'contain',  // or 'cover' if you want to fill and crop
+    },
 
 });
 

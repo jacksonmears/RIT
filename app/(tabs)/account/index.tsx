@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
     View,
     Text,
@@ -9,9 +9,10 @@ import {
     Dimensions,
     FlatList,
     TouchableOpacity,
-    ActivityIndicator
+    ActivityIndicator, Animated
 } from 'react-native';
 import { auth, db } from '@/firebase';
+import { useFocusEffect} from '@react-navigation/native';
 import { updateProfile } from '@firebase/auth';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -20,52 +21,81 @@ import {doc, getDoc, getDocs, collection, query, orderBy, limit, serverTimestamp
 import AccountPost from "../../../components/AccountPost";
 import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Svg, {G, Defs, Text as SvgText, Path, TextPath, TSpan, Line, Circle} from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
+
 
 const Page = () => {
     const user = auth.currentUser;
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [pfp, setPfp] = useState<string>('');
-    const [firstName, setFirstName] = useState<string>('');
+    const [firstName, setFirstName] = useState<string>("");
     const [lastName, setLastName] = useState<string>('');
     const [bio, setBio] = useState('');
     const [postContents, setPostContents] = useState<{ id: string, content: string, caption:string, mode: string, userID: string }[] | null>(null);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
     const router = useRouter();
     const [refreshing, setRefreshing] = useState(false);
+    const [animatedValues, setAnimatedValues] = useState<Animated.Value[]>([]);
+    const [totalCharacters, setTotalCharacters] = useState<string>("");
 
-    const getBioInfo = async () => {
-        if (!user) return;
-        const getInfo = await getDoc(doc(db,"users", user.uid));
-        if (getInfo.exists()){
-            setBio(getInfo.data().bio);
-            setFirstName(getInfo.data().firstName);
-            setLastName(getInfo.data().lastName);
+
+    useEffect(() => {
+        const getInfo = async () => {
+            await getBioInfo()
+            await fetchUserPosts();
         }
-        const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
-        const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
-
-        setNumFriends(fetchFriendCount.size);
-        setNumPosts(fetchPostCount.size);
-
-    }
-
-
-    useEffect(() => {
-        getBioInfo()
-    }, []);
-
-
-
-    useEffect(() => {
-        fetchUserPosts();
+        getInfo();
     }, []);
 
     useEffect(() => {
         getPostContent()
     }, [posts]);
+
+
+    useEffect(() => {
+        const values = Array.from({ length: totalCharacters.length}, () => new Animated.Value(0));
+        setAnimatedValues(values);
+    }, [totalCharacters]);
+
+    useEffect(() => {
+        setTotalCharacters(firstName+' '+lastName);
+    }, [firstName, lastName]);
+
+    const runAnimation = useCallback(() => {
+        if (animatedValues.length === 0) return;
+
+        const animations = animatedValues.map((val) =>
+            Animated.sequence([
+                Animated.timing(val, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(val, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        Animated.stagger(100, animations).start();
+    }, [animatedValues]);
+
+    useFocusEffect(
+        useCallback(() => {
+            runAnimation();
+        }, [runAnimation])
+    );
+
+    useEffect(() => {
+        if (!refreshing) {
+            runAnimation();
+        }
+    }, [refreshing, runAnimation]);
 
 
 
@@ -93,6 +123,21 @@ const Page = () => {
     };
 
 
+    const getBioInfo = async () => {
+        if (!user) return;
+        const getInfo = await getDoc(doc(db,"users", user.uid));
+        if (getInfo.exists()){
+            setBio(getInfo.data().bio);
+            setFirstName(getInfo.data().firstName);
+            setLastName(getInfo.data().lastName);
+        }
+        const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
+        const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
+
+        setNumFriends(fetchFriendCount.size);
+        setNumPosts(fetchPostCount.size);
+
+    }
 
 
     const getPostContent = async () => {
@@ -116,13 +161,11 @@ const Page = () => {
         }
     };
 
-    const onRefresh = () => {
-        setPostContents(null);
-        setNumPosts(0);
-        setNumFriends(0);
-        setBio('');
-        fetchUserPosts();
-        getBioInfo()
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchUserPosts();
+        await getBioInfo()
+        setRefreshing(false);
     }
 
 
@@ -132,100 +175,124 @@ const Page = () => {
         auth.signOut();
     }
 
+    const renderTopBar = () => (
+        <View style={styles.topBar}>
+            <View style={styles.backArrowName}>
+                <Text style={styles.topBarText}>{user?.displayName}</Text>
+            </View>
+            <View>
+                <Button title="Logout" onPress={handleLogout} />
+            </View>
+        </View>
+    )
 
+    const renderAnimatedName = () => (
+        <View style={styles.containerName}>
+            {totalCharacters.split('').map((char, index) => {
+                const val = animatedValues[index];
+                if (!val) return null;
+
+                const scale = val.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.4],
+                });
+
+                const colorScale = val.interpolate({
+                    inputRange: [0, 0.5],
+                    outputRange: ["#D3D3FF", "white"],
+                });
+
+                return (
+                    <Animated.Text
+                        key={index}
+                        style={[styles.char, { transform: [{ scale }], color: colorScale}]}
+                    >
+                        {char}
+                    </Animated.Text>
+                );
+            })}
+        </View>
+    )
+
+    const renderPfp = () => (
+        <View style={styles.pfpAndInfo}>
+            <TouchableOpacity style={styles.pfpBox} onPress={() => router.push("/account/editPfp")}>
+                <View>
+                    {pfp ? (
+                        <Image source={{ uri: pfp }} style={styles.avatar} />
+                    ) : (
+                        <View style={[styles.avatar, styles.placeholder]}>
+                            <Text style={styles.placeholderText}>No Photo</Text>
+                        </View>
+                    )}
+                    <View style={styles.changePfp}>
+                        <Ionicons name="add-circle" size={24} color="white" />
+                    </View>
+                </View>
+            </TouchableOpacity>
+            <View style={styles.pfpSeparator}></View>
+            <View style={styles.infoBox}>
+                <View style={styles.info}>
+                    <View style={styles.postsInfo}>
+                        <Text style={styles.infoText}>{numPosts}</Text>
+                        <Text style={styles.genericText}> posts</Text>
+                    </View>
+                    <View style={styles.pfpSeparator}></View>
+                    <View style={styles.friendInfo}>
+                        <Text style={styles.infoText}>{numFriends}</Text>
+                        <Text style={styles.genericText}> friends</Text>
+                    </View>
+                </View>
+
+            </View>
+        </View>
+    )
+
+    const renderBio = () => (
+        <View style={styles.bioAndButtonBox}>
+            <View style={styles.bioBox}>
+                <Text style={styles.genericText}>{bio}</Text>
+            </View>
+            <TouchableOpacity style={styles.editContainer} onPress={() => router.push("/account/editProfile")}>
+                <Text style={styles.nameText}>Edit profile</Text>
+            </TouchableOpacity>
+
+        </View>
+
+    )
+
+    const renderFlatList = () => (
+        <View style={styles.postContainer}>
+            <FlatList
+                style={[styles.groups, {marginTop: height*0.02, marginBottom: height*0.07}]}
+                data={postContents}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {idT: user?.uid, contentT: item.content, captionT: item.caption, userNameT: user?.displayName, mode: item.mode, photoURL: encodeURIComponent(pfp)}})}>
+                        <View style={styles.itemContainer}>
+                            <AccountPost post={item} />
+                        </View>
+                    </TouchableOpacity>
+
+                )}
+                // contentContainerStyle={styles.flatListContentContainer}
+                // ItemSeparatorComponent={() => <View style={styles.separator} />}
+                refreshing={refreshing}              // 👈 NEW
+                onRefresh={onRefresh}                // 👈 NEW
+                numColumns={3}
+            />
+        </View>
+    )
 
     return (
 
 
         <View style={styles.container}>
-            <View style={styles.topBar}>
-                {/*<TouchableOpacity style={styles.refreshButton} onPress={refresh}>*/}
-                {/*    <Text style={styles.text}>refresh</Text>*/}
-                {/*</TouchableOpacity>*/}
-
-
-
-                <View style={styles.backArrowName}>
-                    {/*<TouchableOpacity onPress={() => router.back()}>*/}
-                    {/*    <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />*/}
-                    {/*</TouchableOpacity>*/}
-                    <Text style={styles.topBarText}>{user?.displayName}</Text>
-                </View>
-                <View style={styles.logout}>
-                    <Button title="Logout" onPress={handleLogout} />
-                </View>
-            </View>
-
-
-            <View style={styles.infoBar}>
-                <View style={styles.pfpAndInfo}>
-                    <TouchableOpacity onPress={() => router.push("/account/editPfp")}>
-                        <View style={styles.avatarContainer}>
-                            {pfp ? (
-                                <Image source={{ uri: pfp }} style={styles.avatar} />
-                            ) : (
-                                <View style={[styles.avatar, styles.placeholder]}>
-                                    <Text style={styles.placeholderText}>No Photo</Text>
-                                </View>
-                            )}
-                            <View style={styles.changePfp}>
-                                <Ionicons name="add-circle" size={24} color="white" />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                    <View style={styles.pfpSeparator}></View>
-                    <View style={styles.infoBox}>
-                        <View style={styles.name}>
-                            <Text style={styles.nameText}>{firstName} {lastName}</Text>
-                        </View>
-                        <View style={styles.info}>
-                            <View style={styles.postsInfo}>
-                                <Text style={styles.genericText}>{numPosts}</Text>
-                                <Text style={styles.genericText}>posts</Text>
-                            </View>
-                            <View style={styles.pfpSeparator}></View>
-                            <View style={styles.friendInfo}>
-                                <Text style={styles.genericText}>{numFriends}</Text>
-                                <Text style={styles.genericText}>friends</Text>
-                            </View>
-                        </View>
-
-                    </View>
-                </View>
-                <View style={styles.bioBox}>
-                    <Text style={styles.genericText}>{bio}</Text>
-                </View>
-                <TouchableOpacity style={styles.editContainer} onPress={() => router.push("/account/editProfile")}>
-                    <Text style={styles.nameText}>Edit profile</Text>
-                </TouchableOpacity>
-            </View>
-
-
-
-
-
-            <View style={styles.postContainer}>
-                <FlatList
-                    style={styles.groups}
-                    data={postContents}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {idT: user?.uid, contentT: item.content, captionT: item.caption, userNameT: user?.displayName, mode: item.mode, photoURL: encodeURIComponent(pfp)}})}>
-                            <View style={styles.itemContainer}>
-                                <AccountPost post={item} />
-                            </View>
-                        </TouchableOpacity>
-
-                    )}
-                    // contentContainerStyle={styles.flatListContentContainer}
-                    // ItemSeparatorComponent={() => <View style={styles.separator} />}
-                    refreshing={refreshing}              // 👈 NEW
-                    onRefresh={onRefresh}                // 👈 NEW
-                    numColumns={3}
-                />
-            </View>
-
-
+            {renderTopBar()}
+            {renderAnimatedName()}
+            {renderPfp()}
+            {renderBio()}
+            {renderFlatList()}
         </View>
     );
 };
@@ -243,23 +310,25 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0.5,
         borderBottomColor: "grey",
     },
-
+    pfpBox: {
+        marginTop: 30,
+        marginBottom: 15
+    },
     infoBar: {
-        marginTop: 50,
+        marginTop: 30,
         marginHorizontal: 40,
+
+        alignItems: "center",
     },
     pfpAndInfo: {
-        flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 30,
     },
     pfpSeparator: {
-        width: 20
-
+        width: 50
     },
     infoBox: {
-
-    },
-    name: {
+        alignItems: 'center',
     },
     nameText: {
         color: "#D3D3FF",
@@ -269,10 +338,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     postsInfo: {
-
+        flexDirection: 'row',
     },
     friendInfo: {
-
+        flexDirection: 'row',
     },
     bioBox: {
         marginTop: 10
@@ -282,44 +351,19 @@ const styles = StyleSheet.create({
     },
     groups: {
         flex: 1,
-        paddingTop: 20
-    },
-    separator: {
-        height: 20,
-    },
-    flatListContentContainer: {
-        paddingTop: 0,
     },
     itemContainer: {
-        flex: 1 / 3, // One third of the row
-        paddingVertical: 0.5, // Optional: adds spacing between items
-        paddingHorizontal: 0.5,
-    },
-    logout: {
-        // position: 'absolute',
-        // top: 0,
-        // right: 0,
+        flex: 1 / 3,
+        // paddingVertical: 0.5,
+        // paddingHorizontal: 0.5,
     },
     postContainer: {
         flex: 1,
     },
-    refreshButton: {
-        // position: "absolute",
-        // top: 0,
-        // left: 10,
-        backgroundColor: "green",
-    },
-    text: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#D3D3FF",
-    },
-    avatarContainer: {
-    },
     avatar: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 150,
+        height: 150,
+        borderRadius: 999,
     },
     placeholder: {
         backgroundColor: '#444',
@@ -342,8 +386,8 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         padding: 3,
         position: 'absolute',
-        top: 85,
-        left: 80
+        top: 110,
+        left: 110
 
     },
     editContainer: {
@@ -353,7 +397,23 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         borderWidth: 1,
         borderColor: "#D3D3FF",
+    },
+    containerName: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 25,
+    },
+    char: {
+        fontSize: 20,
+        color: "#D3D3FF",
+    },
+    bioAndButtonBox: {
+        marginHorizontal: 50,
+    },
+    infoText: {
+        color: "#D3D3FF",
     }
+
 });
 
 export default Page;

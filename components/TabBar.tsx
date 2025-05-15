@@ -6,12 +6,17 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+const HIDDEN_ROUTES = ['create',];
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const { colors } = useTheme();
     const { buildHref } = useLinkBuilder();
     const primaryColor = '#D3D3FF';
-    const secondaryColor = '#D3D3D3';
+    const secondaryColor = 'grey';
+    const currentRoute = state.routes[state.index].name;
+
+    if (HIDDEN_ROUTES.includes(currentRoute)) return null;
+
 
     // Define the icons with an explicit key union and a typed function.
     const icons: Record<

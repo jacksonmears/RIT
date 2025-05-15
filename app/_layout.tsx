@@ -1,9 +1,10 @@
-import { Stack, useRouter, useSegments, Link } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import {useEffect, useState} from "react";
 import {User} from "firebase/auth";
 import {auth} from "@/firebase";
 import { setUserId } from "firebase/analytics";
 import { View, ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const RootLayout = () => {
     const [initializing, setInitializing] = useState(true);
@@ -13,16 +14,13 @@ const RootLayout = () => {
 
 
     const onAuthStateChanged = (user: User | null) => {
-        console.log('onAuthStateChanged', user);
         setUser(user);
         if (user) setUserId(auth, user.uid);
         if (initializing) setInitializing(false);
     };
 
     useEffect(() => {
-        const subscriber = auth.onAuthStateChanged(onAuthStateChanged);
-
-        return subscriber;
+        return auth.onAuthStateChanged(onAuthStateChanged);
     }, []);
 
     useEffect(() => {
@@ -32,7 +30,6 @@ const RootLayout = () => {
 
 
         if (user && !inAuthGroup && user.emailVerified) {
-            console.log("user logged in")
             router.replace('/(tabs)/home');
         } else if (!user && inAuthGroup) {
             router.replace('/');
@@ -54,11 +51,15 @@ const RootLayout = () => {
 
 
     return (
-        <Stack>
-            <Stack.Screen name="index" options={{headerShown: false}} />
-            <Stack.Screen name="signUp" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-        </Stack>
+        <GestureHandlerRootView>
+            <Stack>
+                <Stack.Screen name="index" options={{headerShown: false}} />
+                <Stack.Screen name="signUp" options={{ headerShown: false }} />
+                <Stack.Screen name="forgotPassword" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{headerShown: false}} />
+            </Stack>
+        </GestureHandlerRootView>
+
     )
 
 };
