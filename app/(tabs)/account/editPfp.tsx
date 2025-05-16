@@ -1,5 +1,3 @@
-// src/screens/editPfp.tsx
-
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -10,22 +8,21 @@ import {
     Alert,
     ActivityIndicator,
 } from 'react-native';
-import { auth } from '@/firebase';           // adjust path as needed
+import { auth } from '@/firebase';
 import {
     pickImageAsync,
     uploadProfileImageAsync,
     setAuthUserProfilePhoto,
     deleteProfileImageAsync,
     clearAuthUserProfilePhoto,
-} from '@/firebaseUtils';                     // adjust path as needed
+} from '@/firebaseUtils';
 
-export default function EditProfileScreen() {
+const Page = () => {
     const user = auth.currentUser!;
     const [localUri, setLocalUri] = useState<string | null>(null);
     const [photoURL, setPhotoURL] = useState<string | null>(user.photoURL);
     const [loading, setLoading] = useState(false);
 
-    // Whenever auth.currentUser.photoURL changes (e.g. elsewhere), keep state in sync
     useEffect(() => {
         setPhotoURL(auth.currentUser?.photoURL ?? null);
     }, [auth.currentUser?.photoURL]);
@@ -145,3 +142,5 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
     },
 });
+
+export default Page;

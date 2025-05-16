@@ -1,56 +1,48 @@
-// src/screens/editPfp.tsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
-    Image,
-    Button,
     StyleSheet,
-    Alert,
-    ActivityIndicator,
-    TouchableOpacity, Dimensions, TextInput,
+    TouchableOpacity,
+    Dimensions,
+    TextInput,
 } from 'react-native';
 import {auth, db} from '@/firebase';
 import {useLocalSearchParams, useRouter} from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import {deleteDoc, doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
-import {updateProfile} from "firebase/auth";
+import {doc, updateDoc} from "firebase/firestore";
 
+const {width, height} = Dimensions.get('window');
 
-export default function EditProfileScreen() {
+const Page = () => {
     const user = auth.currentUser!;
     const router = useRouter();
-    const screenHeight = Dimensions.get('window').height;
-    const screenWidth = Dimensions.get('window').width;
-    const { changingVisual, changingFirebase, inpuT } = useLocalSearchParams()
-    const input = String(inpuT)
+    const { changingVisual, changingFirebase, rawInput } = useLocalSearchParams()
+    const input = String(rawInput)
     const [change, setChange] = useState<string>(input as string);
     const [inputHeight, setInputHeight] = useState(40);
 
     const handleTextChange = (text: string) => {
-        // If the last character is a newline, append a zero-width space
         if (text.endsWith('\n')) {
             setChange(text + '\u200B');
         } else {
-            setChange(text.replace(/\u200B$/, '')); // clean up if not needed
+            setChange(text.replace(/\u200B$/, ''));
         }
     };
 
 
     const handleSubmit = async () => {
-        if (change === input) {
-            console.log("nothing changed");
-            return;
+        if (change === input) return;
+
+        try {
+            await updateDoc(doc(db, "users", user.uid), {
+                [changingFirebase as string]: change
+            })
+
+            router.back();
+        } catch (error) {
+            console.log(error);
         }
-
-        await updateDoc(doc(db, "users", user.uid), {
-            [changingFirebase as string]: change
-        })
-
-
-        console.log("done")
-        router.back();
     }
 
     return (
@@ -100,16 +92,16 @@ const styles = StyleSheet.create({
     },
     test: {
         color: 'white',
-        marginLeft: 20,
-        marginTop: 5,
-        fontSize: 10
+        marginLeft: width/20,
+        marginTop: height/175,
+        fontSize: height/100
     },
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        padding: 10,
-        borderBottomWidth: 0.5,
+        paddingHorizontal: width/20,
+        paddingVertical: height/90,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
     },
     topBarText: {
@@ -120,20 +112,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     inputBar: {
-        margin: 20,
-        borderWidth: 2,
+        margin: height/50,
+        borderWidth: width/200,
         borderColor: "#D3D3FF",
-        borderRadius: 10,
+        borderRadius: height/100,
     },
     firstName: {
-        marginTop: 4,
-        marginBottom: 10,
-        marginLeft: 19,
-        borderWidth: 1,
-        borderRadius: 4,
-        // backgroundColor: "white",
+        marginTop: height/200,
+        marginBottom: height/100,
+        marginLeft: width/25,
+        borderWidth: height/1000,
+        borderRadius: width/100,
         color: "#D3D3FF",
-
     },
     doneTextGood: {
         color: "#D3D3FF",
@@ -142,3 +132,5 @@ const styles = StyleSheet.create({
         color: "grey"
     }
 });
+
+export default Page;
