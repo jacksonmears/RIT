@@ -1,42 +1,42 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
     View,
     Text,
-    Button,
     StyleSheet,
-    TextInput,
     Image,
     Dimensions,
     FlatList,
     TouchableOpacity,
-    ActivityIndicator, Animated
+    Animated
 } from 'react-native';
 import { auth, db } from '@/firebase';
 import { useFocusEffect} from '@react-navigation/native';
-import { updateProfile } from '@firebase/auth';
-import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
-import * as ImagePicker from 'expo-image-picker';
-import { Link, useRouter } from 'expo-router'
-import {doc, getDoc, getDocs, collection, query, orderBy, limit, serverTimestamp} from "firebase/firestore";
+import { useRouter } from 'expo-router'
+import {doc, getDoc, getDocs, collection, query, orderBy, serverTimestamp} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
-import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Svg, {G, Defs, Text as SvgText, Path, TextPath, TSpan, Line, Circle} from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
 
+type PostType = {
+    id: string;
+    content: string;
+    caption: string;
+    mode: string;
+    userID: string;
+}
 
 const Page = () => {
     const user = auth.currentUser;
+    const router = useRouter();
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [pfp, setPfp] = useState<string>('');
     const [firstName, setFirstName] = useState<string>("");
     const [lastName, setLastName] = useState<string>('');
     const [bio, setBio] = useState('');
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption:string, mode: string, userID: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<PostType[] | []>([]);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
-    const router = useRouter();
     const [refreshing, setRefreshing] = useState(false);
     const [animatedValues, setAnimatedValues] = useState<Animated.Value[]>([]);
     const [totalCharacters, setTotalCharacters] = useState<string>("");
@@ -47,11 +47,15 @@ const Page = () => {
             await getBioInfo()
             await fetchUserPosts();
         }
-        getInfo();
+        getInfo().catch((err) => {
+            console.error(err);
+        });
     }, []);
 
     useEffect(() => {
-        getPostContent()
+        getPostContent().catch((err) => {
+            console.error(err);
+        })
     }, [posts]);
 
 
@@ -101,22 +105,26 @@ const Page = () => {
 
     const fetchUserPosts = async () => {
         if (!user) return;
+
         try {
             const postsRef = collection(db, "users", user.uid, "posts");
-            const orderedQuery = query(postsRef, orderBy("timestamp", "asc")); // or "asc"
+            const orderedQuery = query(postsRef, orderBy("timestamp", "asc"));
             const usersDocs = await getDocs(orderedQuery);
 
-            const userPfpRef = await getDoc(doc(db, "users", user.uid));
-            if (userPfpRef.exists()) {
-                setPfp(userPfpRef.data().photoURL)
+            try {
+                const userPfpRef = await getDoc(doc(db, "users", user.uid));
+                if (userPfpRef.exists()) setPfp(userPfpRef.data().photoURL)
+
+
+                const postList = usersDocs.docs.map((doc) => ({
+                    id: doc.id,
+                    timestamp: serverTimestamp(),
+                }));
+
+                setPosts(postList);
+            } catch (error) {
+                console.error(error);
             }
-
-            const postList = usersDocs.docs.map((doc) => ({
-                id: doc.id,
-                timestamp: serverTimestamp(),
-            }));
-
-            setPosts(postList);
         } catch (error) {
             console.error("Error fetching data:", error);
         }
@@ -125,37 +133,41 @@ const Page = () => {
 
     const getBioInfo = async () => {
         if (!user) return;
+
         const getInfo = await getDoc(doc(db,"users", user.uid));
-        if (getInfo.exists()){
+        if (! getInfo.exists()) return;
+
+        try {
             setBio(getInfo.data().bio);
             setFirstName(getInfo.data().firstName);
             setLastName(getInfo.data().lastName);
+
+            const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
+            const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
+
+            setNumFriends(fetchFriendCount.size);
+            setNumPosts(fetchPostCount.size);
+        } catch (error) {
+            console.error(error);
         }
-        const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
-        const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
-
-        setNumFriends(fetchFriendCount.size);
-        setNumPosts(fetchPostCount.size);
-
     }
 
 
     const getPostContent = async () => {
         if (!posts || !user) return;
+
         try {
-            const postContents = await Promise.all(posts.map(async (post) => {
+            const raw = await Promise.all(posts.map(async (post) => {
                 const postRef = doc(db, "posts", post.id);
                 const postSnap = await getDoc(postRef);
 
-                if (postSnap.exists()) {
+                if (!postSnap.exists()) return;
 
-                    return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, mode: postSnap.data().mode, userID: user.uid };
-                } else {
-                    return { id: post.id, content: "Content not found", caption: "failed", mode: "failed", userID: "failed"};
-                }
+                return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, mode: postSnap.data().mode, userID: user.uid };
             }));
+            const validPosts = raw.filter((p): p is PostType => p !== null)
+            setPostContents(validPosts.reverse());
 
-            setPostContents(postContents.reverse());
         } catch (error) {
             console.error("Error fetching post content:", error);
         }
@@ -169,19 +181,19 @@ const Page = () => {
     }
 
 
-
-
     const handleLogout = async () => {
-        auth.signOut();
+        await auth.signOut();
     }
 
     const renderTopBar = () => (
         <View style={styles.topBar}>
             <View style={styles.backArrowName}>
-                <Text style={styles.topBarText}>{user?.displayName}</Text>
+                {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
             </View>
             <View>
-                <Button title="Logout" onPress={handleLogout} />
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                    <Text>Logout</Text>
+                </TouchableOpacity>
             </View>
         </View>
     )
@@ -226,21 +238,19 @@ const Page = () => {
                         </View>
                     )}
                     <View style={styles.changePfp}>
-                        <Ionicons name="add-circle" size={24} color="white" />
+                        <Ionicons name="add-circle" size={height/33} color="white" />
                     </View>
                 </View>
             </TouchableOpacity>
-            <View style={styles.pfpSeparator}></View>
-            <View style={styles.infoBox}>
-                <View style={styles.info}>
-                    <View style={styles.postsInfo}>
+            <View style={{alignItems: "center"}}>
+                <View style={styles.flexDirectionRow}>
+                    <View style={styles.flexDirectionRow}>
                         <Text style={styles.infoText}>{numPosts}</Text>
-                        <Text style={styles.genericText}> posts</Text>
+                        <Text style={styles.numberText}> posts</Text>
                     </View>
-                    <View style={styles.pfpSeparator}></View>
-                    <View style={styles.friendInfo}>
+                    <View style={styles.flexDirectionRow}>
                         <Text style={styles.infoText}>{numFriends}</Text>
-                        <Text style={styles.genericText}> friends</Text>
+                        <Text style={styles.numberText}> friends</Text>
                     </View>
                 </View>
 
@@ -251,7 +261,7 @@ const Page = () => {
     const renderBio = () => (
         <View style={styles.bioAndButtonBox}>
             <View style={styles.bioBox}>
-                <Text style={styles.genericText}>{bio}</Text>
+                <Text style={styles.bioText}>{bio}</Text>
             </View>
             <TouchableOpacity style={styles.editContainer} onPress={() => router.push("/account/editProfile")}>
                 <Text style={styles.nameText}>Edit profile</Text>
@@ -263,24 +273,20 @@ const Page = () => {
 
     const renderFlatList = () => (
         <View style={styles.postContainer}>
-            <FlatList
-                style={[styles.groups, {marginTop: height*0.02, marginBottom: height*0.07}]}
+            {user && <FlatList
+                style={styles.groups}
                 data={postContents}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {idT: user?.uid, contentT: item.content, captionT: item.caption, userNameT: user?.displayName, mode: item.mode, photoURL: encodeURIComponent(pfp)}})}>
-                        <View style={styles.itemContainer}>
-                            <AccountPost post={item} />
-                        </View>
+                renderItem={({ item, index }) => (
+                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp)}})}>
+                        <AccountPost post={item} index={index} />
                     </TouchableOpacity>
 
                 )}
-                // contentContainerStyle={styles.flatListContentContainer}
-                // ItemSeparatorComponent={() => <View style={styles.separator} />}
-                refreshing={refreshing}              // 👈 NEW
-                onRefresh={onRefresh}                // 👈 NEW
+                refreshing={refreshing}
+                onRefresh={onRefresh}
                 numColumns={3}
-            />
+            />}
         </View>
     )
 
@@ -305,64 +311,43 @@ const styles = StyleSheet.create({
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        padding: 10,
-        borderBottomWidth: 0.5,
+        paddingHorizontal: width/20,
+        paddingVertical: height/90,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
     },
-    pfpBox: {
-        marginTop: 30,
-        marginBottom: 15
+    logoutButton: {
+        backgroundColor: "#D3D3FF",
+        borderRadius: width/100,
+        padding: width/100
     },
-    infoBar: {
-        marginTop: 30,
-        marginHorizontal: 40,
-
+    backArrowName: {
+        flexDirection: 'row',
         alignItems: "center",
+    },
+    topBarText: {
+        color: "#D3D3FF",
+    },
+    containerName: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: height/50,
+    },
+    char: {
+        fontSize: height/33,
+        color: "#D3D3FF",
     },
     pfpAndInfo: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: height/50,
     },
-    pfpSeparator: {
-        width: 50
-    },
-    infoBox: {
-        alignItems: 'center',
-    },
-    nameText: {
-        color: "#D3D3FF",
-        fontWeight: 'bold',
-    },
-    info: {
-        flexDirection: 'row',
-    },
-    postsInfo: {
-        flexDirection: 'row',
-    },
-    friendInfo: {
-        flexDirection: 'row',
-    },
-    bioBox: {
-        marginTop: 10
-    },
-    genericText: {
-        color: 'white',
-    },
-    groups: {
-        flex: 1,
-    },
-    itemContainer: {
-        flex: 1 / 3,
-        // paddingVertical: 0.5,
-        // paddingHorizontal: 0.5,
-    },
-    postContainer: {
-        flex: 1,
+    pfpBox: {
+        marginTop: height/50,
+        marginBottom: height/70
     },
     avatar: {
-        width: 150,
-        height: 150,
+        width: width/2.8,
+        height: width/2.8,
         borderRadius: 999,
     },
     placeholder: {
@@ -373,47 +358,53 @@ const styles = StyleSheet.create({
     placeholderText: {
         color: 'white',
     },
-
-    topBarText: {
-        color: "#D3D3FF",
-    },
-    backArrowName: {
-        flexDirection: 'row',
-        alignItems: "center",
-    },
     changePfp: {
         backgroundColor: "black",
         borderRadius: 999,
-        padding: 3,
+        padding: width/200,
         position: 'absolute',
-        top: 110,
-        left: 110
-
+        top: height/8.6,
+        left: width/3.8
     },
-    editContainer: {
-        marginVertical: 20,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 5,
-        borderWidth: 1,
-        borderColor: "#D3D3FF",
-    },
-    containerName: {
+    flexDirectionRow: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 25,
-    },
-    char: {
-        fontSize: 20,
-        color: "#D3D3FF",
-    },
-    bioAndButtonBox: {
-        marginHorizontal: 50,
     },
     infoText: {
         color: "#D3D3FF",
-    }
-
+        marginLeft: width/50,
+    },
+    numberText: {
+        color: "white",
+    },
+    bioAndButtonBox: {
+        marginHorizontal: width/10,
+    },
+    bioBox: {
+        marginTop: width/100
+    },
+    bioText: {
+        color: 'white',
+    },
+    editContainer: {
+        marginVertical: height/50,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: width/75,
+        borderWidth: height/1000,
+        borderColor: "#D3D3FF",
+    },
+    nameText: {
+        color: "#D3D3FF",
+        fontWeight: 'bold',
+    },
+    postContainer: {
+        flex: 1,
+        marginHorizontal: width/200,
+        marginTop: height/100
+    },
+    groups: {
+        flex: 1,
+    },
 });
 
 export default Page;

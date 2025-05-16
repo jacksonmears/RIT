@@ -1,15 +1,11 @@
-// src/screens/editPfp.tsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
-    Image,
-    Button,
     StyleSheet,
-    Alert,
-    ActivityIndicator,
-    TouchableOpacity, Dimensions, TextInput,
+    TouchableOpacity,
+    Dimensions,
+    TextInput,
 } from 'react-native';
 import { auth, db } from '@/firebase';
 import { doc, getDoc, deleteDoc,setDoc, updateDoc } from 'firebase/firestore';
@@ -17,48 +13,49 @@ import {useLocalSearchParams, useRouter} from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {updateProfile} from "firebase/auth";
 
+const {width, height} = Dimensions.get('window');
 
-export default function EditProfileScreen() {
+const Page = () => {
     const user = auth.currentUser!;
     const router = useRouter();
-    const screenHeight = Dimensions.get('window').height;
-    const screenWidth = Dimensions.get('window').width;
-    const { changingVisual, changingFirebase, inpuT } = useLocalSearchParams()
-    const input = String(inpuT)
+    const { changingVisual, changingFirebase, rawInput } = useLocalSearchParams()
+    const input = String(rawInput)
     const [change, setChange] = useState<string>(input as string);
 
     const handleSubmit = async () => {
-        if (change === input) {
-            console.log("nothing changed");
-            return;
-        }
-        else if (changingFirebase === "displayName"){
-            const ref = await getDoc(doc(db, "displayName", change));
-            if (!ref.exists()) {
-                await deleteDoc(doc(db, "displayName", input));
-                await setDoc(doc(db, "displayName", change), {
-                    uid: user.uid,
-                    displayName: change,
-                    lowerDisplayName: change.toLowerCase()
-                });
-                await updateProfile(user, {displayName: change});
+        if (change === input) return;
+
+        try {
+            if (changingFirebase === "displayName"){
+                const ref = await getDoc(doc(db, "displayName", change));
+                if (!ref.exists()) {
+                    await deleteDoc(doc(db, "displayName", input));
+                    await setDoc(doc(db, "displayName", change), {
+                        uid: user.uid,
+                        displayName: change,
+                        lowerDisplayName: change.toLowerCase()
+                    });
+                    await updateProfile(user, {displayName: change});
+                    await updateDoc(doc(db, "users", user.uid), {
+                        [changingFirebase as string]: change
+                    })
+                } else {
+                    alert("username already exists");
+                    return;
+                }
+
+            }
+
+            else {
                 await updateDoc(doc(db, "users", user.uid), {
                     [changingFirebase as string]: change
                 })
-            } else {
-                console.log("username already exists");
-                return;
             }
-        }
 
-        else {
-            await updateDoc(doc(db, "users", user.uid), {
-                [changingFirebase as string]: change
-            })
+            router.back();
+        } catch (err) {
+            console.error(err);
         }
-
-        console.log("done")
-        router.back();
     }
 
     return (
@@ -102,34 +99,33 @@ const styles = StyleSheet.create({
     },
     test: {
         color: 'white',
-        marginLeft: 20,
-        marginTop: 5,
-        fontSize: 10
+        marginLeft: width/20,
+        marginTop: height/200,
+        fontSize: height/100
     },
     topBar: {
         flexDirection: 'row',
-        paddingHorizontal: 15,
-        padding: 10,
-        borderBottomWidth: 0.5,
-        borderBottomColor: "grey",
         justifyContent: 'space-between',
+        paddingHorizontal: width/20,
+        paddingVertical: height/90,
+        borderBottomWidth: height/1000,
+        borderBottomColor: "grey",
     },
     topBarText: {
         color: "#D3D3FF",
     },
     inputBar: {
-        margin: 20,
-        borderWidth: 2,
+        margin: height/50,
+        borderWidth: width/200,
         borderColor: "#D3D3FF",
-        borderRadius: 10,
+        borderRadius: height/100,
     },
     firstName: {
-        marginTop: 4,
-        marginBottom: 10,
-        marginLeft: 19,
-        borderWidth: 1,
-        borderRadius: 4,
-        // backgroundColor: "white",
+        marginTop: height/200,
+        marginBottom: height/100,
+        marginLeft: width/20,
+        borderWidth: height/1000,
+        borderRadius: width/100,
         color: "#D3D3FF",
     },
     doneTextGood: {
@@ -138,14 +134,7 @@ const styles = StyleSheet.create({
     doneTextBad: {
         color: "grey"
     }
-    // firstName: {
-    //     height: 40,
-    //     paddingHorizontal: 10,
-    //     color: "#D3D3FF",
-    //     borderColor: "#D3D3FF",
-    //     borderWidth: 1,
-    //     borderRadius: 5,
-    //     backgroundColor: "#1a1a1a",  // Dark background to contrast black
-    //     margin: 10,
-    // }
+
 });
+
+export default Page;

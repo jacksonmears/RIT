@@ -10,10 +10,10 @@ import React, { useEffect } from 'react';
 import Video from "react-native-video";
 
 export default function Page() {
-    const { idT, contentT, captionT, userNameT, mode, photoURL } = useLocalSearchParams();
-    const content = String(contentT);
+    const { rawContent, rawCaption, rawUsername, rawMode, rawPhotoURL } = useLocalSearchParams();
+    const content = String(rawContent);
     const router = useRouter();
-    const photoURLString = String(photoURL)
+    const photoURLString = String(rawPhotoURL);
 
     useEffect(() => {
         console.log(content);
@@ -23,7 +23,7 @@ export default function Page() {
     return (
         <View style={styles.container}>
             <View style={styles.top70}>
-                {mode==="photo" ?
+                {rawMode==="photo" ?
                     <Image
                         source={{ uri: content }}
                         style={styles.image}
@@ -52,9 +52,9 @@ export default function Page() {
             <View style={styles.profileUser}>
                 <View style={styles.upperProfile}>
                     <Image source={{ uri: photoURLString }} style={styles.avatar} />
-                    <Text style={styles.profileText}>{userNameT}</Text>
+                    <Text style={styles.profileText}>{rawUsername}</Text>
                 </View>
-                <Text style={styles.profileCaption}>{captionT}</Text>
+                <Text style={styles.profileCaption}>{rawCaption}</Text>
             </View>
         </View>
     );
