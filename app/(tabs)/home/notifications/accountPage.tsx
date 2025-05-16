@@ -3,7 +3,7 @@ import {View, Text, StyleSheet, Image, Dimensions, FlatList, TouchableOpacity} f
 import { auth, db } from '@/firebase';
 import { useLocalSearchParams, useRouter} from 'expo-router'
 import {doc, getDoc, getDocs, collection, query, orderBy, setDoc} from "firebase/firestore";
-import AccountPost from "../../../components/AccountPost";
+import AccountPost from "../../../../components/AccountPost";
 import Feather from "@expo/vector-icons/Feather";
 
 type Post = {

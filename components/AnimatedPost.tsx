@@ -1,9 +1,7 @@
 import React from 'react';
-import { Dimensions } from 'react-native';
 import Animated, { useAnimatedStyle, SharedValue } from 'react-native-reanimated';
 import MainPost from '@/components/MainPost';
 
-const { height } = Dimensions.get('window');
 
 interface AnimatedPostProps {
     post: any;
