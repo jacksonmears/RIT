@@ -1,8 +1,10 @@
-import {View, Text, Image, StyleSheet, TouchableOpacity, Platform, TextInput, ActivityIndicator} from "react-native";
+import {View, Text, Image, StyleSheet, TouchableOpacity, Dimensions,TextInput, ActivityIndicator} from "react-native";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Video from "react-native-video";
+
+const { width, height } = Dimensions.get("window");
 
 const Page = () => {
     const router = useRouter();
@@ -11,10 +13,6 @@ const Page = () => {
     const mode = String(fillerMode);
     const [caption, setCaption] = useState<string>("");
 
-    // const displayUri =
-    //     Platform.OS === "android" && !localUri.startsWith("file://")
-    //         ? `file://${localUri}`
-    //         : localUri;
 
     if (!fillerUri) {
         return (
@@ -34,12 +32,16 @@ const Page = () => {
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.shareButton} onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption}})}>
-                <FontAwesome name="share" size={24} color="#D3D3FF" />
-            </TouchableOpacity>
+            <View style={styles.topRow}>
+                <TouchableOpacity onPress={() => router.back()} >
+                    <Text style={styles.backText}>Back</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption}})}>
+                    <FontAwesome name="share" size={height/40} color="#D3D3FF" />
+                </TouchableOpacity>
+            </View>
+
 
             <View style={styles.imageWrapper}>
                 {mode==="photo" ?
@@ -64,9 +66,10 @@ const Page = () => {
                 value={caption}
                 onChangeText={setCaption}
                 autoCapitalize="none"
-                keyboardType="email-address"
+                keyboardType="default"
                 placeholder="Add a caption..."
                 placeholderTextColor={"white"}
+                multiline={true}
             />
 
 
@@ -77,53 +80,51 @@ const Page = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "black"
+        backgroundColor: "black",
     },
-    imageWrapper: {
-        justifyContent: "center",
-        alignItems: "center",
-        position: "relative",
-        marginVertical: 10,
-        borderRadius: 8,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: "#D3D3FF",
-        width: "75%",
-        height: "50%",
-        marginHorizontal: 50
-    },
-    image: {
-        width: 320,
-        height: 520,
-        resizeMode: "cover",
-        backgroundColor: "#222",
-        borderRadius: 8
-    },
-    video: {
-        width: 320,
-        height: 520,
-        resizeMode: "cover",
-        backgroundColor: "#222",
-        borderRadius: 8
-    },
-    backButton: {
-        marginTop: 10,
-        marginLeft: 10,
+    topRow: {
+        flexDirection: "row",
+        paddingVertical: height/40,
+        justifyContent: "space-between",
+        marginHorizontal: width/20,
     },
     backText: {
         color: "white",
         fontSize: 16,
     },
-    captionText: {
-        marginHorizontal: 15,
-        color: "white",
+    imageWrapper: {
+        justifyContent: "center",
+        alignItems: "center",
+        marginVertical: height/100,
+        borderRadius: 8,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "#D3D3FF",
+        width: width*0.8,
+        height: height/1.7,
+        marginLeft: width/9
     },
-    shareButton: {
-        position: "absolute",
-        top: 10,
-        right: 10,
+    image: {
+        width: width*0.8,
+        height: height/1.7,
+        resizeMode: "cover",
+        backgroundColor: "#222",
+        borderRadius: height/100
+    },
+    video: {
+        width: width*0.8,
+        height: height/1.7,
+        resizeMode: "cover",
+        backgroundColor: "#222",
+        borderRadius: height/100
+    },
+    captionText: {
+        marginTop: height/60,
+        marginHorizontal: width/20,
+        color: "white",
+        paddingBottom: height/7
+    },
 
-    }
 });
 
 export default Page;
