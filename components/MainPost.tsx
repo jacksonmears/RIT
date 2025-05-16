@@ -6,6 +6,8 @@ import {auth, db} from "@/firebase";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import {ResizeMode, Video as VideoAV} from 'expo-av';
 
+const { width, height } = Dimensions.get('window');
+
 interface Post {
     id: string;
     mode: string;
@@ -28,18 +30,12 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const content = decodeURIComponent(post.content);
     const user = auth.currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
-    const [likeText, setLikeText] = useState("like");
     const [numLikes, setNumLikes] = useState<number>(0);
-    const [numComments, setNumComments] = useState<number>(0);
-    const [sheetVisible, setSheetVisible] = useState(false);
-    const screenHeight = Dimensions.get('window').height;
     const {width, height} = Dimensions.get('window');
     const POST_WIDTH = width;
     const POST_HEIGHT = height*0.7;
-    const [croppedContent, setCroppedContent] = useState<string>("")
 
     useEffect(() => {
-        console.log(content)
         const likeFunc = async () => {
             if (!user) return;
 
@@ -49,30 +45,16 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
                 const likeCheck = await getDoc(doc(db, "posts", post.id, "likes", user.uid));
                 const liked = likeCheck.exists();
                 setLikeStatus(liked);
-                setLikeText(liked ? "already liked" : "like");
             } catch (error) {
                 console.error("Error checking like status:", error);
             }
         };
 
-        likeFunc();
+        likeFunc().catch((err) => {
+            console.error("Error checking like status:", err);
+        });
     }, [likeStatus]);
 
-
-    // useEffect(() => {
-    //     const commentFunc = async () => {
-    //         if (!user) return;
-    //         try {
-    //             const commentCount = await getDocs(collection(db, "posts", post.id, "comments"));
-    //             setNumComments(commentCount.size)
-    //
-    //         } catch (error) {
-    //             console.error("Error checking like status:", error);
-    //         }
-    //     };
-    //
-    //     commentFunc();
-    // }, []);
 
 
 
@@ -82,98 +64,74 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             await setDoc(doc(db, "posts", post.id, "likes", user.uid), {
                 likedAt: new Date().toISOString(),
             })
-            console.log("post liked");
             setLikeStatus(true);
         } catch (error){
             console.error(error)
         }
-        else {
+        else try {
             await deleteDoc(doc(db, "posts", post.id, "likes", user.uid))
             setLikeStatus(false);
+        } catch (err) {
+            console.error("Error checking like status:", err);
         }
-    }
-
-    const deletePostTesting = () => {
-        console.log("deletePostTesting");
     }
 
 
 
     return (
         <View style={[styles.postView, style]}>
-                <View>
-                    <View>
-                        <View style={styles.topBar}>
-                            <View style={styles.leftSideTopBar}>
-                                <View style={styles.pfpBox}>
-                                    <View style={styles.avatarContainer}>
-                                        {post.pfp? (
-                                            <Image source={{ uri: post.pfp }} style={styles.avatar} />
-                                        ) : (
-                                            <View style={[styles.avatar, styles.placeholder]}>
-                                                <Text style={styles.placeholderText}>No Photo</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                </View>
-                                <Text style={styles.username}>{post.userName}</Text>
+            <View style={styles.header}>
+                <View style={styles.nameAndPfP}>
+                    <View style={styles.avatarContainer}>
+                        {post.pfp? (
+                            <Image source={{ uri: post.pfp }} style={styles.avatar} />
+                        ) : (
+                            <View style={[styles.avatar, styles.placeholder]}>
+                                <Text style={styles.noPhotoText}>No Photo</Text>
                             </View>
-                            <TouchableOpacity onPress={() => setSheetVisible(true)}>
-                                <Text style={styles.username}>...</Text>
-                            </TouchableOpacity>
-                            {/*<View>*/}
-                            {/*    <Text style={styles.username}>...</Text>*/}
-                            {/*</View>*/}
-                        </View>
-                        <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{idT: post.id, contentT: encodeURIComponent(content), captionT: post.caption, userNameT: post.userName, mode: post.mode, photoURL: encodeURIComponent(post.pfp)}})}>
-                            <View style={styles.contentViewPicture}>
-                                {post.mode==="photo" ?
-                                    <Image source={{ uri: content }} style={styles.pictureContent} />
-                                    :
-                                    <VideoAV
-                                        source={{ uri: content }}
-                                        style={[styles.videoContent, {width: POST_WIDTH, height: POST_HEIGHT}]}
-                                        // resizeMode={'cover'}
-                                        // repeat={true}
-                                        // paused={true}
-                                        resizeMode={ResizeMode.COVER}
-                                    />
-                                }
-                                {/*<Text style={styles.username}>{post.content}</Text>*/}
-                            </View>
-                        </TouchableOpacity>
-                        <View style={styles.bottomBar}>
-                            <TouchableOpacity onPress={() => likeBeta()}>
-                                <View style={styles.likeAssetContainer}>
-                                    {likeStatus ?
-                                        <AntDesign name="heart" size={24} color={"red"} />
-                                        :
-                                        <AntDesign name="hearto" size={24} color={"white"} />
-                                    }
-
-                                </View>
-                            </TouchableOpacity>
-                            <Text style={styles.numLikesText}>{numLikes}</Text>
-
-                            {/*<View>*/}
-                            {/*    <TouchableOpacity onPress={() => router.push({*/}
-                            {/*        pathname: '/(tabs)/home/post',*/}
-                            {/*        params: { idT: post.id, contentT: content, captionT: post.caption, userNameT: post.userName, mode: post.mode },*/}
-                            {/*    })}>*/}
-                            {/*        <FontAwesome name="comment-o" size={22} color={"white"} />*/}
-                            {/*    </TouchableOpacity>*/}
-                            {/*</View>*/}
-                            {/*<Text style={styles.numLikesText}>{numComments}</Text>*/}
-
-                        </View>
-                        <View style={styles.captionBar}>
-                            <Text style={styles.userNameCaption}>{post.userName} </Text>
-                            <Text style={styles.username}>{post.caption}</Text>
-                        </View>
-                        <Text style={styles.timeText}>{post.timestamp}</Text>
+                        )}
                     </View>
+                    <Text style={styles.username}>{post.userName}</Text>
                 </View>
+                {/*<TouchableOpacity>*/}
+                {/*    <Text style={styles.username}>...</Text>*/}
+                {/*</TouchableOpacity>*/}
+            </View>
 
+
+            <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{rawId: post.id, rawContent: encodeURIComponent(content), rawCaption: post.caption, rawUserName: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp)}})}>
+                <View style={styles.contentViewPicture}>
+                    {post.mode==="photo" ?
+                        <Image source={{ uri: content }} style={styles.pictureContent} />
+                        :
+                        <VideoAV
+                            source={{ uri: content }}
+                            style={{width: POST_WIDTH, height: POST_HEIGHT}}
+                            resizeMode={ResizeMode.COVER}
+                        />
+                    }
+                </View>
+            </TouchableOpacity>
+
+
+            <View style={styles.likeBar}>
+                <TouchableOpacity onPress={() => likeBeta()}>
+                    <View style={styles.likeAssetContainer}>
+                        {likeStatus ?
+                            <AntDesign name="heart" size={24} color={"red"} />
+                            :
+                            <AntDesign name="hearto" size={24} color={"white"} />
+                        }
+                    </View>
+                </TouchableOpacity>
+                <Text style={styles.numLikesText}>{numLikes}</Text>
+            </View>
+
+            <View style={styles.captionBar}>
+                <Text style={styles.userNameCaption}>{post.userName}</Text>
+                <Text style={styles.username}>{post.caption}</Text>
+            </View>
+            <Text style={styles.timeText}>{post.timestamp}</Text>
 
         </View>
     );
@@ -185,113 +143,80 @@ const styles = StyleSheet.create({
         backgroundColor: "black",
         overflow: "hidden",
     },
-    topBar: {
-        padding: 5,
+    header: {
+        padding: height/200,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
+    nameAndPfP: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
     avatarContainer: {
         alignItems: 'center',
-        // marginBottom: 20,
     },
     avatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 60,
-    },
-    pfpBox: {
-
+        width: width/15,
+        height: width/15,
+        borderRadius: 999,
     },
     username: {
         color: "#D3D3FF",
-        paddingHorizontal: 10
-    },
-    contentViewText: {
-        padding: 100,
-        borderColor: "#D3D3FF",
-        borderWidth: 1,
+        marginLeft: width/40
     },
     contentViewPicture: {
-        width: '100%',
-        height: 500,            // fixed container height
-        overflow: 'hidden',     // cut off anything outside
+        width: width,
+        height: height/1.92,
+        overflow: 'hidden',
         backgroundColor: 'black',
-        justifyContent: 'center', // center letterbox bars
+        justifyContent: 'center',
         alignItems: 'center',
     },
     pictureContent: {
-        width: '100%',
-        height: '100%',
-        resizeMode: 'contain',  // or 'cover' if you want to fill and crop
+        width: width,
+        height: height,
+        resizeMode: 'contain',
     },
-    videoContent: {
-        // width: '100%',
-        // height: '100%',
-        // resizeMode: 'contain',  // or 'cover' if you want to fill and crop
-    },
-    bottomBar: {
+    likeBar: {
         flexDirection: "row",
-        paddingTop: 10
+        marginTop: height/100,
     },
     likeAssetContainer: {
-        paddingLeft: 5
+        marginLeft: width/60
     },
     numLikesText: {
         color: "white",
-        paddingLeft: 5,
-        paddingRight: 20
+        paddingLeft: width/75,
     },
     captionBar: {
-        paddingTop: 10,
+        marginTop: height/90,
         flexDirection: "row",
+        paddingHorizontal: width/60,
     },
     userNameCaption: {
         fontWeight: "bold",
         color: "#D3D3FF"
+    },
+    caption: {
+        color: "#D3D3FF",
+        paddingLeft: height/90
     },
     likeText: {
         color: "red",
     },
     timeText: {
         color:"grey",
-        fontSize: 12
+        fontSize: height/85,
+        paddingHorizontal: width/60,
     },
-
-
     placeholder: {
         backgroundColor: '#444',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    placeholderText: {
+    noPhotoText: {
         color: 'white',
-    },
-    leftSideTopBar: {
-        flexDirection: "row",
-        alignItems: "center",
-
-    },
-    overlay: {
-        flex: 1,
-        backgroundColor: 'transparent',     // invisible—but catches taps
-    },
-    panel: {
-        width: '100%',
-        backgroundColor: '#222',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        padding: 16,
-    },
-    panelTitle: {
-        color: '#fff',
-        fontSize: 18,
-        marginTop: 50,
-    },
-    closeText: {
-        color: '#D3D3FF',
-        marginTop: 20,
-        textAlign: 'center',
     },
 });
 
