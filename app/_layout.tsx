@@ -2,7 +2,6 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import {useEffect, useState} from "react";
 import {User} from "firebase/auth";
 import {auth} from "@/firebase";
-import { setUserId } from "firebase/analytics";
 import { View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -15,7 +14,6 @@ const RootLayout = () => {
 
     const onAuthStateChanged = (user: User | null) => {
         setUser(user);
-        if (user) setUserId(auth, user.uid);
         if (initializing) setInitializing(false);
     };
 
@@ -52,11 +50,11 @@ const RootLayout = () => {
 
     return (
         <GestureHandlerRootView>
-            <Stack>
-                <Stack.Screen name="index" options={{headerShown: false}} />
-                <Stack.Screen name="signUp" options={{ headerShown: false }} />
-                <Stack.Screen name="forgotPassword" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{headerShown: false}} />
+            <Stack screenOptions={{ headerShown: false }}>
+                {/*<Stack.Screen name="index" options={{headerShown: false}} />*/}
+                {/*<Stack.Screen name="signUp" options={{ headerShown: false }} />*/}
+                {/*<Stack.Screen name="forgotPassword" options={{ headerShown: false }} />*/}
+                {/*<Stack.Screen name="(tabs)" options={{headerShown: false}} />*/}
             </Stack>
         </GestureHandlerRootView>
 
