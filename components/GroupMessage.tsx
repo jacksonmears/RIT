@@ -1,8 +1,7 @@
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import React, {useEffect, useState} from "react";
-import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
-import {auth,db} from "@/firebase";
+import React from "react";
+import {auth} from "@/firebase";
 
 interface Post {
     content: string;

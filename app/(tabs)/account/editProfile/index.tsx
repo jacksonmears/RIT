@@ -14,7 +14,7 @@ import {useIsFocused} from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
-const Page = () =>  {
+export default function Page(){
     const user = auth.currentUser!;
     const router = useRouter();
     const [firstName, setFirstName] = useState<string>('');
@@ -128,5 +128,3 @@ const styles = StyleSheet.create({
     }
 
 });
-
-export default Page;

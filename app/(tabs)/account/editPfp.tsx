@@ -17,7 +17,7 @@ import {
     clearAuthUserProfilePhoto,
 } from '@/firebaseUtils';
 
-const Page = () => {
+export default function Page() {
     const user = auth.currentUser!;
     const [localUri, setLocalUri] = useState<string | null>(null);
     const [photoURL, setPhotoURL] = useState<string | null>(user.photoURL);
@@ -143,4 +143,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Page;
+// export default Page;

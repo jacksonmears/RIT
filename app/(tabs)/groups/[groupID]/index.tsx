@@ -24,8 +24,8 @@ import GroupPost from "@/components/GroupPost";
 import GroupMessage from "@/components/GroupMessage";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import firebase from "firebase/compat";
-import DocumentData = firebase.firestore.DocumentData;
+import type { DocumentData } from "firebase/firestore";
+// import DocumentData = firebase.firestore.DocumentData;
 
 const { width, height } = Dimensions.get("window");
 

@@ -1,34 +1,48 @@
-import { Text, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Dimensions, TextInput, ActivityIndicator } from "react-native";
-import { useState } from "react";
-import { auth } from '@/firebase';
-import { signInWithEmailAndPassword } from "@firebase/auth";
-import { FirebaseError } from "@firebase/util";
-import { useRouter } from 'expo-router';
+// pages/index.tsx
+import React, { useState } from "react";
+import {
+    Text,
+    View,
+    StyleSheet,
+    TouchableOpacity,
+    KeyboardAvoidingView,
+    Dimensions,
+    TextInput,
+    ActivityIndicator,
+    Alert,
+} from "react-native";
+import auth from "@react-native-firebase/auth";
+import { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
 const Index = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
     const router = useRouter();
-
 
     const signIn = async () => {
         setLoading(true);
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
+            const userCredential: FirebaseAuthTypes.UserCredential =
+                await auth().signInWithEmailAndPassword(email.trim(), password);
+            const user: FirebaseAuthTypes.User = userCredential.user;
 
             if (!user.emailVerified) {
-                alert("Please verify your email before signing in.");
-                await auth.signOut();
+                Alert.alert(
+                    "Email not verified",
+                    "Please verify your email before signing in."
+                );
+                await auth().signOut();
                 return;
             }
 
+            // Navigate into your authenticated tab group
+            router.replace("/(tabs)/home");
         } catch (e: any) {
-            const err = e as FirebaseError;
-            alert('Sign in failed: ' + err.message);
+            Alert.alert("Sign in failed", e.message);
         } finally {
             setLoading(false);
         }
