@@ -26,9 +26,7 @@ const Page = () => {
         ? `file://${localUri}`
         : localUri;
 
-    useEffect(() => {
-        console.log("showing:", uri, mode);
-    }, [uri, mode]);
+
 
     return (
         <View style={styles.container}>
@@ -69,7 +67,7 @@ const Page = () => {
                 keyboardType="default"
                 placeholder="Add a caption..."
                 placeholderTextColor={"white"}
-                multiline={true}
+                // multiline={true}
             />
 
 
