@@ -32,7 +32,7 @@ type PostType = {
 const Page = () => {
     const [friends, setFriends] = useState<string[]>([]);
     const [postIds, setPostIds] = useState<string[]>([]);
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const router = useRouter();
     const [postContents, setPostContents] = useState<PostType[] | []>([]);
     const [friendNotifications, setFriendNotifications] = useState<number>(0);

@@ -14,7 +14,7 @@ import {doc, updateDoc} from "firebase/firestore";
 
 const {width, height} = Dimensions.get('window');
 
-const Page = () => {
+export default function Page() {
     const user = auth.currentUser!;
     const router = useRouter();
     const { changingVisual, changingFirebase, rawInput } = useLocalSearchParams()
@@ -132,5 +132,3 @@ const styles = StyleSheet.create({
         color: "grey"
     }
 });
-
-export default Page;

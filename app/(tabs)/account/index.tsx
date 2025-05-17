@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router'
 import {doc, getDoc, getDocs, collection, query, orderBy, serverTimestamp} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { getSavedUser, clearUser } from '@/authStorage';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,7 +28,7 @@ type PostType = {
     userID: string;
 }
 
-const Page = () => {
+export default function Page(){
     const user = auth.currentUser;
     const router = useRouter();
     const [numPosts, setNumPosts] = useState(0);
@@ -40,17 +42,37 @@ const Page = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [animatedValues, setAnimatedValues] = useState<Animated.Value[]>([]);
     const [totalCharacters, setTotalCharacters] = useState<string>("");
+    const [uid, setUid] = useState<string | null>(null);
 
 
     useEffect(() => {
-        const getInfo = async () => {
-            await getBioInfo()
-            await fetchUserPosts();
-        }
-        getInfo().catch((err) => {
+        const loadUid = async () => {
+            const storedUid = await getSavedUser();
+            if (storedUid) {
+                setUid(storedUid);
+                await getBioInfo();
+                await fetchUserPosts();
+            } else {
+                handleLogout().catch((err) => {
+                    console.error(err);
+                });
+            }
+        };
+        loadUid().catch((err) => {
             console.error(err);
         });
     }, []);
+
+
+    // useEffect(() => {
+    //     const getInfo = async () => {
+    //         await getBioInfo()
+    //         await fetchUserPosts();
+    //     }
+    //     getInfo().catch((err) => {
+    //         console.error(err);
+    //     });
+    // }, []);
 
     useEffect(() => {
         getPostContent().catch((err) => {
@@ -182,8 +204,15 @@ const Page = () => {
 
 
     const handleLogout = async () => {
-        await auth.signOut();
-    }
+        try {
+            await auth.signOut();
+            await clearUser();
+            setUid(null);
+            router.push('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
 
     const renderTopBar = () => (
         <View style={styles.topBar}>
@@ -406,5 +435,3 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 });
-
-export default Page;

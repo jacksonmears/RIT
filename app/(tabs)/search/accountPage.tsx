@@ -208,9 +208,9 @@ const Page = () => {
                 style={styles.groups}
                 data={postContents}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                     <View style={styles.itemContainer}>
-                        <AccountPost post={item} />
+                        <AccountPost post={item} index={index}/>
                     </View>
                 )}
                 numColumns={3}

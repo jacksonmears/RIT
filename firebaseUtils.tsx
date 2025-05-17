@@ -1,6 +1,5 @@
 // src/firebase/firebaseUtils.ts
 import { auth, storage, db } from './firebase';
-import { updateProfile } from 'firebase/auth';
 import {
     ref as storageRef,
     uploadBytes,

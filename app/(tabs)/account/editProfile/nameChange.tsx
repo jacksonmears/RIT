@@ -11,11 +11,11 @@ import { auth, db } from '@/firebase';
 import { doc, getDoc, deleteDoc,setDoc, updateDoc } from 'firebase/firestore';
 import {useLocalSearchParams, useRouter} from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import {updateProfile} from "firebase/auth";
+// import {updateProfile} from "firebase/auth";
 
 const {width, height} = Dimensions.get('window');
 
-const Page = () => {
+export default function Page(){
     const user = auth.currentUser!;
     const router = useRouter();
     const { changingVisual, changingFirebase, rawInput } = useLocalSearchParams()
@@ -35,7 +35,7 @@ const Page = () => {
                         displayName: change,
                         lowerDisplayName: change.toLowerCase()
                     });
-                    await updateProfile(user, {displayName: change});
+                    // await updateProfile(user, {displayName: change});
                     await updateDoc(doc(db, "users", user.uid), {
                         [changingFirebase as string]: change
                     })
@@ -137,4 +137,3 @@ const styles = StyleSheet.create({
 
 });
 
-export default Page;
