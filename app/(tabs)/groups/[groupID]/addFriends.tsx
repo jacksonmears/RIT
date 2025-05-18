@@ -17,14 +17,20 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 const {width, height} = Dimensions.get("window");
 
-const Index = () => {
+type FriendType = {
+    id: string;
+    displayName: string;
+    photoURL: string;
+}
+
+const Page = () => {
     const router = useRouter();
     const user = auth().currentUser;
     const { groupID, groupName } = useLocalSearchParams();
     const groupIDString = String(groupID);
     const groupNameString = String(groupName);
     const [friendsID, setFriendsID] = useState<string[] | null>([]);
-    const [friends, setFriends] = useState<{ id: string, displayName: string, photoURL: string }[] | null>(null);
+    const [friends, setFriends] = useState<FriendType[] | []>([]);
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
 
     useEffect(() => {
@@ -37,17 +43,17 @@ const Index = () => {
 
                 setFriendsID(friendSnap.docs.map((doc) => doc.id));
             } catch (err) {
-                console.error(err);
+                // console.error(err);
             }
         }
-        fetchFriendIds().catch((err) => {
-            console.error(err);
+        fetchFriendIds().catch(() => {
+            // console.error(err);
         });
     }, []);
 
     useEffect(() => {
-        fetchFriends().catch((err) => {
-            console.error(err);
+        fetchFriends().catch(() => {
+            // console.error(err);
         });
     }, [friendsID]);
 
@@ -56,18 +62,18 @@ const Index = () => {
         if (!user || !friendsID || friendsID.length === 0) return;
 
         try {
-            const friendUsernames: { id: string, displayName: string, photoURL: string}[] = [];
+            const friendUsernames: FriendType[] = [];
             for (const id of friendsID) {
                 const docSnap = await db().collection("users").doc(id).get();
                 const friendsRef = await db().collection("groups").doc(groupIDString).collection("users").doc(id).get();
-                const data = friendsRef.data();
-                if (!data) return;
-                if (friendsRef.exists() || docSnap.exists() && data.groupRequests.includes(groupIDString)) return;
-                friendUsernames.push({id: id, displayName: data.displayName, photoURL: data.photoURL});
+                const data = docSnap.data();
+                if (!friendsRef.exists() && docSnap.exists() && data && !data.groupRequests.includes(groupIDString)) {
+                    friendUsernames.push({id: id, displayName: data.displayName, photoURL: data.photoURL});
+                }
             }
             setFriends(friendUsernames);
         } catch (error) {
-            console.error("Error fetching friends' data:", error);
+            // console.error("Error fetching friends' data:", error);
         }
     };
 
@@ -97,7 +103,7 @@ const Index = () => {
 
             await Promise.all(selectedIds.map(id => sendRequest(id)));
 
-            setFriends((prev) => prev ? prev.filter(friend => !selectedIds.includes(friend.id)) : null);
+            setFriends((prev) => prev ? prev.filter(friend => !selectedIds.includes(friend.id)) : []);
 
             setSelectedGroups(null);
             router.back()
@@ -125,7 +131,7 @@ const Index = () => {
             if (docSnap.exists()) await docRef.set({ groupRequests: [...groupRequests, groupIDString] }, { merge: true });
             else await docRef.set({ groupRequests: [groupIDString] });
         } catch (error) {
-            console.error(error);
+            // console.error(error);
         }
     }
 
@@ -186,9 +192,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: width/20,
-        paddingVertical: height/90,
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
     topBarText: {
         color: "#D3D3FF",
@@ -231,4 +238,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Index;
+export default Page;

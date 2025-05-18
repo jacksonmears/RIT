@@ -29,7 +29,7 @@ const Page = () => {
     const [cameraPermission, setCameraPermission] = useState<CameraPermissionStatus | null>();
     const [micPermission, setMicPermission] = useState<CameraPermissionStatus | null>();
     const devices = useCameraDevices();
-    const [cameraDevice, setCameraDevice] = useState(devices.find(device => device.position === 'back'));
+    const [cameraDevice, setCameraDevice] = useState(devices.find(d => d.position === 'back'));
     const [mode] = useState<"photo" | "video">("video");
     const isFocused = useIsFocused();
     const animatedValue = useRef(new Animated.Value(0)).current;
@@ -94,7 +94,9 @@ const Page = () => {
 
 
     const switchCamera = () => {
-        const newDevice = cameraDevice?.position === 'back'
+        if (!cameraDevice) return;
+
+        const newDevice = cameraDevice.position === 'back'
             ? devices.find(device => device.position === 'front')
             : devices.find(device => device.position === 'back');
 

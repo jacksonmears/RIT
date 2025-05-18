@@ -103,10 +103,11 @@ const styles = StyleSheet.create({
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: width / 20,
-        paddingVertical: height / 90,
-        borderBottomWidth: height / 1000,
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
     topBarText: {
         color: "#D3D3FF",

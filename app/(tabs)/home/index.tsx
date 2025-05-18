@@ -1,19 +1,10 @@
-import React, {useEffect, useState} from 'react';
-import {
-    Dimensions,
-    StyleSheet,
-    View,
-    Text, TouchableOpacity, ActivityIndicator,
-} from 'react-native';
+import React, {use, useEffect, useState} from 'react';
+import {ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View,} from 'react-native';
 import {auth, db} from "@/firebase";
 import {useRouter} from "expo-router";
 import {AnimatedPost} from "@/components/AnimatedPost";
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withDecay, runOnJS
-} from 'react-native-reanimated';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import Animated, {runOnJS, useAnimatedStyle, useSharedValue, withDecay} from 'react-native-reanimated';
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 const { height, width } = Dimensions.get('window');
@@ -42,9 +33,10 @@ const Page = () => {
     const isRefreshing = useSharedValue(false);
     const REFRESH_TRIGGER_HEIGHT = 100;
     const MAX_PULL_DOWN_HEIGHT = 101;
-    const BOX_HEIGHT   = 650;
+    const POST_HEIGHT   = height*0.7;
+    const AD_HEIGHT = height/2;
     const MAX_POSITION = 0;
-    const MIN_POSITION = - ((postContents.length - 1) * BOX_HEIGHT );
+    const MIN_POSITION = - ((postContents.length - 1) * POST_HEIGHT + (postContents.length - 1) * AD_HEIGHT);
     const position   = useSharedValue(0);
     const startY     = useSharedValue(0);
 
@@ -79,6 +71,17 @@ const Page = () => {
             console.error("Error fetching postContent:", err);
         });
     }, [postIds]);
+
+    const feed = React.useMemo(() => {
+        const items: Array<{ type: 'post'; post: PostType } | { type: 'ad'; id: string }> = [];
+        postContents.forEach((post, i) => {
+            items.push({type: 'post', post});
+            // only insert an ad _after_ each post (you could skip the last one if you want)
+            items.push({type: 'ad', id: `ad-${post.id}`});
+        });
+        return items;
+    },[postContents]);
+
 
 
     useEffect(() => {
@@ -292,21 +295,53 @@ const Page = () => {
             {isLoading || isRefreshingPosts ?
                 <ActivityIndicator size="small" style={styles.loader} />
             :
-                <GestureDetector gesture={panGesture} >
-                    <View >
-                        {postContents.map((post, index) => (
-                            <AnimatedPost
-                                key={post.id}
-                                post={post}
-                                index={index}
-                                scrollY={position}
-                                boxHeight={BOX_HEIGHT}
-                            />
-                        ))}
+                <GestureDetector gesture={panGesture}>
+                    <View>
+                        {feed.map((item, idx) => {
+                            if (item.type === 'post') {
+                                return (
+                                    <AnimatedPost
+                                        key={item.post.id}
+                                        post={item.post}
+                                        index={idx}
+                                        scrollY={position}
+                                        postHeight={POST_HEIGHT}
+                                        adHeight={AD_HEIGHT}
+                                    />
+                                );
+                            } else if (idx !== feed.length - 1) {
+                                return (
+                                    // <View
+                                    //     key={item.id}
+                                    //     style={{
+                                    //         height: AD_HEIGHT,
+                                    //         marginVertical: 10,
+                                    //         borderWidth: 1,
+                                    //         borderColor: 'gray',
+                                    //         justifyContent: 'center',
+                                    //         alignItems: 'center',
+                                    //     }}
+                                    // >
+                                    //     <Text style={{ color: 'white' }}>–– Ad slot ––</Text>
+                                    //     {/* later swap in your <BannerAd … /> here */}
+                                    // </View>
+                                    <AnimatedPost
+                                        post={""}
+                                        index={idx}
+                                        scrollY={position}
+                                        postHeight={POST_HEIGHT}
+                                        adHeight={AD_HEIGHT}
+                                    >
+
+                                    </AnimatedPost>
+                                );
+                            }
+                        })}
                     </View>
                 </GestureDetector>
-            }
 
+
+            }
         </View>
     );
 
@@ -326,9 +361,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: width/20,
-        paddingVertical: height/90,
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
     titleTextRECAP: {
         color: 'white',

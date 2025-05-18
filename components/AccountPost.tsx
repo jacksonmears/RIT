@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import React, {useState} from "react";
 import {auth,db} from "@/firebase";
 import {ResizeMode, Video as VideoAV} from "expo-av";
+import storage from "@react-native-firebase/storage";
 
 type Post = {
     id: string;
@@ -63,7 +64,7 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
         const userRef = db().collection("users").doc(user.uid).collection("posts").doc(dummyPostID);
         const snapshot = await postRef.collection("groups").get();
         const groupIDs = snapshot.docs.map(doc => doc.id);
-
+        const videoRef = storage().ref(`postVideos/${dummyPostID}.mov`);
         try {
             await Promise.all(groupIDs.map(async (groupID) => {
                 await db().collection("groups").doc(groupID).collection("messages").doc(dummyPostID).delete();
@@ -74,7 +75,9 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
                 await deleteCollection("groups", 50),
                 await userRef.delete(),
                 await postRef.delete(),
+                await videoRef.delete(),
             ])
+            setSheetVisible(false)
             router.push("/home");
         } catch (err) {
             console.error(err);
