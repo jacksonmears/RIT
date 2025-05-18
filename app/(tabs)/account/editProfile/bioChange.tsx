@@ -10,12 +10,11 @@ import {
 import {auth, db} from '@/firebase';
 import {useLocalSearchParams, useRouter} from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import {doc, updateDoc} from "firebase/firestore";
 
 const {width, height} = Dimensions.get('window');
 
 export default function Page() {
-    const user = auth.currentUser!;
+    const user = auth().currentUser!;
     const router = useRouter();
     const { changingVisual, changingFirebase, rawInput } = useLocalSearchParams()
     const input = String(rawInput)
@@ -35,9 +34,12 @@ export default function Page() {
         if (change === input) return;
 
         try {
-            await updateDoc(doc(db, "users", user.uid), {
-                [changingFirebase as string]: change
-            })
+            await db()
+                .collection("users")
+                .doc(user.uid)
+                .update({
+                    [changingFirebase as string]: change
+                });
 
             router.back();
         } catch (error) {

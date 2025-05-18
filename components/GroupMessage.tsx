@@ -17,7 +17,7 @@ interface PostCompProps {
 
 const GroupMessage: React.FC<PostCompProps> = ({ post }) => {
     const router = useRouter();
-    const user = auth.currentUser;
+    const user = auth().currentUser;
 
 
 

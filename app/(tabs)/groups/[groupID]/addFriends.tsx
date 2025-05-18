@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import React, { useEffect, useState } from "react";
-import {doc, getDoc, getDocs, collection, setDoc} from "firebase/firestore";
 import { auth, db } from "@/firebase";
 import {Checkbox} from "react-native-paper";
 import Feather from '@expo/vector-icons/Feather';
@@ -20,7 +19,7 @@ const {width, height} = Dimensions.get("window");
 
 const Index = () => {
     const router = useRouter();
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const { groupID, groupName } = useLocalSearchParams();
     const groupIDString = String(groupID);
     const groupNameString = String(groupName);
@@ -33,7 +32,7 @@ const Index = () => {
             if (!user) return;
 
             try {
-                const friendSnap = await getDocs(collection(db, "users", user.uid, "friends"));
+                const friendSnap = await db().collection("users").doc(user.uid).collection("friends").get();
                 if (friendSnap.empty) return;
 
                 setFriendsID(friendSnap.docs.map((doc) => doc.id));
@@ -59,14 +58,12 @@ const Index = () => {
         try {
             const friendUsernames: { id: string, displayName: string, photoURL: string}[] = [];
             for (const id of friendsID) {
-                const docSnap = await getDoc(doc(db, "users", id));
-                const friendsRef = await getDoc(doc(db, "groups", groupIDString, "users", id));
-                if (friendsRef.exists() || docSnap.exists() && docSnap.data().groupRequests.includes(groupIDString)){
-
-                }
-                else {
-                    if (docSnap.exists()) friendUsernames.push({id: id, displayName: docSnap.data().displayName, photoURL: docSnap.data().photoURL});
-                }
+                const docSnap = await db().collection("users").doc(id).get();
+                const friendsRef = await db().collection("groups").doc(groupIDString).collection("users").doc(id).get();
+                const data = friendsRef.data();
+                if (!data) return;
+                if (friendsRef.exists() || docSnap.exists() && data.groupRequests.includes(groupIDString)) return;
+                friendUsernames.push({id: id, displayName: data.displayName, photoURL: data.photoURL});
             }
             setFriends(friendUsernames);
         } catch (error) {
@@ -117,16 +114,16 @@ const Index = () => {
         if (!user || !friend) return;
 
         try {
-            const docRef = doc(db, "users", friend);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) return;
-            const groupRequests = docSnap.data().groupRequests;
+            const docRef = db().collection("users").doc(friend);
+            const docSnap = await docRef.get();
+            const data = docSnap.data();
+            if (!docSnap.exists() || !data) return;
+            const groupRequests = data.groupRequests;
 
             if (groupRequests.includes(friend)) return;
 
-            if (docSnap.exists()) await setDoc(docRef, { groupRequests: [...groupRequests, groupIDString] }, { merge: true });
-            else await setDoc(docRef, { groupRequests: [groupIDString] });
-
+            if (docSnap.exists()) await docRef.set({ groupRequests: [...groupRequests, groupIDString] }, { merge: true });
+            else await docRef.set({ groupRequests: [groupIDString] });
         } catch (error) {
             console.error(error);
         }

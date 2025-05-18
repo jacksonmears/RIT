@@ -1,7 +1,6 @@
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import React, {useEffect, useState} from "react";
-import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
 import {auth,db} from "@/firebase";
 import Video from "react-native-video";
 
@@ -25,9 +24,8 @@ interface PostCompProps {
 
 const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const router = useRouter();
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
-    const [likeText, setLikeText] = useState("like");
     const content = decodeURIComponent(post.content);
 
 
@@ -38,34 +36,34 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
             if (!user) return;
 
             try {
-                const likeCheck = await getDoc(doc(db, "posts", post.id, "likes", user.uid));
+                const likeCheck = await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
                 const liked = likeCheck.exists();
                 setLikeStatus(liked);
-                setLikeText(liked ? "already liked" : "like");
             } catch (error) {
                 console.error("Error checking like status:", error);
             }
         };
 
-        likeFunc();
+        likeFunc().catch((err) => {
+            console.error("Error checking like status:", err);
+        });
     }, [likeStatus]);
 
-    const likeBeta = async () => {
-        if (!user) return;
-        if (!likeStatus) try {
-            await setDoc(doc(db, "posts", post.id, "likes", user.uid), {
-                likedAt: new Date().toISOString(),
-            })
-            console.log("post liked");
-            setLikeStatus(true);
-        } catch (error){
-            console.error(error)
-        }
-        else {
-            await deleteDoc(doc(db, "posts", post.id, "likes", user.uid))
-            setLikeStatus(false);
-        }
-    }
+    // const likeBeta = async () => {
+    //     if (!user) return;
+    //     if (!likeStatus) try {
+    //         await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).set({
+    //             likedAt: new Date().toISOString(),
+    //         })
+    //         setLikeStatus(true);
+    //     } catch (error){
+    //         console.error(error)
+    //     }
+    //     else {
+    //         await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).delete();
+    //         setLikeStatus(false);
+    //     }
+    // }
 
     return (
         <View>

@@ -18,14 +18,14 @@ import {
 } from '@/firebaseUtils';
 
 export default function Page() {
-    const user = auth.currentUser!;
+    const user = auth().currentUser!;
     const [localUri, setLocalUri] = useState<string | null>(null);
     const [photoURL, setPhotoURL] = useState<string | null>(user.photoURL);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        setPhotoURL(auth.currentUser?.photoURL ?? null);
-    }, [auth.currentUser?.photoURL]);
+        setPhotoURL(user.photoURL ?? null);
+    }, [user.photoURL]);
 
     const handlePick = async () => {
         try {

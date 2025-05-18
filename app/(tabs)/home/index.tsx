@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import {auth, db} from "@/firebase";
 import {useRouter} from "expo-router";
-import {collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query} from "firebase/firestore";
 import {AnimatedPost} from "@/components/AnimatedPost";
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -51,14 +50,16 @@ const Page = () => {
 
 
     useEffect(() => {
-        if (user && user.uid) {
-            const snapshot = onSnapshot(doc(db, "users", user.uid), () => {
-                getNotifications().catch((err) => {
-                    console.error("Error fetching notifications:", err);
-                });
+        if (!user) return;
+
+        const snapshot = db().collection("users").doc(user.uid).onSnapshot(() => {
+            getNotifications().catch((err) => {
+                console.error("Error fetching notifications:", err);
             });
-            return () => snapshot();
-        }
+        });
+
+        return () => snapshot();
+
     }, [user]);
 
     useEffect(() => {
@@ -114,7 +115,7 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const friendSnap = await getDocs(collection(db, "users", user.uid, "friends"));
+            const friendSnap = await db().collection("users").doc(user.uid).collection("friends").get();
             let friendIds: string[] = [];
 
             friendSnap.forEach((doc) => {
@@ -132,13 +133,9 @@ const Page = () => {
 
         try  {
             for (const friendId of friends) {
-                const q = query(
-                    collection(db, "users", friendId, "posts"),
-                    orderBy("timestamp", "desc"),
-                    limit(1)
-                );
+                const q = db().collection("users").doc(friendId).collection("posts").orderBy("timestamp", "desc").limit(1);
 
-                const snapshot = await getDocs(q);
+                const snapshot = await q.get();
 
                 if (!snapshot.empty) {
                     postIds.push(snapshot.docs[0].id);
@@ -153,11 +150,12 @@ const Page = () => {
 
     const getNotifications = async () => {
         if (!user) return;
-        const userInfo = await getDoc(doc(db, "users", user.uid));
-        if (userInfo.exists()){
-            setFriendNotifications(userInfo.data().friendRequests.length);
-            setGroupsNotifications(userInfo.data().groupRequests.length);
-        }
+        const userInfo = await db().collection("users").doc(user.uid).get();
+        const data = userInfo.data();
+        if (!userInfo.exists() || !data) return;
+
+        setFriendNotifications(data.friendRequests.length);
+        setGroupsNotifications(data.groupRequests.length);
     }
 
 
@@ -170,24 +168,27 @@ const Page = () => {
         try {
             isRefreshingPosts && setIsLoading(true);
             const raw = await Promise.all(postIds.map(async (post) => {
-                const postRef = doc(db, "posts", post);
-                const postSnap = await getDoc(postRef);
-                if (!postSnap.exists()) return null;
+                const postRef = db().collection("posts").doc(post);
+                const postSnap = await postRef.get();
+                const data =postSnap.data();
+                if (!postSnap.exists() || !data) return null;
 
 
-                const userID = postSnap.data().sender_id;
-                const mode = postSnap.data().mode;
-                const userInfo = await getDoc(doc(db, "users", userID));
+                const userID = data.sender_id;
+                const mode = data.mode;
+                const userInfo = await db().collection("users").doc(userID).get();
                 let userName = ''
                 let pfp = ''
-                if (userInfo.exists()) {
-                    userName = userInfo.data().displayName;
-                    pfp = userInfo.data().photoURL;
-                }
+                const Data = userInfo.data()
+                if (!userInfo.exists() || !Data) return;
+
+                userName = Data.displayName;
+                pfp = Data.photoURL;
+
 
 
                 let timestamp = "Unknown date";
-                const rawTimestamp = postSnap.data().timestamp;
+                const rawTimestamp = data.timestamp;
                 if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
                     try {
                         const dateObj = rawTimestamp.toDate();
@@ -198,7 +199,7 @@ const Page = () => {
                 }
 
 
-                return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
+                return { id: post, content: data.content, caption: data.caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
             }))
             const validPosts = raw.filter((p): p is PostType => p !== null);
             setPostContents(validPosts)

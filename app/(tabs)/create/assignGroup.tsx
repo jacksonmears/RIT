@@ -1,10 +1,9 @@
-import {View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity} from 'react-native';
-import {auth, db, storage} from '@/firebase';
+import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
+import { auth, db, storage } from '@/firebase';
 import { Checkbox } from 'react-native-paper';
-import React, {useEffect, useState} from "react";
-import {doc, getDocs, collection, addDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { serverTimestamp } from "firebase/firestore"; // Keep for types, but use db methods directly
 import { useRouter, useLocalSearchParams } from "expo-router";
-import {getDownloadURL, ref as storageRef, uploadBytes} from "firebase/storage";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -16,8 +15,8 @@ type GroupType = {
 }
 
 const Page = () => {
-    const user = auth.currentUser;
-    const {fillerURI, fillerMode, fillerCaption} = useLocalSearchParams();
+    const user = auth().currentUser;
+    const { fillerURI, fillerMode, fillerCaption } = useLocalSearchParams();
     const caption = String(fillerCaption);
     const localUri = String(fillerURI);
     const mode = String(fillerMode);
@@ -29,9 +28,9 @@ const Page = () => {
     useEffect(() => {
         if (!user) return;
 
-        try {
-            const getGroups = async () => {
-                const querySnapshot = await getDocs(collection(db, "users", user.uid, "groups"));
+        const getGroups = async () => {
+            try {
+                const querySnapshot = await db().collection("users").doc(user.uid).collection("groups").get();
                 const groupList = querySnapshot.docs.map(doc => {
                     const data = doc.data();
                     return {
@@ -40,18 +39,18 @@ const Page = () => {
                     };
                 });
                 setGroups(groupList);
-            };
-            getGroups().catch((err) => {
+            } catch (err) {
                 console.error(err);
-            });
-        } catch (err) {
-            console.error(err);
-        }
-    }, [groups]);
+            }
+        };
 
+        getGroups().catch((err) => {
+            console.error(err);
+        });
+    }, [user]);
 
     const toggleSelection = (id: string) => {
-        if (id.length < 0) return;
+        if (!id) return;
 
         try {
             setSelectedGroups((prev) => {
@@ -68,28 +67,25 @@ const Page = () => {
         }
     };
 
-
     const createPost = async () => {
         if (!user || !selectedGroups) return;
-
 
         const parsedGroups = [...selectedGroups.keys()]
             .filter((groupId) => selectedGroups.get(groupId)) // Only keep selected groups (true)
             .map((groupId) => ({ id: groupId }));
         const hasSelectedGroup = [...selectedGroups.values()].some(value => value);
 
-        if (!user || (!parsedGroups || parsedGroups.length === 0 || !hasSelectedGroup)) return;
+        if (!user || !parsedGroups.length || !hasSelectedGroup) return;
 
         try {
-
-            const postRef = await addDoc(collection(db, "posts"), {
+            const postRef = await db().collection("posts").add({
                 sender_id: user.uid,
                 mode: mode,
                 caption: caption,
                 timestamp: serverTimestamp(),
             });
 
-            const postID = postRef.id
+            const postID = postRef.id;
 
             const postURL = mode === "photo"
                 ? await uploadPhoto(postID)
@@ -97,66 +93,72 @@ const Page = () => {
 
             if (!postURL) return;
 
-            await updateDoc(doc(db, "posts", postID), {
+            await db().collection("posts").doc(postID).update({
                 content: encodeURIComponent(postURL),
             });
 
-
-            await setDoc(doc(db, "users", user.uid, "posts", postID), {
+            await db().collection("users").doc(user.uid).collection("posts").doc(postID).set({
                 timestamp: serverTimestamp(),
             });
 
-            await addPostToGroups(db, parsedGroups, postID);
+            await addPostToGroups(parsedGroups, postID);
 
-
-        } catch (error) {
-            console.error(error);
-        }
-    }
-
-
-    const uploadPhoto = async (postID: string) => {
-        if (!user) return;
-
-        try {
-            const response = await fetch(localUri);
-            const blob     = await response.blob();
-
-            const ref = storageRef(storage, `postPictures/${postID}.jpg`);
-            await uploadBytes(ref, blob);
-
-            return getDownloadURL(ref);
         } catch (error) {
             console.error(error);
         }
     };
 
-    const uploadVideo = async (postID: string) => {
-        if (!user) return;
+    const uploadPhoto = async (postID: string): Promise<string | undefined> => {
+        if (!localUri) return;
 
         try {
-            const response = await fetch(localUri);
-            const blob     = await response.blob();
-
-            const ref = storageRef(storage, `postVideos/${postID}.mov`);
-            await uploadBytes(ref, blob);
-
-            return getDownloadURL(ref);
+            const ref = storage().ref(`postPictures/${postID}.jpg`);
+            await ref.putFile(localUri);
+            return await ref.getDownloadURL();
         } catch (error) {
-            console.error(error);
+            console.error('Upload failed:', error);
         }
     };
 
 
-    const addPostToGroups = async (db: any, parsedGroups: { id: string }[], postID: string) => {
+    const uploadVideo = async (postID: string, localUri?: string): Promise<string | undefined> => {
+        if (!localUri) return ;
+
+        try {
+            const ref = storage().ref(`postVideos/${postID}.mov`);
+            await ref.putFile(localUri);
+            return await ref.getDownloadURL();
+        } catch (error) {
+            console.error('Upload failed:', error);
+        }
+    };
+
+
+    // const uploadVideo = async (postID: string) => {
+    //     if (!user) return;
+    //
+    //     try {
+    //         const response = await fetch(localUri);
+    //         const blob = await response.blob();
+    //
+    //         const ref = storage().ref(`postVideos/${postID}.mov`);
+    //         await uploadBytes(ref, blob);
+    //
+    //         return getDownloadURL(ref);
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    // };
+
+    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string) => {
         try {
             await Promise.all(
                 parsedGroups.map(async (group) => {
-                    await setDoc(doc(db, "groups", group.id, "messages", postID), {
+                    await db().collection("groups").doc(group.id).collection("messages").doc(postID).set({
                         mode: mode,
                         timestamp: serverTimestamp(),
-                    });
-                    await setDoc(doc(db, "posts", postID, "groups", group.id), {
+                    })
+                    await db().collection("posts").doc(postID).collection("groups").doc(group.id).set({
                         timestamp: serverTimestamp(),
                     })
                 })
@@ -165,7 +167,6 @@ const Page = () => {
             console.error("Error adding post to groups:", error);
         }
     };
-
 
     const doneButton = async () => {
         await createPost();
@@ -177,11 +178,10 @@ const Page = () => {
         setTimeout(() => {
             router.push("../home");
         }, 0);
-    }
-
+    };
 
     const selectAllFunction = () => {
-        const dummySelect = !selectAll
+        const dummySelect = !selectAll;
         if (!groups) return;
 
         try {
@@ -189,16 +189,14 @@ const Page = () => {
                 const next = new Map<string, boolean>();
                 groups.forEach(g => next.set(g.id, true));
                 setSelectedGroups(next);
-            }else {
-                const next = new Map<string, boolean>();
-                setSelectedGroups(next);
+            } else {
+                setSelectedGroups(new Map());
             }
             setSelectAll(dummySelect);
         } catch (error) {
             console.error(error);
         }
-    }
-
+    };
 
     return (
         <View style={styles.container}>
@@ -206,28 +204,27 @@ const Page = () => {
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.back()}>
-                        <Feather name="x" size={width/20} color="#D3D3FF" />
+                        <Feather name="x" size={width / 20} color="#D3D3FF" />
                     </TouchableOpacity>
                     {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
                 </View>
-                {selectedGroups && (selectedGroups.size)==0 ?
-                    <Ionicons name="send-outline" size={width/20} color="#D3D3FF" />
+                {selectedGroups && (selectedGroups.size) === 0 ?
+                    <Ionicons name="send-outline" size={width / 20} color="#D3D3FF" />
                     :
                     <TouchableOpacity onPress={() => doneButton()}>
-                        <Ionicons name="send" size={width/20} color="#D3D3FF" />
+                        <Ionicons name="send" size={width / 20} color="#D3D3FF" />
                     </TouchableOpacity>
                 }
             </View>
 
-
             <View style={styles.groupContainer}>
-                <TouchableOpacity style={styles.groupRow}>
+                <TouchableOpacity style={styles.groupRow} onPress={selectAllFunction}>
                     <View style={styles.backArrowName}>
                         <Text style={styles.text}>
                             {(selectAll ?
-                                "unselect all"
-                                :
-                                "select all"
+                                    "unselect all"
+                                    :
+                                    "select all"
                             )}
                         </Text>
                     </View>
@@ -238,7 +235,6 @@ const Page = () => {
                     />
                 </TouchableOpacity>
             </View>
-
 
             <FlatList
                 style={styles.groups}
@@ -260,7 +256,7 @@ const Page = () => {
                         </TouchableOpacity>
                     </View>
                 )}
-                contentContainerStyle={styles.listContent} // Adds padding
+                contentContainerStyle={styles.listContent}
                 ListEmptyComponent={<Text style={styles.noResults}>You added all your friends!</Text>}
             />
 
@@ -278,10 +274,10 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     listContent: {
-        paddingBottom: height/10,
+        paddingBottom: height / 10,
     },
     text: {
-        fontSize: height/50,
+        fontSize: height / 50,
         fontWeight: "bold",
         color: "white",
     },
@@ -293,16 +289,16 @@ const styles = StyleSheet.create({
     groupRow: {
         flexDirection: "row",
         alignItems: "center",
-        padding: height/100,
+        padding: height / 100,
         justifyContent: "space-between",
-        width: width*0.9,
+        width: width * 0.9,
     },
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: width/20,
-        paddingVertical: height/90,
-        borderBottomWidth: height/1000,
+        paddingHorizontal: width / 20,
+        paddingVertical: height / 90,
+        borderBottomWidth: height / 1000,
         borderBottomColor: "grey",
     },
 
@@ -314,12 +310,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     noResults: {
-        fontSize: height/50,
+        fontSize: height / 50,
         color: 'gray',
         textAlign: 'center',
     },
 
 });
-
 
 export default Page;

@@ -8,17 +8,6 @@ import {
 } from 'react-native';
 import {auth, db} from '@/firebase';
 import React, { useState, useEffect } from 'react';
-import {
-    doc,
-    getDoc,
-    collection,
-    query,
-    orderBy,
-    startAt,
-    endAt,
-    limit,
-    getDocs,
-} from "firebase/firestore";
 import AnimatedSearchCard from "@/components/AnimatedSearchCard";
 
 const { width, height } = Dimensions.get("window");
@@ -32,7 +21,7 @@ type SearchType = {
 }
 
 const Page = () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [search, setSearch] = useState('');
     const [searchResults, setSearchResults] = useState<SearchType[]>([]);
 
@@ -49,33 +38,28 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const usersRef = collection(db, "displayName");
-            const q = query(
-                usersRef,
-                orderBy("lowerDisplayName"),
-                startAt(search.toLowerCase()),
-                endAt(search.toLowerCase() + '\uf8ff'),
-                limit(10)
-            );
+            const usersRef = db().collection("displayName").orderBy("lowerDisplayName").startAt(search.toLowerCase()).endAt(search.toLowerCase()+'\uf8ff').limit(10);
 
 
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await usersRef.get();
             if (querySnapshot.empty) return;
 
             try {
                 const raw = await Promise.all(
                     querySnapshot.docs.map(async (docSnapshot) => {
                         const userId = docSnapshot.data().uid;
-                        const friendDoc = await getDoc(doc(db, "users", userId));
-                        if (friendDoc.exists()) {
-                            return {
-                                id: userId,
-                                username: docSnapshot.data().displayName,
-                                photoURL: friendDoc.data().photoURL,
-                                firstName: friendDoc.data().firstName,
-                                lastName: friendDoc.data().lastName,
-                            };
-                        }
+                        const friendDoc = await db().collection("users").doc(userId).get();
+                        const data = friendDoc.data();
+                        if (!friendDoc.exists() || !data) return;
+
+                        return {
+                            id: userId,
+                            username: docSnapshot.data().displayName,
+                            photoURL: data.photoURL,
+                            firstName: data.firstName,
+                            lastName: data.lastName,
+                        };
+
                     })
                 );
                 const validPosts = raw.filter((p): p is SearchType => p !== null);

@@ -21,7 +21,7 @@ type GroupRequestType = {
 }
 
 const Page = () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const router = useRouter();
     const [groupRequests, setGroupRequests] = useState<GroupRequestType[] | []>([]);
     const [friendRequests, setFriendRequests] = useState<FriendRequestType[] | []>([]);

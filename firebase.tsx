@@ -142,8 +142,17 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 
-const app = getApp();
+const firebaseConfig = {
+    apiKey: "AIzaSyBl82zHQla3xSfooZ0cc49YfA5W4MdTTBQ",
+    authDomain: "recap-d22e0.firebaseapp.com",
+    projectId: "recap-d22e0",
+    storageBucket: "recap-d22e0.firebasestorage.app",
+    messagingSenderId: "530663415978",
+    appId: "1:530663415978:android:be4aedd13844ee9728b0d3",
+};
+
+// const app = getApp();
 
 
-export { app, auth, firestore as db, storage };
+export { auth, firestore as db, storage };
 

@@ -21,7 +21,7 @@ type PostID = {
 const { width, height } = Dimensions.get('window');
 
 const Page = () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [bio, setBio] = useState('');

@@ -7,7 +7,6 @@ import {
     Dimensions,
 } from 'react-native';
 import { auth, db } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore'
 import { useRouter } from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {useIsFocused} from "@react-navigation/native";
@@ -15,7 +14,7 @@ import {useIsFocused} from "@react-navigation/native";
 const { width, height } = Dimensions.get("window");
 
 export default function Page(){
-    const user = auth.currentUser!;
+    const user = auth().currentUser!;
     const router = useRouter();
     const [firstName, setFirstName] = useState<string>('');
     const [lastName, setLastName] = useState<string>('');
@@ -33,17 +32,21 @@ export default function Page(){
 
     const getUserInfo = async () => {
         if (!user) return;
-        const ref = await getDoc(doc(db, "users", user.uid));
-        if (!ref.exists()) return;
+        const ref = await db().collection('users').doc(user.uid).get();
+        if (!ref.exists) return;
+
+        const data = ref.data();
+        if (!data) return;
         try {
-            setFirstName(ref.data().firstName);
-            setLastName(ref.data().lastName);
-            setUsername(ref.data().displayName);
-            setBio(ref.data().bio || "Empty Bio");
+            setFirstName(data.firstName);
+            setLastName(data.lastName);
+            setUsername(data.displayName);
+            setBio(data.bio || "Empty Bio");
         } catch (e) {
             console.error(e);
         }
     }
+
 
 
     return (
