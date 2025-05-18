@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {View, Text, StyleSheet, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
 import { auth, db } from '@/firebase';
 import { useLocalSearchParams, useRouter} from 'expo-router'
-import {doc, getDoc, getDocs, collection, query, orderBy, setDoc} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
 import Feather from "@expo/vector-icons/Feather";
 
@@ -21,7 +20,7 @@ type PostID = {
 const { width, height } = Dimensions.get('window');
 
 const Page = () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [bio, setBio] = useState('');
@@ -62,9 +61,9 @@ const Page = () => {
     const fetchUserPosts = async () => {
         if (!friend) return;
         try {
-            const postsRef = collection(db, "users", friend, "posts");
-            const orderedQuery = query(postsRef, orderBy("timestamp", "asc")); // or "asc"
-            const usersDocs = await getDocs(orderedQuery);
+            const postsRef = db().collection("users").doc(friend).collection("posts");
+            const orderedQuery = postsRef.orderBy("timestamp", "asc");
+            const usersDocs = await orderedQuery.get();
 
             if (usersDocs.empty) return;
 
@@ -86,30 +85,33 @@ const Page = () => {
 
     const fetchFriendStatus = async () => {
         if (!user || !friend) return;
-        const friendsRef = await getDoc(doc(db, "users", user.uid, "friends", friend));
+        const friendsRef = await db().collection("users").doc(user.uid).collection("friends").doc(friend).get();
         if (friendsRef.exists()) {
             setFriendStatus(true);
         }
         else if (user.uid === friend) setFriendStatus(true);
         else {
-            const friendReqRef = await getDoc(doc(db, "users", friend));
-            if (friendReqRef.exists()) {
-                if (friendReqRef.data().friendRequests.includes(user.uid)) setRequestStatus(true);
-            }
+            const friendReqRef = await db().collection("users").doc(friend).get();
+            const data = friendReqRef.data();
+            if (!friendReqRef.exists() || !data) return;
+
+            if (data.friendRequests.includes(user.uid)) setRequestStatus(true);
         }
     };
 
     const getBioInfo = async () => {
         if (!friend) return;
-        const getInfo = await getDoc(doc(db,"users", friend));
-        if (getInfo.exists()){
-            setBio(getInfo.data().bio);
-            setPfp(getInfo.data().photoURL);
-            setFirstName(getInfo.data().firstName);
-            setLastName(getInfo.data().lastName);
-        }
-        const fetchFriendCount = await getDocs(collection(db, "users", friend, "friends"));
-        const fetchPostCount = await getDocs(collection(db, "users", friend, "posts"));
+        const getInfo = await db().collection("users").doc(friend).get();
+        const data = getInfo.data()
+        if (!getInfo.exists() || !data) return;
+
+        setBio(data.bio);
+        setPfp(data.photoURL);
+        setFirstName(data.firstName);
+        setLastName(data.lastName);
+
+        const fetchFriendCount = await db().collection("users").doc(friend).collection("friends").get();
+        const fetchPostCount = await db().collection("users").doc(friend).collection("posts").get();
 
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);
@@ -121,13 +123,13 @@ const Page = () => {
         if (!user) return;
         try {
             if (friend === '' || user.uid === friend) return;
-            const docRef = doc(db, "users", friend);
-            const docSnap = await getDoc(docRef);
+            const docRef = db().collection("users").doc(friend);
+            const docSnap = await docRef.get();
             const friendRequests = docSnap.data()?.friendRequests || [];
             if (docSnap.exists()) {
-                await setDoc(docRef, { friendRequests: [...friendRequests, user.uid] }, { merge: true });
+                await docRef.set({ friendRequests: [...friendRequests, user.uid] }, { merge: true });
             } else {
-                await setDoc(docRef, { friendRequests: [user.uid] });
+                await docRef.set({ friendRequests: [user.uid] });
             }
             setRequestStatus(true);
         }
@@ -141,13 +143,13 @@ const Page = () => {
         if (!posts) return;
         try {
             const raw = await Promise.all(posts.map(async (post) => {
-                const postRef = doc(db, "posts", post.id);
-                const postSnap = await getDoc(postRef);
+                const postRef = db().collection("posts").doc(post.id);
+                const postSnap = await postRef.get();
+                const data = postSnap.data();
 
-                if (postSnap.exists()) {
+                if (!postSnap.exists() || !data) return;
+                return { id: post.id, content: data.content, mode: data.mode };
 
-                    return { id: post.id, content: postSnap.data().content, mode: postSnap.data().mode };
-                }
             }));
             const validPosts = raw.filter((p): p is Post => p !== null);
             setPostContents(validPosts.reverse());
