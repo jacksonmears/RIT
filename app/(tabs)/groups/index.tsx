@@ -2,7 +2,6 @@ import {View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions} from 're
 import {auth, db} from '@/firebase';
 import {useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
-import { getDocs, collection } from "firebase/firestore";
 import Entypo from '@expo/vector-icons/Entypo';
 import AnimatedGroupCard from "@/components/AnimatedGroupCard";
 
@@ -14,7 +13,7 @@ type GroupType = {
 }
 
 const Page = () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [groups, setGroups] = useState<GroupType[] | []>([]);
     const router = useRouter();
     const [refreshing, setRefreshing] = useState(false);
@@ -31,7 +30,7 @@ const Page = () => {
         if (!user) return
 
         try {
-            const querySnapshot = await getDocs(collection(db, "users", user.uid, "groups"));
+            const querySnapshot = await db().collection("users").doc(user.uid).collection("groups").get();
             const groupList = querySnapshot.docs.map(doc => {
                 const data = doc.data();
                 return {

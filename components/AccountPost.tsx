@@ -38,7 +38,7 @@ const { width, height } = Dimensions.get("window");
 const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
     const { width, height } = useWindowDimensions();
     const content = decodeURIComponent(post.content);
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const router = useRouter();
     const [sheetVisible, setSheetVisible] = useState<boolean>(false);
 

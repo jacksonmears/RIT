@@ -20,7 +20,7 @@ interface UserCompProps {
 
 const SearchCard: React.FC<UserCompProps> = ({ info }) => {
     const router = useRouter();
-    const user = auth.currentUser;
+    const user = auth().currentUser;
 
 
 

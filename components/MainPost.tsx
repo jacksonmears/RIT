@@ -1,7 +1,6 @@
 import {Dimensions, Image, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle} from "react-native";
 import {useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
-import {collection, deleteDoc, doc, getDoc, getDocs, setDoc} from "firebase/firestore";
 import {auth, db} from "@/firebase";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import {ResizeMode, Video as VideoAV} from 'expo-av';
@@ -28,7 +27,7 @@ interface PostCompProps {
 const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const router = useRouter();
     const content = decodeURIComponent(post.content);
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
     const [numLikes, setNumLikes] = useState<number>(0);
     const {width, height} = Dimensions.get('window');
@@ -40,9 +39,9 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             if (!user) return;
 
             try {
-                const likeCount = await getDocs(collection(db, "posts", post.id, "likes"));
+                const likeCount = await db().collection("posts").doc(post.id).collection("likes").get();
                 setNumLikes(likeCount.size)
-                const likeCheck = await getDoc(doc(db, "posts", post.id, "likes", user.uid));
+                const likeCheck = await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
                 const liked = likeCheck.exists();
                 setLikeStatus(liked);
             } catch (error) {
@@ -61,15 +60,15 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const likeBeta = async () => {
         if (!user) return;
         if (!likeStatus) try {
-            await setDoc(doc(db, "posts", post.id, "likes", user.uid), {
+            await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).set({
                 likedAt: new Date().toISOString(),
-            })
+            });
             setLikeStatus(true);
         } catch (error){
             console.error(error)
         }
         else try {
-            await deleteDoc(doc(db, "posts", post.id, "likes", user.uid))
+            await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).delete();
             setLikeStatus(false);
         } catch (err) {
             console.error("Error checking like status:", err);

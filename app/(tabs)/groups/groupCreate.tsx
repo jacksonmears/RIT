@@ -12,7 +12,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { db, auth } from "@/firebase"
 import {useRouter} from 'expo-router';
-import { collection, addDoc, getDoc, doc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { serverTimestamp } from 'firebase/firestore';
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {Checkbox} from "react-native-paper";
@@ -26,7 +26,7 @@ type FriendType = {
 }
 
 const Page = () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const router = useRouter();
     const [groupName, setGroupName] = useState("");
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
@@ -39,7 +39,7 @@ const Page = () => {
             if (!user) return;
 
             try {
-                const friendSnap = await getDocs(collection(db, "users", user.uid, "friends"));
+                const friendSnap = await db().collection("users").doc(user.uid).collection("friends").get();
                 let friendIds: string[] = [];
                 friendSnap.forEach((doc) => {
                     friendIds.push(doc.id);
@@ -66,10 +66,11 @@ const Page = () => {
         try {
             const raw = await Promise.all(
                 friendsID.map(async (f) => {
-                    const docSnap = await getDoc(doc(db, "users", f));
-                    if (!docSnap.exists()) return;
+                    const docSnap = await db().collection("users").doc(f).get();
+                    const data = docSnap.data();
+                    if (!docSnap.exists() || !data) return;
 
-                    return {id: f, displayName: docSnap.data().displayName, photoURL: docSnap.data().photoURL};
+                    return {id: f, displayName: data.displayName, photoURL: data.photoURL};
                 })
             )
             const validPosts = raw.filter((f): f is FriendType => f !== null);
@@ -83,9 +84,9 @@ const Page = () => {
 
 
     const createGroup = async () => {
-        if (!user || groupName) return;
+        if (!user || !groupName) return;
         try {
-            const docRef = await addDoc(collection(db, "groups"), {
+            const docRef = await db().collection("groups").add({
                 name: groupName,
                 timestamp: serverTimestamp(),
                 creator: user.uid
@@ -94,12 +95,12 @@ const Page = () => {
             await addGroupUserSide(docRef.id);
             await addGroupCollectionSide(docRef.id);
 
-
             return docRef.id;
         } catch (error) {
             console.error("Error creating group:", error);
         }
     }
+
 
     const toggleSelection = (id: string) => {
         if (!id) return;
@@ -123,15 +124,15 @@ const Page = () => {
         if (!user || !groupName) return;
 
         try {
-            const docRef = doc(db, "users", user.uid, "groups", groupID);
-            const docSnap = await getDoc(docRef);
+            const docRef = db().collection("users").doc(user.uid).collection("groups").doc(groupID);
+            const docSnap = await db().collection("users").doc(user.uid).collection("groups").doc(groupID).get();
 
             if (docSnap.exists()) return;
 
-            await setDoc(docRef, {
+            await docRef.set({
                 name: groupName,
                 timestamp: serverTimestamp(),
-            });
+            })
         } catch (err) {
             console.error(err);
         }
@@ -140,16 +141,17 @@ const Page = () => {
     const sendRequest = async (friend: string, groupID: string | undefined) => {
         if (!user || !friend  || !groupID) return;
          try{
-            const docRef = doc(db, "users", friend);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) return;
+            const docRef = db().collection("users").doc(friend);
+            const docSnap = await docRef.get();
+            const data = docSnap.data();
+            if (!docSnap.exists() || !data) return;
 
-            const groupRequests = docSnap.data().groupRequests;
+            const groupRequests = data.groupRequests;
 
             if (groupRequests.includes(friend)) return;
 
-            if (docSnap.exists()) await setDoc(docRef, { groupRequests: [...groupRequests, groupID] }, { merge: true });
-            else await setDoc(docRef, { groupRequests: [groupID] });
+            if (docSnap.exists()) await docRef.set({groupRequests: [...groupRequests, groupID] }, { merge: true })
+            else await docRef.set({ groupRequests: [groupID] })
         } catch (err) {
              console.error(err);
          }
@@ -159,12 +161,11 @@ const Page = () => {
         if (!user || !groupID) return;
 
         try {
-            const colRef = collection(db, "groups", groupID, "users");
-
-            await setDoc(doc(colRef, user.uid), {
+            const colRef = db().collection("groups").doc(groupID).collection("users").doc(user.uid);
+            await colRef.set({
                 name: user.displayName,
                 timestamp: serverTimestamp(),
-            });
+            })
         } catch(err) {
             console.error(err);
         }

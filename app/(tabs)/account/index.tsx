@@ -12,7 +12,7 @@ import {
 import { auth, db } from '@/firebase';
 import { useFocusEffect} from '@react-navigation/native';
 import { useRouter } from 'expo-router'
-import {doc, getDoc, getDocs, collection, query, orderBy, serverTimestamp} from "firebase/firestore";
+import {serverTimestamp} from "firebase/firestore";
 import AccountPost from "../../../components/AccountPost";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getSavedUser, clearUser } from '@/authStorage';
@@ -29,7 +29,7 @@ type PostType = {
 }
 
 export default function Page(){
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const router = useRouter();
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
@@ -42,14 +42,12 @@ export default function Page(){
     const [refreshing, setRefreshing] = useState(false);
     const [animatedValues, setAnimatedValues] = useState<Animated.Value[]>([]);
     const [totalCharacters, setTotalCharacters] = useState<string>("");
-    const [uid, setUid] = useState<string | null>(null);
 
 
     useEffect(() => {
         const loadUid = async () => {
             const storedUid = await getSavedUser();
             if (storedUid) {
-                setUid(storedUid);
                 await getBioInfo();
                 await fetchUserPosts();
             } else {
@@ -129,13 +127,15 @@ export default function Page(){
         if (!user) return;
 
         try {
-            const postsRef = collection(db, "users", user.uid, "posts");
-            const orderedQuery = query(postsRef, orderBy("timestamp", "asc"));
-            const usersDocs = await getDocs(orderedQuery);
+            const postsRef = db().collection("users").doc(user.uid).collection("posts")
+            const orderedQuery = postsRef.orderBy("timestamp", "asc");
+            const usersDocs = await orderedQuery.get();
 
             try {
-                const userPfpRef = await getDoc(doc(db, "users", user.uid));
-                if (userPfpRef.exists()) setPfp(userPfpRef.data().photoURL)
+                const userPfpRef = await db().collection("users").doc(user.uid).get();
+
+                const data = userPfpRef.data();
+                if (userPfpRef.exists() && data) setPfp(data.photoURL)
 
 
                 const postList = usersDocs.docs.map((doc) => ({
@@ -156,16 +156,17 @@ export default function Page(){
     const getBioInfo = async () => {
         if (!user) return;
 
-        const getInfo = await getDoc(doc(db,"users", user.uid));
-        if (! getInfo.exists()) return;
+        const getInfo = await db().collection("users").doc(user.uid).get();
+        const data = getInfo.data();
+        if (! getInfo.exists() || !data) return;
 
         try {
-            setBio(getInfo.data().bio);
-            setFirstName(getInfo.data().firstName);
-            setLastName(getInfo.data().lastName);
+            setBio(data.bio);
+            setFirstName(data.firstName);
+            setLastName(data.lastName);
 
-            const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
-            const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
+            const fetchFriendCount = await db().collection("users").doc(user.uid).collection("friends").get();
+            const fetchPostCount = await db().collection("users").doc(user.uid).collection("posts").get();
 
             setNumFriends(fetchFriendCount.size);
             setNumPosts(fetchPostCount.size);
@@ -180,12 +181,12 @@ export default function Page(){
 
         try {
             const raw = await Promise.all(posts.map(async (post) => {
-                const postRef = doc(db, "posts", post.id);
-                const postSnap = await getDoc(postRef);
+                const postSnap = await db().collection("users").doc(post.id).get();
 
-                if (!postSnap.exists()) return;
+                const data = postSnap.data();
+                if (!postSnap.exists() || !data) return;
 
-                return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, mode: postSnap.data().mode, userID: user.uid };
+                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid };
             }));
             const validPosts = raw.filter((p): p is PostType => p !== null)
             setPostContents(validPosts.reverse());
@@ -205,9 +206,8 @@ export default function Page(){
 
     const handleLogout = async () => {
         try {
-            await auth.signOut();
+            await auth().signOut();
             await clearUser();
-            setUid(null);
             router.push('/');
         } catch (error) {
             console.error('Logout failed:', error);
