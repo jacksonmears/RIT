@@ -10,14 +10,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import React, {useState} from "react";
-import {
-    doc,
-    deleteDoc,
-    collection,
-    getDocs,
-    query,
-    orderBy, limit
-} from "firebase/firestore";
 import {auth,db} from "@/firebase";
 import {ResizeMode, Video as VideoAV} from "expo-av";
 
@@ -45,18 +37,17 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
     const deleteCollection = async (collectionPath: string, batchSize: number) => {
         if (!collectionPath || !batchSize) return;
 
-        const collectionRef = collection(db, "posts", post.id, collectionPath);
+        const collectionRef = db().collection("posts").doc(post.id).collection(collectionPath);
         while (true) {
             try {
 
-                const q = query(collectionRef, orderBy("timestamp"), limit(batchSize));
-                const snapshot = await getDocs(q);
+                const q = collectionRef.orderBy("timestamp").limit(batchSize);
+                const snapshot = await q.get();
 
                 if (snapshot.empty) {
                     break;
                 }
-
-                await Promise.all(snapshot.docs.map(doc => deleteDoc(doc.ref)));
+                await Promise.all(snapshot.docs.map(doc => doc.ref.delete()));
             } catch (err) {
                 console.error(err);
             }
@@ -68,21 +59,21 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
 
 
         const dummyPostID = post.id
-        const postRef = doc(db, "posts", dummyPostID);
-        const userRef = doc(db, "users", user.uid, "posts", dummyPostID);
-        const snapshot = await getDocs(collection(postRef, "groups"));
+        const postRef = db().collection("posts").doc(dummyPostID);
+        const userRef = db().collection("users").doc(user.uid).collection("posts").doc(dummyPostID);
+        const snapshot = await postRef.collection("groups").get();
         const groupIDs = snapshot.docs.map(doc => doc.id);
 
         try {
             await Promise.all(groupIDs.map(async (groupID) => {
-                await deleteDoc(doc(db, "groups", groupID, "messages", dummyPostID));
+                await db().collection("groups").doc(groupID).collection("messages").doc(dummyPostID).delete();
             }))
             await Promise.all([
                 await deleteCollection("likes", 50),
                 await deleteCollection("comments", 50),
                 await deleteCollection("groups", 50),
-                await deleteDoc(userRef),
-                await deleteDoc(postRef)
+                await userRef.delete(),
+                await postRef.delete(),
             ])
             router.push("/home");
         } catch (err) {

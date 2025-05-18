@@ -1,7 +1,7 @@
 import { Text, View, StyleSheet, FlatList, Dimensions,TouchableOpacity, Image } from "react-native";
 import React, { useState, useEffect } from "react";
 import { auth, db } from '@/firebase';
-import {doc, getDoc, updateDoc, arrayRemove, serverTimestamp, setDoc, collection} from "firebase/firestore";
+import {arrayRemove, collection, doc, serverTimestamp} from "firebase/firestore";
 import { useRouter } from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Entypo from '@expo/vector-icons/Entypo';
@@ -39,25 +39,28 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (!userDoc.exists()) return;
+            const userDoc = await db().collection("users").doc(user.uid).get();
+            const data = userDoc.data();
+            if (!userDoc.exists() || !data) return;
 
-            const incomingIds: string[] = userDoc.data().groupRequests || [];
+            const incomingIds: string[] = data.groupRequests;
 
             try {
                 const detailed = await Promise.all(
                     incomingIds.map(async (groupId) => {
-                        const groupDoc = await getDoc(doc(db, "groups", groupId));
+                        const groupDoc = await db().collection("groups").doc(groupId).get();
+                        const Data = groupDoc.data();
+                        if (!Data || !groupDoc.exists()) return;
                         return {
                             id:   groupId,
                             name: groupDoc.exists()
-                                ? (groupDoc.data().name as string)
+                                ? (Data.name as string)
                                 : "Unknown",
                         };
                     })
                 );
-
-                setGroupRequests(detailed);
+                const validPosts = detailed.filter((p): p is GroupRequestType => p !== null);
+                setGroupRequests(validPosts);
             } catch (err) {
                 console.error("Error fetching groupRequests for user", err);
             }
@@ -72,15 +75,17 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (!userDoc.exists()) return;
-            const friendRequests: string[] = userDoc.data().friendRequests || [];
+            const userDoc = await db().collection("users").doc(user.uid).get();
+            const filler= userDoc.data();
+            if (!userDoc.exists() || !filler) return;
+            const friendRequests: string[] = filler.friendRequests;
 
             try {
                 const raw = await Promise.all(friendRequests.map(async (friend) => {
-                    const friendDoc = await getDoc(doc(db, "users", friend));
-                    if (!friendDoc.exists()) return;
-                    return {id: friend, name: friendDoc.data().displayName, photoURL: friendDoc.data().photoURL};
+                    const friendDoc = await db().collection("users").doc(friend).get();
+                    const data = friendDoc.data();
+                    if (!friendDoc.exists() || !data) return;
+                    return {id: friend, name: data.displayName, photoURL: data.photoURL};
                 }))
                 const validPosts = raw.filter((p): p is FriendRequestType => p !== null);
 
@@ -99,12 +104,13 @@ const Page = () => {
     const acceptGroupInvite = async (groupId: string) => {
         if (!user) return;
         try {
-            const groupNameRef = doc(db, "groups", groupId);
-            const docSnap = await getDoc(groupNameRef);
-            if (!docSnap.exists()) return;
+            const groupNameRef =  db().collection("groups").doc(groupId)
+            const docSnap = await groupNameRef.get();
+            const data = docSnap.data();
+            if (!docSnap.exists() || !data) return;
 
             try {
-                const groupName = docSnap.data().name;
+                const groupName = data.name;
                 addGroupUserSide(groupId, groupName).catch((err) => {
                     console.error(err);
                 });
@@ -131,10 +137,10 @@ const Page = () => {
     const addGroupUserSide = async (groupID: string, groupName: string) => {
         if (!user) return;
 
-        const docRef = doc(db, "users", user.uid, "groups", groupID);
+        const docRef = db().collection("users").doc(user.uid).collection("groups").doc(groupID);
 
         try {
-            await setDoc(docRef, {
+            await docRef.set({
                 name: groupName,
                 timestamp: serverTimestamp(),
             });
@@ -147,9 +153,9 @@ const Page = () => {
     const addGroupCollectionSide = async (groupID: string) => {
         if (!user) return;
 
-        const colRef = collection(db, "groups", groupID, "users");
+        const colRef = db().collection("groups").doc(groupID).collection("users").doc(user.uid);
         try {
-            await setDoc(doc(colRef, user.uid), {
+            await colRef.set({
                 name: user.displayName,
                 timestamp: serverTimestamp(),
             });
@@ -163,18 +169,19 @@ const Page = () => {
 
     const acceptFriend = async (displayName: string) => {
         if (user) {
-            const friendRef = await getDoc(doc(db, "displayName", displayName));
+            const friendRef = await db().collection("displayName").doc(displayName).get();
             let friend = '';
-            if (friendRef.exists()) friend = friendRef.data().uid;
+            const data= friendRef.data();
+            if (!friendRef.exists() || !data) return;
 
 
-            const userFriendDocRef = doc(db, "users", user.uid, "friends", friend);
-            const friendFriendDocRef = doc(db, "users", friend, "friends", user.uid);
+            const userFriendDocRef = db().collection("users").doc(user.uid).collection("friends").doc(data.uid);
+            const friendFriendDocRef = db().collection("friends").doc(data.uid).collection("users").doc(user.uid);
 
             try {
                 const friendData = { timestamp: serverTimestamp() };
-                await setDoc(userFriendDocRef, friendData);
-                await setDoc(friendFriendDocRef, friendData);
+                await userFriendDocRef.set(friendData);
+                await friendFriendDocRef.set(friendData);
                 await removeFriendRequest(friend);
 
             } catch (error) {
@@ -186,9 +193,9 @@ const Page = () => {
     const removeFriendRequest = async (friend: string) => {
         if (!user) return;
 
-        const docRef = doc(db, "users", user.uid);
+        const docRef = db().collection("users").doc(user.uid);
         try {
-            await updateDoc(docRef, {
+            await docRef.update({
                 friendRequests: arrayRemove(friend)
             });
             await fetchFriendRequestsAndUsernames();
@@ -201,9 +208,9 @@ const Page = () => {
     const removeGroupInvite = async (groupID: string) => {
         if (!user) return;
 
-        const docRef = doc(db, "users", user.uid);
+        const docRef = db().collection("users").doc(user.uid);
         try {
-            await updateDoc(docRef, {
+            await docRef.update({
                 groupRequests: arrayRemove(groupID)
             });
             await fetchGroupRequests();
