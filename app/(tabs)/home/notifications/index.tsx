@@ -297,10 +297,12 @@ const styles = StyleSheet.create({
     },
     topBar: {
         flexDirection: 'row',
-        paddingVertical: height/90,
+        justifyContent: 'space-between',
+        paddingHorizontal: width/20,
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
-        paddingHorizontal: width/50,
+        alignItems: 'center',
+        height: height/20
     },
     topBarName: {
         color: '#D3D3FF',

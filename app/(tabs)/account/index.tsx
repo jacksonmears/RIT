@@ -629,7 +629,9 @@ const Page = () => {
                 <Text style={styles.topBarText}>{user?.displayName}</Text>
             </View>
             <View>
-                <Button title="Logout" onPress={handleLogout} />
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                    <Text>LOGOUT</Text>
+                </TouchableOpacity>
             </View>
         </View>
     )
@@ -664,7 +666,7 @@ const Page = () => {
 
     const renderPfp = () => (
         <View style={styles.pfpAndInfo}>
-            <TouchableOpacity style={styles.pfpBox} onPress={() => router.push("/account/editPfp")}>
+            <TouchableOpacity style={styles.pfpBox} onPress={() => router.push({pathname: "/account/editPfp", params: {rawName: totalCharacters, rawPhotoURL: encodeURIComponent(pfp)}})}>
                 <View>
                     {pfp ? (
                         <Image source={{ uri: pfp }} style={styles.avatar} />
@@ -716,15 +718,14 @@ const Page = () => {
                 data={postContents}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item, index }) => (
-                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {idT: user?.uid, contentT: item.content, captionT: item.caption, userNameT: user?.displayName, mode: item.mode, photoURL: encodeURIComponent(pfp)}})}>
+                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user?.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user?.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp)}})}>
                         <View style={styles.itemContainer}>
                             <AccountPost post={item} index={index}/>
                         </View>
                     </TouchableOpacity>
 
                 )}
-                // contentContainerStyle={styles.flatListContentContainer}
-                // ItemSeparatorComponent={() => <View style={styles.separator} />}
+
                 refreshing={refreshing}              // 👈 NEW
                 onRefresh={onRefresh}                // 👈 NEW
                 numColumns={3}
@@ -753,10 +754,17 @@ const styles = StyleSheet.create({
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        padding: 10,
-        borderBottomWidth: 0.5,
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
+    },
+    logoutButton: {
+        backgroundColor: "red",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: width/100
     },
     pfpBox: {
         marginTop: 30,

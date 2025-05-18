@@ -81,10 +81,13 @@ const styles = StyleSheet.create({
         backgroundColor: "black",
     },
     topRow: {
-        flexDirection: "row",
-        paddingVertical: height/40,
-        justifyContent: "space-between",
-        marginHorizontal: width/20,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
+        borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
     backText: {
         color: "white",

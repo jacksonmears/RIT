@@ -41,6 +41,12 @@
           "recordAudioAndroid": true
         }
       ],
+      [
+      "react-native-google-mobile-ads",
+          {
+            "androidAppId": "ca-app-pub-8973563413624978~5877710266"
+          }
+      ],
       "expo-router",
       "expo-image-picker",
       [

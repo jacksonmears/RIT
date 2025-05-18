@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
 import { auth, db, storage } from '@/firebase';
 import { Checkbox } from 'react-native-paper';
-import React, { useEffect, useState } from "react";
+import React, {use, useEffect, useState} from "react";
 import { serverTimestamp } from "firebase/firestore"; // Keep for types, but use db methods directly
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
@@ -24,6 +24,7 @@ const Page = () => {
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
     const [selectAll, setSelectAll] = useState<boolean>(false);
+
 
     useEffect(() => {
         if (!user) return;
@@ -75,8 +76,8 @@ const Page = () => {
             .map((groupId) => ({ id: groupId }));
         const hasSelectedGroup = [...selectedGroups.values()].some(value => value);
 
-        if (!user || !parsedGroups.length || !hasSelectedGroup) return;
-
+        if (!hasSelectedGroup) return;
+        console.log("here with selected group", selectedGroups);
         try {
             const postRef = await db().collection("posts").add({
                 sender_id: user.uid,
@@ -89,7 +90,7 @@ const Page = () => {
 
             const postURL = mode === "photo"
                 ? await uploadPhoto(postID)
-                : await uploadVideo(postID);
+                : await uploadVideo(postID, localUri);
 
             if (!postURL) return;
 
@@ -101,6 +102,7 @@ const Page = () => {
                 timestamp: serverTimestamp(),
             });
 
+            console.log(postID, " added to groups ", parsedGroups);
             await addPostToGroups(parsedGroups, postID);
 
         } catch (error) {
@@ -121,12 +123,14 @@ const Page = () => {
     };
 
 
-    const uploadVideo = async (postID: string, localUri?: string): Promise<string | undefined> => {
-        if (!localUri) return ;
+    const uploadVideo = async (postID: string, localUri: string): Promise<string | undefined> => {
+        if (!localUri) return;
+
 
         try {
             const ref = storage().ref(`postVideos/${postID}.mov`);
             await ref.putFile(localUri);
+            console.log("uploading video", localUri);
             return await ref.getDownloadURL();
         } catch (error) {
             console.error('Upload failed:', error);
@@ -169,6 +173,7 @@ const Page = () => {
     };
 
     const doneButton = async () => {
+        console.log("pensi")
         await createPost();
         router.push({
             pathname: "/create",
@@ -296,10 +301,11 @@ const styles = StyleSheet.create({
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: width / 20,
-        paddingVertical: height / 90,
-        borderBottomWidth: height / 1000,
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
 
     topBarText: {
