@@ -1,6 +1,6 @@
 import {View, Text, Image, StyleSheet, TouchableOpacity, Dimensions,TextInput, ActivityIndicator} from "react-native";
 import {useLocalSearchParams, useRouter} from "expo-router";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Video from "react-native-video";
 

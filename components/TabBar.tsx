@@ -1,15 +1,16 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useLinkBuilder, useTheme } from '@react-navigation/native';
-import { Text, PlatformPressable } from '@react-navigation/elements';
+import { StyleSheet, View, Dimensions } from 'react-native';
+import { useLinkBuilder} from '@react-navigation/native';
+import { PlatformPressable } from '@react-navigation/elements';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 const HIDDEN_ROUTES = ['create',];
 
+const { height, width } = Dimensions.get('window');
+
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-    const { colors } = useTheme();
+    // const { colors } = useTheme();
     const { buildHref } = useLinkBuilder();
     const primaryColor = '#D3D3FF';
     const secondaryColor = 'grey';
@@ -32,15 +33,15 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     };
 
     return (
-        <View style={styles.tabbar}>
+        <View style={styles.tabBar}>
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
-                const label =
-                    options.tabBarLabel !== undefined
-                        ? options.tabBarLabel
-                        : options.title !== undefined
-                            ? options.title
-                            : route.name;
+                // const label =
+                //     options.tabBarLabel !== undefined
+                //         ? options.tabBarLabel
+                //         : options.title !== undefined
+                //             ? options.title
+                //             : route.name;
 
                 const isFocused = state.index === index;
 
@@ -63,17 +64,17 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     });
                 };
 
-                let renderedLabel: React.ReactNode;
-                if (typeof label === 'function') {
-                    renderedLabel = label({
-                        focused: isFocused,
-                        color: isFocused ? colors.primary : colors.text,
-                        position: 'below-icon', // adjust as needed
-                        children: route.name,
-                    });
-                } else {
-                    renderedLabel = label;
-                }
+                // let renderedLabel: React.ReactNode;
+                // if (typeof label === 'function') {
+                //     renderedLabel = label({
+                //         focused: isFocused,
+                //         color: isFocused ? colors.primary : colors.text,
+                //         position: 'below-icon', // adjust as needed
+                //         children: route.name,
+                //     });
+                // } else {
+                //     renderedLabel = label;
+                // }
 
                 const iconKey = route.name as keyof typeof icons;
                 const IconComponent = icons[iconKey];
@@ -81,7 +82,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 return (
                     <PlatformPressable
                         key={route.key}
-                        style={styles.tabbarItem}
+                        style={styles.tabBarItem}
                         href={buildHref(route.name, route.params)}
                         accessibilityState={isFocused ? { selected: true } : {}}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
@@ -101,20 +102,20 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 const styles = StyleSheet.create({
-    tabbar: {
+    tabBar: {
         position: 'absolute',
         bottom: 0,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: 'black',
-        paddingVertical: 15,
+        paddingVertical: height/60,
     },
-    tabbarItem: {
+    tabBarItem: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 4
+        gap: width/100
     },
 });
 

@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
         color: "#D3D3FF",
     },
     groups: {
-        marginTop: height/20,
+        marginTop: height/30,
         flex: 1,
         marginHorizontal: width/50,
     },

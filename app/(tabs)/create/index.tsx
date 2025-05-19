@@ -298,8 +298,8 @@ const styles = StyleSheet.create({
     centerWrapper: {
         justifyContent: 'center',
         alignItems: 'center',
-        width: 1,
-        height: 1,
+        width: width/400,
+        height: height/900,
     },
     circleWrapper: {
         position: 'absolute',

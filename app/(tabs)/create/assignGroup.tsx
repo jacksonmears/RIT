@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
 import { auth, db, storage } from '@/firebase';
 import { Checkbox } from 'react-native-paper';
-import React, {use, useEffect, useState} from "react";
+import React, { useEffect, useState} from "react";
 import { serverTimestamp } from "firebase/firestore"; // Keep for types, but use db methods directly
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
@@ -77,7 +77,6 @@ const Page = () => {
         const hasSelectedGroup = [...selectedGroups.values()].some(value => value);
 
         if (!hasSelectedGroup) return;
-        console.log("here with selected group", selectedGroups);
         try {
             const postRef = await db().collection("posts").add({
                 sender_id: user.uid,
@@ -102,7 +101,6 @@ const Page = () => {
                 timestamp: serverTimestamp(),
             });
 
-            console.log(postID, " added to groups ", parsedGroups);
             await addPostToGroups(parsedGroups, postID);
 
         } catch (error) {
@@ -130,29 +128,12 @@ const Page = () => {
         try {
             const ref = storage().ref(`postVideos/${postID}.mov`);
             await ref.putFile(localUri);
-            console.log("uploading video", localUri);
             return await ref.getDownloadURL();
         } catch (error) {
             console.error('Upload failed:', error);
         }
     };
 
-
-    // const uploadVideo = async (postID: string) => {
-    //     if (!user) return;
-    //
-    //     try {
-    //         const response = await fetch(localUri);
-    //         const blob = await response.blob();
-    //
-    //         const ref = storage().ref(`postVideos/${postID}.mov`);
-    //         await uploadBytes(ref, blob);
-    //
-    //         return getDownloadURL(ref);
-    //     } catch (error) {
-    //         console.error(error);
-    //     }
-    // };
 
     const addPostToGroups = async (parsedGroups: { id: string }[], postID: string) => {
         try {
@@ -173,7 +154,6 @@ const Page = () => {
     };
 
     const doneButton = async () => {
-        console.log("pensi")
         await createPost();
         router.push({
             pathname: "/create",

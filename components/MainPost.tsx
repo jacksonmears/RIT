@@ -92,9 +92,6 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
                     </View>
                     <Text style={styles.username}>{post.userName}</Text>
                 </View>
-                {/*<TouchableOpacity>*/}
-                {/*    <Text style={styles.username}>...</Text>*/}
-                {/*</TouchableOpacity>*/}
             </View>
 
 

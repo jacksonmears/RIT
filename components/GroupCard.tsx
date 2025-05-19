@@ -1,4 +1,4 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import AntDesign from '@expo/vector-icons/AntDesign';
 
@@ -12,6 +12,8 @@ interface Group {
 interface GroupCardProps {
     group: Group;
 }
+
+const {width, height} = Dimensions.get("window");
 
 const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
     const router = useRouter();
@@ -28,8 +30,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
             <View style={styles.info}>
                 <Text style={styles.name}>{group.name}</Text>
                 <TouchableOpacity onPress={() => router.push('/create')}>
-                    <AntDesign name="videocamera" size={24} color="#D3D3FF" />
-
+                    <AntDesign name="videocamera" size={height/33} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>
@@ -40,18 +41,11 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: "row",
         alignItems: "center",
-        // backgroundColor: "#1c1c1c",
-        padding: 15,
-        borderRadius: 10,
-        marginBottom: 10,
-        borderWidth: 1,
+        padding: width/20,
+        borderRadius: width/40,
+        marginBottom: height/100,
+        borderWidth: width/400,
         borderColor: "#D3D3FF",
-    },
-    image: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 10,
     },
     info: {
         flex: 1,
@@ -60,12 +54,12 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     name: {
-        fontSize: 18,
+        fontSize: height/50,
         fontWeight: "bold",
         color: "white",
     },
     description: {
-        fontSize: 14,
+        fontSize: height/55,
         color: "gray",
     },
 });

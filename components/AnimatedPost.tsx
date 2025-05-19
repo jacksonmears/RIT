@@ -1,7 +1,7 @@
 import React from 'react';
 import Animated, { useAnimatedStyle, SharedValue } from 'react-native-reanimated';
 import MainPost from '@/components/MainPost';
-import {Dimensions, StyleSheet, View} from "react-native"
+import {StyleSheet, View} from "react-native"
 import {BannerAd, BannerAdSize, TestIds} from "react-native-google-mobile-ads";
 
 interface AnimatedPostProps {
@@ -10,13 +10,13 @@ interface AnimatedPostProps {
     scrollY: SharedValue<number>;
     postHeight: number;
     adHeight: number;
+    personalizedAds: boolean;
 }
 
-const {width, height} = Dimensions.get('window');
 
 
 
-export function AnimatedPost({ post, index, scrollY, postHeight, adHeight }: AnimatedPostProps) {
+export function AnimatedPost({ post, index, scrollY, postHeight, adHeight, personalizedAds }: AnimatedPostProps) {
     const style = useAnimatedStyle(() => {
         const chunksBefore = Math.floor(index / 2);
         const isAd        = index % 2 === 1;
@@ -42,7 +42,11 @@ export function AnimatedPost({ post, index, scrollY, postHeight, adHeight }: Ani
                 <MainPost post={post} />
             :
                 <View style={[styles.container, { height: adHeight}]}>
-                    <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.MEDIUM_RECTANGLE} />
+                    <BannerAd
+                        unitId={TestIds.BANNER}
+                        size={BannerAdSize.MEDIUM_RECTANGLE}
+                        requestOptions={{ requestNonPersonalizedAdsOnly: !personalizedAds}}
+                    />
                 </View>
             }
         </Animated.View>

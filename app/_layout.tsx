@@ -14,7 +14,7 @@ const RootLayout = () => {
     const router = useRouter();
     const segments = useSegments();
 
-    // Subscribe to auth state changes
+    // Subscribe to auth state changesF
     useEffect(() => {
         return auth().onAuthStateChanged(u => {
             setUser(u);
