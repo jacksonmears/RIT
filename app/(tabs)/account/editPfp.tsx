@@ -1,9 +1,8 @@
-import React, {useState, useEffect, use} from 'react';
+import React, {useState} from 'react';
 import {
     View,
     Text,
     Image,
-    Button,
     StyleSheet,
     Alert,
     ActivityIndicator,
@@ -25,10 +24,8 @@ const {width, height} = Dimensions.get('window');
 export default function Page() {
     const user = auth().currentUser!;
     const [localUri, setLocalUri] = useState<string | null>(null);
-    const [photoURL, setPhotoURL] = useState<string | null>(user.photoURL);
     const [loading, setLoading] = useState(false);
-    const { rawName, rawPhotoURL } = useLocalSearchParams()
-    const name = String(rawName)
+    const { rawPhotoURL } = useLocalSearchParams()
     const router = useRouter();
 
 
@@ -36,24 +33,18 @@ export default function Page() {
         try {
             const uri = await pickImageAsync();
             if (uri) setLocalUri(uri);
-            handleUpload().catch(() => {
-                // console.error(err);
-            })
+            return uri;
         } catch (err: any) {
             Alert.alert('Error', err.message);
         }
     };
 
-    const handleUpload = async () => {
+    const handleUpload = async (localUri: string) => {
         if (!localUri) return;
         setLoading(true);
         try {
-            // upload to Storage → get download URL
             const downloadURL = await uploadProfileImageAsync(localUri);
-            // set it on the Auth user
             await setAuthUserProfilePhoto(downloadURL);
-            setPhotoURL(downloadURL);
-            setLocalUri(null);
             Alert.alert('Success', 'Your profile picture was updated.');
         } catch (err: any) {
             Alert.alert('Upload failed', err.message);
@@ -61,6 +52,22 @@ export default function Page() {
             setLoading(false);
         }
     };
+
+    const handleSave = async () => {
+        try {
+            const picPath = await handlePick();
+            if (!picPath) return;
+            await handleUpload(picPath);
+        } catch (error) {
+            console.error(error);
+        }
+
+
+
+
+    }
+
+
 
     const handleDelete = async () => {
         Alert.alert(
@@ -79,8 +86,7 @@ export default function Page() {
                             await db().collection("users").doc(user.uid).update({
                                 photoURL: "",
                             })
-                            // await storage.ref('photos').set(photoURL);
-                            setPhotoURL(null);
+                            setLocalUri(null);
                             Alert.alert('Deleted', 'Profile picture removed.');
                         } catch (err: any) {
                             Alert.alert('Delete failed', err.message);
@@ -105,7 +111,6 @@ export default function Page() {
             </View>
 
 
-            {/*<Text style={styles.name}>{name}</Text>*/}
         <View style={{alignItems: "center"}}>
             <View style={styles.avatarContainer}>
                 {loading ? (
@@ -122,7 +127,7 @@ export default function Page() {
 
             </View>
 
-            <TouchableOpacity onPress={handlePick} style={styles.newPicButton}>
+            <TouchableOpacity onPress={handleSave} style={styles.newPicButton}>
                 <Text>Choose New Photo</Text>
             </TouchableOpacity>
 

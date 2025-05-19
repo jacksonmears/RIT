@@ -1,7 +1,7 @@
 import { Text, View, StyleSheet, FlatList, Dimensions,TouchableOpacity, Image } from "react-native";
 import React, { useState, useEffect } from "react";
 import { auth, db } from '@/firebase';
-import {arrayRemove, collection, doc, serverTimestamp} from "firebase/firestore";
+import {arrayRemove, serverTimestamp} from "firebase/firestore";
 import { useRouter } from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Entypo from '@expo/vector-icons/Entypo';

@@ -3,7 +3,7 @@ import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withTiming,
-    withDelay, SlideInLeft,
+    withDelay,
 } from 'react-native-reanimated';
 import SearchCard from './SearchCard';
 

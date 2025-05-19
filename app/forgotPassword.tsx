@@ -16,7 +16,6 @@ const Page = () => {
         try {
             await auth().sendPasswordResetEmail(email);
             setIsSent(true);
-            console.log("email sent")
         } catch (error) {
             alert(error);
         }

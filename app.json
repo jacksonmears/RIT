@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.jackson.recap",
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera"
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone"
       }
     },
     "android": {
@@ -21,7 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.jackson.recap",
-      "googleServicesFile": "C:\\users/jacks/RIT/google-services.json",
+      "googleServicesFile": "./android/app/google-services.json",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
@@ -44,7 +45,10 @@
       [
       "react-native-google-mobile-ads",
           {
-            "androidAppId": "ca-app-pub-8973563413624978~5877710266"
+            "androidAppId": "ca-app-pub-8973563413624978~5877710266",
+            "iosAppId": "ca-app-pub-8973563413624978~9483882975",
+            "delayAppMeasurementInit": true,
+            "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."
           }
       ],
       "expo-router",

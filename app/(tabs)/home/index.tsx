@@ -1,11 +1,12 @@
-import React, {use, useEffect, useState} from 'react';
-import {ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View,} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {auth, db} from "@/firebase";
 import {useRouter} from "expo-router";
 import {AnimatedPost} from "@/components/AnimatedPost";
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {runOnJS, useAnimatedStyle, useSharedValue, withDecay} from 'react-native-reanimated';
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useConsent } from '@/hooks/useConsent';
 
 const { height, width } = Dimensions.get('window');
 type PostType = {
@@ -39,6 +40,9 @@ const Page = () => {
     const MIN_POSITION = - ((postContents.length - 1) * POST_HEIGHT + (postContents.length - 1) * AD_HEIGHT);
     const position   = useSharedValue(0);
     const startY     = useSharedValue(0);
+    // const [personalizedAds, setPersonalizedAds] = useState<boolean>(false);
+    const personalizedAds = useConsent();
+
 
 
     useEffect(() => {
@@ -74,7 +78,7 @@ const Page = () => {
 
     const feed = React.useMemo(() => {
         const items: Array<{ type: 'post'; post: PostType } | { type: 'ad'; id: string }> = [];
-        postContents.forEach((post, i) => {
+        postContents.forEach((post) => {
             items.push({type: 'post', post});
             // only insert an ad _after_ each post (you could skip the last one if you want)
             items.push({type: 'ad', id: `ad-${post.id}`});
@@ -151,11 +155,16 @@ const Page = () => {
     };
 
 
+
     const getNotifications = async () => {
         if (!user) return;
         const userInfo = await db().collection("users").doc(user.uid).get();
         const data = userInfo.data();
         if (!userInfo.exists() || !data) return;
+
+        // const pAds = data.personalizedAds;
+        // if (pAds === undefined) askUserConsent()
+        // setPersonalizedAds(pAds==="true");
 
         setFriendNotifications(data.friendRequests.length);
         setGroupsNotifications(data.groupRequests.length);
@@ -224,6 +233,35 @@ const Page = () => {
 
 
 
+    // const askUserConsent = () => {
+    //     Alert.alert(
+    //         "Personalized Ads Consent",
+    //         "Do you want to allow personalized ads to improve your experience?",
+    //         [
+    //             {
+    //                 text: "No",
+    //                 onPress: () => saveConsent(false),
+    //                 style: "cancel"
+    //             },
+    //             { text: "Yes", onPress: () => saveConsent(true) }
+    //         ],
+    //         { cancelable: false }
+    //     );
+    // };
+
+    // const saveConsent = async (consent: boolean) => {
+    //     if (!user) return;
+    //     try {
+    //         await db().collection("users").doc(user.uid).update({
+    //             personalizedAds: consent ? "true" : "false"
+    //         });
+    //         setPersonalizedAds(consent);
+    //     } catch (error) {
+    //         console.error("Error saving consent:", error);
+    //     }
+    // };
+
+
 
 
 
@@ -266,6 +304,14 @@ const Page = () => {
     }));
 
 
+    if (personalizedAds === null) {
+        return (
+            <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" />
+            </View>
+        );
+    }
+
 
     const renderTopBar = () => (
         <View style={styles.topBar}>
@@ -297,46 +343,17 @@ const Page = () => {
             :
                 <GestureDetector gesture={panGesture}>
                     <View>
-                        {feed.map((item, idx) => {
-                            if (item.type === 'post') {
-                                return (
-                                    <AnimatedPost
-                                        key={item.post.id}
-                                        post={item.post}
-                                        index={idx}
-                                        scrollY={position}
-                                        postHeight={POST_HEIGHT}
-                                        adHeight={AD_HEIGHT}
-                                    />
-                                );
-                            } else if (idx !== feed.length - 1) {
-                                return (
-                                    // <View
-                                    //     key={item.id}
-                                    //     style={{
-                                    //         height: AD_HEIGHT,
-                                    //         marginVertical: 10,
-                                    //         borderWidth: 1,
-                                    //         borderColor: 'gray',
-                                    //         justifyContent: 'center',
-                                    //         alignItems: 'center',
-                                    //     }}
-                                    // >
-                                    //     <Text style={{ color: 'white' }}>–– Ad slot ––</Text>
-                                    //     {/* later swap in your <BannerAd … /> here */}
-                                    // </View>
-                                    <AnimatedPost
-                                        post={""}
-                                        index={idx}
-                                        scrollY={position}
-                                        postHeight={POST_HEIGHT}
-                                        adHeight={AD_HEIGHT}
-                                    >
-
-                                    </AnimatedPost>
-                                );
-                            }
-                        })}
+                        {feed.map((item, idx) => (
+                            <AnimatedPost
+                                key={item.type === 'post' ? item.post!.id : item.id!}
+                                post={item.type === 'post' ? item.post : ''}
+                                index={idx}
+                                scrollY={position}
+                                postHeight={POST_HEIGHT}
+                                adHeight={AD_HEIGHT}
+                                personalizedAds={personalizedAds}
+                            />
+                        ))}
                     </View>
                 </GestureDetector>
 
@@ -394,6 +411,8 @@ const styles = StyleSheet.create({
         fontSize: height/100,
         color: "white",
     },
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
 });
 
 export default Page;

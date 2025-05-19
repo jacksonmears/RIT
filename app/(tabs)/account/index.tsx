@@ -442,7 +442,6 @@ import React, {useState, useEffect, useCallback} from 'react';
 import {
     View,
     Text,
-    Button,
     StyleSheet,
     Image,
     Dimensions,
@@ -666,7 +665,7 @@ const Page = () => {
 
     const renderPfp = () => (
         <View style={styles.pfpAndInfo}>
-            <TouchableOpacity style={styles.pfpBox} onPress={() => router.push({pathname: "/account/editPfp", params: {rawName: totalCharacters, rawPhotoURL: encodeURIComponent(pfp)}})}>
+            <TouchableOpacity style={styles.pfpBox} onPress={() => router.push({pathname: "/account/editPfp", params: {rawPhotoURL: encodeURIComponent(pfp)}})}>
                 <View>
                     {pfp ? (
                         <Image source={{ uri: pfp }} style={styles.avatar} />
@@ -682,13 +681,13 @@ const Page = () => {
             </TouchableOpacity>
             <View style={styles.pfpSeparator}></View>
             <View style={styles.infoBox}>
-                <View style={styles.info}>
-                    <View style={styles.postsInfo}>
+                <View style={styles.flexDirectionRow}>
+                    <View style={styles.flexDirectionRow}>
                         <Text style={styles.infoText}>{numPosts}</Text>
                         <Text style={styles.genericText}> posts</Text>
                     </View>
                     <View style={styles.pfpSeparator}></View>
-                    <View style={styles.friendInfo}>
+                    <View style={styles.flexDirectionRow}>
                         <Text style={styles.infoText}>{numFriends}</Text>
                         <Text style={styles.genericText}> friends</Text>
                     </View>
@@ -726,8 +725,8 @@ const Page = () => {
 
                 )}
 
-                refreshing={refreshing}              // 👈 NEW
-                onRefresh={onRefresh}                // 👈 NEW
+                refreshing={refreshing}
+                onRefresh={onRefresh}
                 numColumns={3}
             />
         </View>
@@ -767,21 +766,19 @@ const styles = StyleSheet.create({
         padding: width/100
     },
     pfpBox: {
-        marginTop: 30,
-        marginBottom: 15
+        marginTop: height/40,
+        marginBottom: height/50
     },
     infoBar: {
-        marginTop: 30,
-        marginHorizontal: 40,
-
+        marginHorizontal: width/10,
         alignItems: "center",
     },
     pfpAndInfo: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: height/50,
     },
     pfpSeparator: {
-        width: 50
+        width: width/9
     },
     infoBox: {
         alignItems: 'center',
@@ -790,17 +787,11 @@ const styles = StyleSheet.create({
         color: "#D3D3FF",
         fontWeight: 'bold',
     },
-    info: {
-        flexDirection: 'row',
-    },
-    postsInfo: {
-        flexDirection: 'row',
-    },
-    friendInfo: {
+    flexDirectionRow: {
         flexDirection: 'row',
     },
     bioBox: {
-        marginTop: 10
+        marginTop: height/100
     },
     genericText: {
         color: 'white',
@@ -810,15 +801,14 @@ const styles = StyleSheet.create({
     },
     itemContainer: {
         flex: 1 / 3,
-        // paddingVertical: 0.5,
-        // paddingHorizontal: 0.5,
+
     },
     postContainer: {
         flex: 1,
     },
     avatar: {
-        width: 150,
-        height: 150,
+        width: width/2.5,
+        height: width/2.5,
         borderRadius: 999,
     },
     placeholder: {
@@ -829,7 +819,6 @@ const styles = StyleSheet.create({
     placeholderText: {
         color: 'white',
     },
-
     topBarText: {
         color: "#D3D3FF",
     },
@@ -840,27 +829,26 @@ const styles = StyleSheet.create({
     changePfp: {
         backgroundColor: "black",
         borderRadius: 999,
-        padding: 3,
+        padding: width/100,
         position: 'absolute',
-        top: 110,
-        left: 110
-
+        top: height/8,
+        left: width/3.3
     },
     editContainer: {
-        marginVertical: 20,
+        marginVertical: height/50,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 5,
-        borderWidth: 1,
+        borderRadius: width/100,
+        borderWidth: width/400,
         borderColor: "#D3D3FF",
     },
     containerName: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 25,
+        marginTop: height/33,
     },
     char: {
-        fontSize: 20,
+        fontSize: height/35,
         color: "#D3D3FF",
     },
     bioAndButtonBox: {

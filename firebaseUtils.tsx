@@ -11,7 +11,8 @@ export async function pickImageAsync(): Promise<string | null> {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes:
+        "images",
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -39,8 +40,7 @@ export async function uploadProfileImageAsync(localUri: string): Promise<string>
 
     await ref.put(blob);
 
-    const downloadURL = await ref.getDownloadURL();
-    return downloadURL;
+    return await ref.getDownloadURL();
 }
 
 export async function setAuthUserProfilePhoto(downloadURL: string): Promise<void> {
