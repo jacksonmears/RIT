@@ -4,7 +4,7 @@
     "slug": "RIT",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/RiTAppIcon1-0.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -25,7 +25,8 @@
       "googleServicesFile": "./android/app/google-services.json",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -43,20 +44,20 @@
         }
       ],
       [
-      "react-native-google-mobile-ads",
-          {
-            "androidAppId": "ca-app-pub-8973563413624978~5877710266",
-            "iosAppId": "ca-app-pub-8973563413624978~9483882975",
-            "delayAppMeasurementInit": true,
-            "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."
-          }
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-8973563413624978~5877710266",
+          "iosAppId": "ca-app-pub-8973563413624978~9483882975",
+          "delayAppMeasurementInit": true,
+          "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."
+        }
       ],
       "expo-router",
       "expo-image-picker",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/RiTAppIcon1-0.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -83,6 +84,7 @@
       "eas": {
         "projectId": "63bd0e9e-20a2-4276-bcda-372bcee492fe"
       }
-    }
+    },
+    "owner": "jackson.mears"
   }
 }

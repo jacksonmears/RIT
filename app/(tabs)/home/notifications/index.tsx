@@ -1,7 +1,7 @@
 import { Text, View, StyleSheet, FlatList, Dimensions,TouchableOpacity, Image } from "react-native";
 import React, { useState, useEffect } from "react";
 import { auth, db } from '@/firebase';
-import {arrayRemove, serverTimestamp} from "firebase/firestore";
+import {arrayRemove} from "firebase/firestore";
 import { useRouter } from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Entypo from '@expo/vector-icons/Entypo';
@@ -142,7 +142,7 @@ const Page = () => {
         try {
             await docRef.set({
                 name: groupName,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             });
 
         } catch (error) {
@@ -157,7 +157,7 @@ const Page = () => {
         try {
             await colRef.set({
                 name: user.displayName,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             });
         } catch (err) {
             console.error(err);
@@ -179,7 +179,7 @@ const Page = () => {
             const friendFriendDocRef = db().collection("friends").doc(data.uid).collection("users").doc(user.uid);
 
             try {
-                const friendData = { timestamp: serverTimestamp() };
+                const friendData = { timestamp: db.FieldValue.serverTimestamp(),};
                 await userFriendDocRef.set(friendData);
                 await friendFriendDocRef.set(friendData);
                 await removeFriendRequest(friend);
