@@ -2,7 +2,6 @@ import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from '
 import { auth, db, storage } from '@/firebase';
 import { Checkbox } from 'react-native-paper';
 import React, { useEffect, useState} from "react";
-import { serverTimestamp } from "firebase/firestore"; // Keep for types, but use db methods directly
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -82,7 +81,7 @@ const Page = () => {
                 sender_id: user.uid,
                 mode: mode,
                 caption: caption,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             });
 
             const postID = postRef.id;
@@ -98,7 +97,7 @@ const Page = () => {
             });
 
             await db().collection("users").doc(user.uid).collection("posts").doc(postID).set({
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             });
 
             await addPostToGroups(parsedGroups, postID);
@@ -141,10 +140,10 @@ const Page = () => {
                 parsedGroups.map(async (group) => {
                     await db().collection("groups").doc(group.id).collection("messages").doc(postID).set({
                         mode: mode,
-                        timestamp: serverTimestamp(),
+                        timestamp: db.FieldValue.serverTimestamp(),
                     })
                     await db().collection("posts").doc(postID).collection("groups").doc(group.id).set({
-                        timestamp: serverTimestamp(),
+                        timestamp: db.FieldValue.serverTimestamp(),
                     })
                 })
             );

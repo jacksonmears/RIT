@@ -12,7 +12,6 @@ import {
 import React, { useEffect, useState } from "react";
 import { db, auth } from "@/firebase"
 import {useRouter} from 'expo-router';
-import { serverTimestamp } from 'firebase/firestore';
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {Checkbox} from "react-native-paper";
@@ -88,7 +87,7 @@ const Page = () => {
         try {
             const docRef = await db().collection("groups").add({
                 name: groupName,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
                 creator: user.uid
             });
 
@@ -131,7 +130,7 @@ const Page = () => {
 
             await docRef.set({
                 name: groupName,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             })
         } catch (err) {
             console.error(err);
@@ -164,7 +163,7 @@ const Page = () => {
             const colRef = db().collection("groups").doc(groupID).collection("users").doc(user.uid);
             await colRef.set({
                 name: user.displayName,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             })
         } catch(err) {
             console.error(err);

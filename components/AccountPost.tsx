@@ -9,7 +9,7 @@ import {
     TouchableWithoutFeedback, Dimensions
 } from "react-native";
 import { useRouter } from "expo-router";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {auth,db} from "@/firebase";
 import {ResizeMode, Video as VideoAV} from "expo-av";
 import storage from "@react-native-firebase/storage";
@@ -34,6 +34,10 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
     const user = auth().currentUser;
     const router = useRouter();
     const [sheetVisible, setSheetVisible] = useState<boolean>(false);
+
+    useEffect(() => {
+        console.log(post.id)
+    }, []);
 
     const deleteCollection = async (collectionPath: string, batchSize: number) => {
         if (!collectionPath || !batchSize) return;
