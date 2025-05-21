@@ -35,9 +35,6 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
     const router = useRouter();
     const [sheetVisible, setSheetVisible] = useState<boolean>(false);
 
-    useEffect(() => {
-        console.log(post.id)
-    }, []);
 
     const deleteCollection = async (collectionPath: string, batchSize: number) => {
         if (!collectionPath || !batchSize) return;
