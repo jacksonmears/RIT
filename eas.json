@@ -4,6 +4,9 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "android": {
+      "prebuildCommand": "is android %% is android/gradlew"
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
@@ -12,6 +15,10 @@
       "distribution": "internal"
     },
     "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
       "autoIncrement": true,
       "env": {
         "GOOGLE_SERVICES_FILE": "./android/app/google-services.json"
