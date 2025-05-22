@@ -22,6 +22,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from "@expo/vector-icons/Feather";
 
 const {width, height} = Dimensions.get('window');
+const MAX_RECORDING_TIME = 300;
 
 const Page = () => {
     const router = useRouter();
@@ -34,6 +35,8 @@ const Page = () => {
     const isFocused = useIsFocused();
     const animatedValue = useRef(new Animated.Value(0)).current;
     const [isRecording, setRecording] = useState<boolean>(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const timerRef = useRef<number | null>(null);
 
 
     useEffect(() => {
@@ -62,10 +65,55 @@ const Page = () => {
     }, []);
 
 
+    useEffect(() => {
+        return () => {
+            // Cleanup timer on unmount
+            stopTimer();
+        };
+    }, []);
+
+
+    const startTimer = () => {
+        if (!timerRef) return;
+        setRecordingTime(0);
+        timerRef.current = setInterval(() => {
+            setRecordingTime(prev => {
+                if (prev >= MAX_RECORDING_TIME - 1) {
+                    handleStopRecordingDueToTimeLimit().catch();
+                    return prev;
+                }
+                return prev + 1;
+            });
+        }, 1000);
+    };
+
+    const stopTimer = () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
+
+    const handleStopRecordingDueToTimeLimit = async () => {
+        if (isRecording && cameraRef.current) {
+            try {
+                await cameraRef.current.stopRecording();
+            } catch (error) {
+                console.error(error);
+            }
+            await endRecording();
+            setRecording(false);
+            stopTimer();
+        }
+    };
+
+
     const handleRecordVideo = async () => {
         if (!cameraRef.current) return;
 
         try {
+            startTimer()
             cameraRef.current.startRecording({
                 onRecordingFinished: (videoFile: VideoFile) => {
 
@@ -169,6 +217,11 @@ const Page = () => {
     });
 
 
+    const timeLeft = MAX_RECORDING_TIME - recordingTime;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+
+
     // const handleTakePhoto = async () => {
     //     if (!cameraRef.current) return;
     //     try {
@@ -209,6 +262,13 @@ const Page = () => {
                 <TouchableOpacity onPress={() => router.push('/home')}>
                     <Feather name="x" size={height/30} color="#D3D3FF" style={styles.backButton}/>
                 </TouchableOpacity>
+                {isRecording && (
+                    <View >
+                        <Text style={{color: "white"}}>
+                            {`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}
+                        </Text>
+                    </View>
+                )}
             </View>
 
 

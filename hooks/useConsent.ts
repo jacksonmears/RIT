@@ -21,8 +21,8 @@ export function useConsent() {
             try {
                 // 1) Build your debug/testing options (remove or comment out in prod):
                 const options: AdsConsentInfoOptions = {
-                    debugGeography: AdsConsentDebugGeography.EEA,   // force EEA for testing
-                    testDeviceIdentifiers: ['EMULATOR'],            // your device’s ID or 'EMULATOR'
+                    // debugGeography: AdsConsentDebugGeography.EEA,   // force EEA for testing
+                    // testDeviceIdentifiers: ['EMULATOR'],            // your device’s ID or 'EMULATOR'
                     tagForUnderAgeOfConsent: false,
                 };
 

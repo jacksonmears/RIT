@@ -43,6 +43,7 @@ export function AnimatedPost({ post, index, scrollY, postHeight, adHeight, perso
             :
                 <View style={[styles.container, { height: adHeight}]}>
                     <BannerAd
+                        // unitId="ca-app-pub-8973563413624978/1838392908"
                         unitId={TestIds.BANNER}
                         size={BannerAdSize.MEDIUM_RECTANGLE}
                         requestOptions={{ requestNonPersonalizedAdsOnly: !personalizedAds}}
