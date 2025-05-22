@@ -1,7 +1,7 @@
-package com.jackson.recap
+package com.jackson.rit
 
-import com.jackson.recap.R
-import com.jackson.recap.BuildConfig
+import com.jackson.rit.R
+import com.jackson.rit.BuildConfig
 
 import android.app.Application
 import android.content.res.Configuration
