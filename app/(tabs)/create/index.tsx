@@ -22,7 +22,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from "@expo/vector-icons/Feather";
 
 const {width, height} = Dimensions.get('window');
-const MAX_RECORDING_TIME = 300;
+const MAX_RECORDING_TIME = 10;
 
 const Page = () => {
     const router = useRouter();
@@ -37,6 +37,7 @@ const Page = () => {
     const [isRecording, setRecording] = useState<boolean>(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef<number | null>(null);
+    const isStoppingRef = useRef(false);
 
 
     useEffect(() => {
@@ -46,8 +47,10 @@ const Page = () => {
             });
             setRecording(false);
             animatedValue.setValue(0);
+            setRecordingTime(0);
+            stopTimer();
         }
-    }, [isFocused, isRecording]);
+    }, [isFocused]);
 
 
     useEffect(() => {
@@ -76,10 +79,11 @@ const Page = () => {
     const startTimer = () => {
         if (!timerRef) return;
         setRecordingTime(0);
+        stopTimer()
         timerRef.current = setInterval(() => {
             setRecordingTime(prev => {
-                if (prev >= MAX_RECORDING_TIME - 1) {
-                    handleStopRecordingDueToTimeLimit().catch();
+                if (prev > MAX_RECORDING_TIME - 1) {
+                    stopRecordingDueToTimeLimit().catch()
                     return prev;
                 }
                 return prev + 1;
@@ -95,18 +99,18 @@ const Page = () => {
     };
 
 
-    const handleStopRecordingDueToTimeLimit = async () => {
-        if (isRecording && cameraRef.current) {
-            try {
-                await cameraRef.current.stopRecording();
-            } catch (error) {
-                console.error(error);
-            }
-            await endRecording();
-            setRecording(false);
-            stopTimer();
-        }
-    };
+    // const handleStopRecordingDueToTimeLimit = async () => {
+    //     if (isRecording && cameraRef.current) {
+    //         try {
+    //             handleStopVideo().catch()
+    //         } catch (error) {
+    //             console.error(error);
+    //         }
+    //         await endRecording();
+    //         setRecording(false);
+    //         stopTimer();
+    //     }
+    // };
 
 
     const handleRecordVideo = async () => {
@@ -188,6 +192,7 @@ const Page = () => {
 
     const beginRecording =  () => {
         if (!animatedValue) return;
+        startTimer();
 
         const animations = ({val}: { val: any }) => {
             Animated.timing(val, {
@@ -199,6 +204,24 @@ const Page = () => {
         animations({val: animatedValue});
 
     }
+
+
+    const stopRecordingDueToTimeLimit = async () => {
+        if (!isRecording || isStoppingRef.current || !cameraRef.current) return;
+
+        isStoppingRef.current = true;
+
+        try {
+            await handleStopVideo();
+            await endRecording();
+            setRecording(false);
+            stopTimer();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            isStoppingRef.current = false;
+        }
+    };
 
 
     const backgroundColor = animatedValue?.interpolate({
@@ -263,11 +286,9 @@ const Page = () => {
                     <Feather name="x" size={height/30} color="#D3D3FF" style={styles.backButton}/>
                 </TouchableOpacity>
                 {isRecording && (
-                    <View >
-                        <Text style={{color: "white"}}>
-                            {`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}
-                        </Text>
-                    </View>
+                    <Text style={{color: "white"}}>
+                        {`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}
+                    </Text>
                 )}
             </View>
 
