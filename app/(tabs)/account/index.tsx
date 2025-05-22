@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
         marginVertical: height/50,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: width/100,
+        borderRadius: width/101,
         borderWidth: width/400,
         borderColor: "#D3D3FF",
     },
