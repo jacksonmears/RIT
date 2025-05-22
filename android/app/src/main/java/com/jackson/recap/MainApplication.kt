@@ -1,5 +1,8 @@
 package com.jackson.recap
 
+import com.jackson.recap.R
+import com.jackson.recap.BuildConfig
+
 import android.app.Application
 import android.content.res.Configuration
 
