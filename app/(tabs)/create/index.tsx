@@ -20,9 +20,10 @@ import { useIsFocused } from '@react-navigation/native';
 import Svg, {Circle} from "react-native-svg";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from "@expo/vector-icons/Feather";
+import { useFocusEffect } from '@react-navigation/native';
 
 const {width, height} = Dimensions.get('window');
-const MAX_RECORDING_TIME = 10;
+const MAX_RECORDING_TIME = 300;
 
 const Page = () => {
     const router = useRouter();
@@ -37,20 +38,32 @@ const Page = () => {
     const [isRecording, setRecording] = useState<boolean>(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef<number | null>(null);
-    const isStoppingRef = useRef(false);
-
+    const [isTimeExpired, setTimeExpired] = useState(false);
 
     useEffect(() => {
-        if (!isFocused && isRecording && cameraRef.current) {
-            cameraRef.current.stopRecording().catch((err) => {
-                console.error(err);
-            });
-            setRecording(false);
-            animatedValue.setValue(0);
-            setRecordingTime(0);
-            stopTimer();
+        if (isTimeExpired) {
+            const endVideo = async () => {
+                await handleRecordingPressed();
+            }
+            endVideo().catch();
         }
-    }, [isFocused]);
+
+    }, [isTimeExpired]);
+
+
+    useFocusEffect(
+        React.useCallback(() => {
+            setRecording(false);
+            setRecordingTime(0);
+            animatedValue.setValue(0);
+            setTimeExpired(false);
+
+            return () => {
+                if (cameraRef.current && isRecording) cameraRef.current.stopRecording().catch(console.error);
+                stopTimer();
+            };
+        }, [])
+    );
 
 
     useEffect(() => {
@@ -68,22 +81,27 @@ const Page = () => {
     }, []);
 
 
-    useEffect(() => {
-        return () => {
-            // Cleanup timer on unmount
-            stopTimer();
-        };
-    }, []);
+    const handleRecordingPressed = async () => {
+        if (isRecording) {
+            if (cameraRef.current) await cameraRef.current.stopRecording();
+            await endRecording();
+            setRecording(false);
+        } else {
+            beginRecording().catch();
+            setRecording(true);
+        }
+    };
 
 
-    const startTimer = () => {
+
+    const startTimer = async () => {
         if (!timerRef) return;
         setRecordingTime(0);
         stopTimer()
         timerRef.current = setInterval(() => {
             setRecordingTime(prev => {
                 if (prev > MAX_RECORDING_TIME - 1) {
-                    stopRecordingDueToTimeLimit().catch()
+                    setTimeExpired(true);
                     return prev;
                 }
                 return prev + 1;
@@ -99,39 +117,34 @@ const Page = () => {
     };
 
 
-    // const handleStopRecordingDueToTimeLimit = async () => {
-    //     if (isRecording && cameraRef.current) {
-    //         try {
-    //             handleStopVideo().catch()
-    //         } catch (error) {
-    //             console.error(error);
-    //         }
-    //         await endRecording();
-    //         setRecording(false);
-    //         stopTimer();
-    //     }
-    // };
+    const beginRecording =  async () => {
+        if (!animatedValue || !cameraRef.current) return;
+        startTimer().catch();
 
 
-    const handleRecordVideo = async () => {
+
+        const animations = ({val}: { val: any }) => {
+            Animated.timing(val, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: false,
+            }).start();
+        }
+        animations({val: animatedValue});
+
+        await handleVideoFile();
+    }
+
+    const handleVideoFile = async () => {
         if (!cameraRef.current) return;
 
         try {
-            startTimer()
             cameraRef.current.startRecording({
                 onRecordingFinished: (videoFile: VideoFile) => {
-
-                    router.push({
-                        pathname: '/create/editFile',
-                        params: {
-                            fillerUri: videoFile.path,
-                            fillerMode: mode,
-                        },
-                    });
+                    router.push({pathname: '/create/editFile', params: {fillerUri: videoFile.path, fillerMode: mode,},});
                 },
                 onRecordingError: (error: CameraCaptureError) => {
-                    console.error('Recording error', error);
-                },
+                    console.error('Recording error', error);},
             });
         } catch (e) {
             console.error(e);
@@ -139,40 +152,12 @@ const Page = () => {
     };
 
 
-    const handleStopVideo = async () => {
-        if (!cameraRef.current) return;
-        await cameraRef.current.stopRecording();
-    };
 
-
-    const switchCamera = () => {
-        if (!cameraDevice) return;
-
-        const newDevice = cameraDevice.position === 'back'
-            ? devices.find(device => device.position === 'front')
-            : devices.find(device => device.position === 'back');
-
-        if (newDevice) {
-            setCameraDevice(newDevice);
-        }
-    };
-
-
-    const handleRecordingPressed = async () => {
-        if (isRecording) {
-            await handleStopVideo();
-            await endRecording();
-            setRecording(false);
-        } else {
-            beginRecording();
-            await handleRecordVideo();
-            setRecording(true);
-        }
-    };
 
 
     const endRecording = async () => {
-        if (!animatedValue) return;
+        if (!animatedValue || !cameraRef.current) return;
+        stopTimer();
 
         try {
             const animations = (val: any) => {
@@ -190,38 +175,21 @@ const Page = () => {
     };
 
 
-    const beginRecording =  () => {
-        if (!animatedValue) return;
-        startTimer();
-
-        const animations = ({val}: { val: any }) => {
-            Animated.timing(val, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: false,
-            }).start();
-        }
-        animations({val: animatedValue});
-
-    }
 
 
-    const stopRecordingDueToTimeLimit = async () => {
-        if (!isRecording || isStoppingRef.current || !cameraRef.current) return;
 
-        isStoppingRef.current = true;
+    const switchCamera = () => {
+        if (!cameraDevice) return;
 
-        try {
-            await handleStopVideo();
-            await endRecording();
-            setRecording(false);
-            stopTimer();
-        } catch (error) {
-            console.error(error);
-        } finally {
-            isStoppingRef.current = false;
+        const newDevice = cameraDevice.position === 'back'
+            ? devices.find(device => device.position === 'front')
+            : devices.find(device => device.position === 'back');
+
+        if (newDevice) {
+            setCameraDevice(newDevice);
         }
     };
+
 
 
     const backgroundColor = animatedValue?.interpolate({
@@ -283,10 +251,10 @@ const Page = () => {
 
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => router.push('/home')}>
-                    <Feather name="x" size={height/30} color="#D3D3FF" style={styles.backButton}/>
+                    <Feather name="x" size={height/30} color="#D3D3FF"/>
                 </TouchableOpacity>
                 {isRecording && (
-                    <Text style={{color: "white"}}>
+                    <Text style={styles.timerText}>
                         {`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}
                     </Text>
                 )}
@@ -350,9 +318,8 @@ const styles = StyleSheet.create({
     topBar: {
         flexDirection: "row",
         paddingVertical: height/40,
-    },
-    backButton: {
-        marginLeft: width/15
+        justifyContent: "space-between",
+        marginHorizontal: width/10,
     },
     cameraContainer: {
         height: height/1.5,
@@ -386,8 +353,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         zIndex: 0,
     },
-    backText: {
-        color: 'black'
+    timerText: {
+        color: 'white',
+        fontSize: height/50,
     }
 
 });
