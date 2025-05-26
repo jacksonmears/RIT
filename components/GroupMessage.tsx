@@ -1,8 +1,7 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, Image, StyleSheet, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
-import React, {useEffect, useState} from "react";
-import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
-import {auth,db} from "@/firebase";
+import React from "react";
+import {auth} from "@/firebase";
 
 interface Post {
     content: string;
@@ -14,11 +13,11 @@ interface PostCompProps {
     post: Post;
 }
 
+const {width, height} = Dimensions.get("window");
 
 
 const GroupMessage: React.FC<PostCompProps> = ({ post }) => {
-    const router = useRouter();
-    const user = auth.currentUser;
+    const user = auth().currentUser;
 
 
 
@@ -27,16 +26,13 @@ const GroupMessage: React.FC<PostCompProps> = ({ post }) => {
         <View>
             {user?.displayName === post.userName ?
                 <View style={styles.container}>
-                    <View>
                         <View style={styles.selfMessage}>
                             <Text style={styles.selfText}>{post.content}</Text>
                         </View>
-                    </View>
                 </View>
                 :
                 <View style={styles.container}>
                     <View style={styles.pfpContainer}>
-                        <View style={styles.pfpBox}>
                             <View style={styles.avatarContainer}>
                                 {post.pfp? (
                                     <Image source={{ uri: post.pfp }} style={styles.avatar} />
@@ -45,7 +41,6 @@ const GroupMessage: React.FC<PostCompProps> = ({ post }) => {
                                         <Text style={styles.placeholderText}>No Photo</Text>
                                     </View>
                                 )}
-                            </View>
                         </View>
                     </View>
                     <View>
@@ -55,16 +50,6 @@ const GroupMessage: React.FC<PostCompProps> = ({ post }) => {
                     </View>
                 </View>
             }
-            {/*<View style={styles.pfpContainer}>*/}
-            {/*    <View style={styles.pfpBox}></View>*/}
-            {/*</View>*/}
-            {/*<View>*/}
-            {/*    <Text style={styles.nameText}>{post.userName}</Text>*/}
-            {/*    <View style={styles.messageView}>*/}
-            {/*        <Text style={styles.messageText}>{post.content}</Text>*/}
-            {/*    </View>*/}
-            {/*</View>*/}
-
         </View>
     );
 };
@@ -72,44 +57,37 @@ const GroupMessage: React.FC<PostCompProps> = ({ post }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: "row",
-        paddingLeft: 10,
-        // alignItems: "center",
+        marginLeft: width/50,
     },
     pfpContainer: {
-        paddingRight: 10,
+        marginRight: width/50,
         justifyContent: "flex-end",
     },
     messageView: {
         backgroundColor: "#36454F",
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 20
-    },
-    nameText: {
-        color: "gold",
+        paddingVertical: height/100,
+        paddingHorizontal: width/25,
+        borderRadius: height/50
     },
     messageText: {
         color: "white",
     },
-    pfpBox: {
-    },
     selfMessage: {
         backgroundColor: "blue",
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 20
+        paddingVertical: height/100,
+        paddingHorizontal: width/25,
+        borderRadius: height/50
     },
     selfText: {
         color: "white",
     },
     avatarContainer: {
         alignItems: 'center',
-        // marginBottom: 20,
     },
     avatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 60,
+        width: width/12,
+        height: width/12,
+        borderRadius: 999,
     },
     placeholder: {
         backgroundColor: '#444',

@@ -1,236 +1,159 @@
-import {View, Text, Button, StyleSheet, FlatList, Pressable, TouchableOpacity, Image} from 'react-native';
-import {auth, db, storage} from '@/firebase';
+import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
+import { auth, db, storage } from '@/firebase';
 import { Checkbox } from 'react-native-paper';
-import React, {useEffect, useState} from "react";
-import {doc, onSnapshot, getDocs, collection, getDoc, addDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { Link, useRouter, useLocalSearchParams } from "expo-router";
-import GroupCard from "@/components/GroupCard";
-import {getDownloadURL, ref as storageRef, uploadBytes} from "firebase/storage"; // Import reusable component
-import * as ImageManipulator from 'expo-image-manipulator';
+import React, { useEffect, useState} from "react";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
+const { width, height } = Dimensions.get("window");
+
+type GroupType = {
+    id: string,
+    name: string,
+}
+
 const Page = () => {
-    const user = auth.currentUser;
-    const {fillerURI, fillerMode, fillerCaption} = useLocalSearchParams();
+    const user = auth().currentUser;
+    const { fillerURI, fillerMode, fillerCaption } = useLocalSearchParams();
     const caption = String(fillerCaption);
     const localUri = String(fillerURI);
     const mode = String(fillerMode);
-    const [globalPath, setGlobalPath] = useState<string | null>(null);
-    const [groups, setGroups] = useState<{ id: string, name: string}[] | null>(null);
+    const [groups, setGroups] = useState<GroupType[] | []>([]);
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
     const [selectAll, setSelectAll] = useState<boolean>(false);
 
+
     useEffect(() => {
-        if (user) {
-            const getGroups = async () => {
-                const querySnapshot = await getDocs(collection(db, "users", user?.uid, "groups"));
+        if (!user) return;
+
+        const getGroups = async () => {
+            try {
+                const querySnapshot = await db().collection("users").doc(user.uid).collection("groups").get();
                 const groupList = querySnapshot.docs.map(doc => {
                     const data = doc.data();
                     return {
-                        id: doc.id, // Firestore document ID
-                        name: data.name || "Unnamed Group", // Ensure a default value
+                        id: doc.id,
+                        name: data.name || "Unnamed Group",
                     };
                 });
                 setGroups(groupList);
-            };
-            getGroups();
-        }
-    }, [groups]);
+            } catch (err) {
+                console.error(err);
+            }
+        };
 
-    useEffect(() => {
-        console.log(selectedGroups);
-    }, [selectedGroups]);
+        getGroups().catch((err) => {
+            console.error(err);
+        });
+    }, [user]);
 
     const toggleSelection = (id: string) => {
-        setSelectedGroups((prev) => {
-            const next = new Map(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.set(id, true);
-            }
-            return next;
-        });
-    };
+        if (!id) return;
 
+        try {
+            setSelectedGroups((prev) => {
+                const next = new Map(prev);
+                if (next.has(id)) {
+                    next.delete(id);
+                } else {
+                    next.set(id, true);
+                }
+                return next;
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const createPost = async () => {
         if (!user || !selectedGroups) return;
+
         const parsedGroups = [...selectedGroups.keys()]
-            .filter((groupId) => selectedGroups?.get(groupId)) // Only keep selected groups (true)
+            .filter((groupId) => selectedGroups.get(groupId)) // Only keep selected groups (true)
             .map((groupId) => ({ id: groupId }));
-        const hasSelectedGroup = [...selectedGroups?.values()].some(value => value === true);
+        const hasSelectedGroup = [...selectedGroups.values()].some(value => value);
 
-        if (!user || (!parsedGroups || parsedGroups.length === 0 || !hasSelectedGroup)) {
-            console.log("not parsed groups")
-            return;
-        }
+        if (!hasSelectedGroup) return;
         try {
-
-
-
-            const postRef = await addDoc(collection(db, "posts"), {
+            const postRef = await db().collection("posts").add({
                 sender_id: user.uid,
                 mode: mode,
                 caption: caption,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             });
 
-            const postID = postRef.id
+            const postID = postRef.id;
 
             const postURL = mode === "photo"
                 ? await uploadPhoto(postID)
-                : await uploadVideo(postID);
+                : await uploadVideo(postID, localUri);
 
-            await updateDoc(doc(db, "posts", postID), {
+            if (!postURL) return;
+
+            await db().collection("posts").doc(postID).update({
                 content: encodeURIComponent(postURL),
             });
 
-
-
-            const userRef = await setDoc(doc(db, "users", user.uid, "posts", postID), {
-                timestamp: serverTimestamp(),
+            await db().collection("users").doc(user.uid).collection("posts").doc(postID).set({
+                timestamp: db.FieldValue.serverTimestamp(),
             });
 
-
-            await addPostToGroups(db, parsedGroups, postID);
-
+            await addPostToGroups(parsedGroups, postID);
 
         } catch (error) {
             console.error(error);
         }
-    }
+    };
 
+    const uploadPhoto = async (postID: string): Promise<string | undefined> => {
+        if (!localUri) return;
 
-    const uploadPhoto = async (postID: string) => {
-        if (!auth.currentUser) {
-            throw new Error('No user logged in');
+        try {
+            const ref = storage().ref(`postPictures/${postID}.jpg`);
+            await ref.putFile(localUri);
+            return await ref.getDownloadURL();
+        } catch (error) {
+            console.error('Upload failed:', error);
         }
-
-
-        const response = await fetch(localUri);
-        const blob     = await response.blob();
-
-        const ref = storageRef(storage, `postPictures/${postID}.jpg`);
-        await uploadBytes(ref, blob);
-
-        return getDownloadURL(ref);
     };
 
-    const uploadVideo = async (postID: string) => {
-        if (!auth.currentUser) {
-            throw new Error('No user logged in');
+
+    const uploadVideo = async (postID: string, localUri: string): Promise<string | undefined> => {
+        if (!localUri) return;
+
+
+        try {
+            const ref = storage().ref(`postVideos/${postID}.mov`);
+            await ref.putFile(localUri);
+            return await ref.getDownloadURL();
+        } catch (error) {
+            console.error('Upload failed:', error);
         }
-
-
-        const response = await fetch(localUri);
-        const blob     = await response.blob();
-
-        const ref = storageRef(storage, `postVideos/${postID}.mov`);
-        await uploadBytes(ref, blob);
-
-        return getDownloadURL(ref);
     };
 
 
-    // const uploadPhoto = async (postID: string) => {
-    //     if (!auth.currentUser) {
-    //         throw new Error('No user logged in');
-    //     }
-    //     const response = await fetch(localUri);
-    //     const blob = await response.blob();
-    //
-    //     // const resizedImage = await ImageManipulator.manipulateAsync(
-    //     //     localUri,
-    //     //     [{ resize: { width: 1080, height: 1350 } }],
-    //     //     { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-    //     // );
-    //
-    //     // const resizedImage = await resize(localUri)
-    //
-    //     // const encodedPath = encodeURIComponent(`postPictures/${postID}.jpg`);
-    //     const ref = storageRef(storage, `postPictures/${postID}.jpg`);
-    //     // const resizedBlob = await fetch(resizedImage).then(res => res.blob());
-    //
-    //     await uploadBytes(ref, blob);
-    //     return getDownloadURL(ref);
-    // }
-
-
-    const resize = async (uri: string) => {
-        const targetWidth = 1080;
-        const targetHeightPortrait = 1350;
-        // const targetHeightLandscape = 566;
-
-        // Get the image dimensions
-        const { width, height } = await getImageDimensions(uri);
-        console.log(width, height);
-
-        // Calculate the aspect ratio
-        const aspectRatio = width / height;
-
-        let newWidth, newHeight;
-
-        if (aspectRatio > targetWidth / targetHeightPortrait ) {
-            newWidth = targetWidth;
-            newHeight = Math.round(targetWidth / aspectRatio);
-        } else {
-            // Portrait image, adjust height
-            newHeight = targetHeightPortrait;
-            newWidth = Math.round(targetHeightPortrait * aspectRatio);
-        }
-
-        // Resize the image to fit the target dimensions while maintaining the aspect ratio
-        const resizedImage = await ImageManipulator.manipulateAsync(uri, [
-            { resize: { width: newWidth, height: newHeight } },
-        ]);
-
-        // Create a new blank image with the target size and a background color
-        const paddedImage = await ImageManipulator.manipulateAsync(resizedImage.uri, [
-            {
-                resize: { width: targetWidth, height: targetHeightPortrait },
-            },
-            {
-                crop: {
-                    originX: (targetWidth - newWidth) / 2,
-                    originY: (targetHeightPortrait - newHeight) / 2,
-                    width: newWidth,
-                    height: newHeight,
-                },
-            },
-        ]);
-
-        return paddedImage.uri; // Return the resized and padded image URI
-    };
-
-    const getImageDimensions = async (uri: string) => {
-        const { width, height } = await ImageManipulator.manipulateAsync(uri, []);
-        return { width, height };
-    };
-
-    const addPostToGroups = async (db: any, parsedGroups: { id: string }[], postID: string) => {
+    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string) => {
         try {
             await Promise.all(
                 parsedGroups.map(async (group) => {
-                    await setDoc(doc(db, "groups", group.id, "messages", postID), {
+                    await db().collection("groups").doc(group.id).collection("messages").doc(postID).set({
                         mode: mode,
-                        timestamp: serverTimestamp(),
-                    });
-                    await setDoc(doc(db, "posts", postID, "groups", group.id), {
-                        timestamp: serverTimestamp(),
+                        timestamp: db.FieldValue.serverTimestamp(),
+                    })
+                    await db().collection("posts").doc(postID).collection("groups").doc(group.id).set({
+                        timestamp: db.FieldValue.serverTimestamp(),
                     })
                 })
             );
-            console.log("Post added to all selected groups");
         } catch (error) {
             console.error("Error adding post to groups:", error);
         }
     };
 
     const doneButton = async () => {
-        createPost();
+        await createPost();
         router.push({
             pathname: "/create",
             params: { reset: "true" },
@@ -239,69 +162,53 @@ const Page = () => {
         setTimeout(() => {
             router.push("../home");
         }, 0);
-    }
+    };
 
     const selectAllFunction = () => {
-        const dummySelect = !selectAll
+        const dummySelect = !selectAll;
         if (!groups) return;
-        if (dummySelect) {
-            const next = new Map<string, boolean>();
-            groups.forEach(g => next.set(g.id, true));
-            setSelectedGroups(next);
-        }else {
-            const next = new Map<string, boolean>();
-            setSelectedGroups(next);
-        }
-        setSelectAll(dummySelect);
 
-    }
+        try {
+            if (dummySelect) {
+                const next = new Map<string, boolean>();
+                groups.forEach(g => next.set(g.id, true));
+                setSelectedGroups(next);
+            } else {
+                setSelectedGroups(new Map());
+            }
+            setSelectAll(dummySelect);
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     return (
         <View style={styles.container}>
 
-
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.back()}>
-                        <Feather name="x" size={20} color="#D3D3FF" />
+                        <Feather name="x" size={width / 20} color="#D3D3FF" />
                     </TouchableOpacity>
-                    <Text style={styles.topBarText}>{user?.displayName}</Text>
+                    {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
                 </View>
-                {(selectedGroups?.size)==0 ?
-                    <Ionicons name="send-outline" size={20} color="#D3D3FF" />
+                {selectedGroups && (selectedGroups.size) === 0 ?
+                    <Ionicons name="send-outline" size={width / 20} color="#D3D3FF" />
                     :
                     <TouchableOpacity onPress={() => doneButton()}>
-                        <Ionicons name="send" size={20} color="#D3D3FF" />
+                        <Ionicons name="send" size={width / 20} color="#D3D3FF" />
                     </TouchableOpacity>
                 }
-
             </View>
 
-            {/*<FlatList*/}
-            {/*    style={styles.groups}*/}
-            {/*    data={groups}*/}
-            {/*    keyExtractor={(item) => item.id}*/}
-            {/*    renderItem={({ item }) => (*/}
-            {/*        <View style={styles.groupContainer}>*/}
-            {/*            <Pressable onPress={() => toggleSelection(item.id)} style={styles.groupRow}>*/}
-            {/*                <Checkbox*/}
-            {/*                    status={selectedGroups?.get(item.id) ? "checked" : "unchecked"}*/}
-            {/*                    onPress={() => toggleSelection(item.id)}*/}
-            {/*                />*/}
-            {/*                <Text style={styles.text}>{item.name}</Text>*/}
-            {/*            </Pressable>*/}
-            {/*        </View>*/}
-            {/*    )}*/}
-            {/*    contentContainerStyle={styles.listContent} // Adds padding*/}
-            {/*/>*/}
             <View style={styles.groupContainer}>
-                <TouchableOpacity style={styles.groupRow}>
+                <TouchableOpacity style={styles.groupRow} onPress={selectAllFunction}>
                     <View style={styles.backArrowName}>
                         <Text style={styles.text}>
                             {(selectAll ?
-                                "unselect all"
-                                :
-                                "select all"
+                                    "unselect all"
+                                    :
+                                    "select all"
                             )}
                         </Text>
                     </View>
@@ -323,31 +230,19 @@ const Page = () => {
                             <View style={styles.backArrowName}>
                                 <Text style={styles.text}>{item.name}</Text>
                             </View>
+                            {selectedGroups &&
+                                <Checkbox
+                                    status={selectedGroups.get(item.id) ? "checked" : "unchecked"}
+                                    onPress={() => toggleSelection(item.id)}
+                                />
+                            }
 
-                            <Checkbox
-                                status={selectedGroups?.get(item.id) ? "checked" : "unchecked"}
-                                onPress={() => toggleSelection(item.id)}
-                            />
                         </TouchableOpacity>
                     </View>
                 )}
-                contentContainerStyle={styles.listContent} // Adds padding
+                contentContainerStyle={styles.listContent}
                 ListEmptyComponent={<Text style={styles.noResults}>You added all your friends!</Text>}
-
             />
-
-            {/*<TouchableOpacity style={styles.backButton} onPress={() => router.back()}>*/}
-            {/*    <Text>back</Text>*/}
-            {/*</TouchableOpacity>*/}
-
-
-            {/*<TouchableOpacity style={styles.doneButton} onPress={() => printGroups()}>*/}
-            {/*    <Text>done</Text>*/}
-            {/*</TouchableOpacity>*/}
-
-            {/*<TouchableOpacity style={styles.doneButton} onPress={() => doneButton()}>*/}
-            {/*    <Text>done</Text>*/}
-            {/*</TouchableOpacity>*/}
 
         </View>
     );
@@ -363,34 +258,35 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     listContent: {
-        paddingBottom: 80,
+        paddingBottom: height / 10,
     },
     text: {
-        fontSize: 18,
+        fontSize: height / 50,
         fontWeight: "bold",
         color: "white",
     },
     groupContainer: {
         alignItems: "center",
         justifyContent: "center",
-        width: "100%",
+        width: width,
     },
     groupRow: {
         flexDirection: "row",
         alignItems: "center",
-        padding: 10,
-        borderBottomWidth: 1,
+        padding: height / 100,
         justifyContent: "space-between",
-        width: "90%",
+        width: width * 0.9,
     },
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        padding: 10,
-        borderBottomWidth: 0.5,
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
+
     topBarText: {
         color: "#D3D3FF",
     },
@@ -399,12 +295,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     noResults: {
-        fontSize: 16,
+        fontSize: height / 50,
         color: 'gray',
         textAlign: 'center',
     },
 
 });
-
 
 export default Page;

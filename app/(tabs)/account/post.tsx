@@ -3,27 +3,28 @@ import {
     Text,
     StyleSheet,
     Image,
-    TouchableOpacity
+    TouchableOpacity,
+    Dimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React from 'react';
 import Video from "react-native-video";
 
-export default function Page() {
-    const { idT, contentT, captionT, userNameT, mode, photoURL } = useLocalSearchParams();
-    const content = String(contentT);
-    const router = useRouter();
-    const photoURLString = String(photoURL)
+const { width, height } = Dimensions.get("window");
 
-    useEffect(() => {
-        console.log(photoURL);
-    }, []);
+const Page = () => {
+    const { rawContent, rawCaption, rawUsername, rawMode, rawPhotoURL } = useLocalSearchParams();
+    const content = String(rawContent);
+    const userName = String(rawUsername);
+    const caption = String(rawCaption);
+    const router = useRouter();
+    const photoURLString = String(rawPhotoURL)
 
 
     return (
         <View style={styles.container}>
             <View style={styles.top70}>
-                {mode==="photo" ?
+                {rawMode==="photo" ?
                     <Image
                         source={{ uri: content }}
                         style={styles.image}
@@ -38,9 +39,8 @@ export default function Page() {
                         repeat={true}
                     />
                 }
-
-
             </View>
+
 
             <TouchableOpacity
                 style={styles.backButton}
@@ -52,9 +52,9 @@ export default function Page() {
             <View style={styles.profileUser}>
                 <View style={styles.upperProfile}>
                     <Image source={{ uri: photoURLString }} style={styles.avatar} />
-                    <Text style={styles.profileText}>{userNameT}</Text>
+                    <Text style={styles.profileText}>{userName}</Text>
                 </View>
-                <Text style={styles.profileCaption}>{captionT}</Text>
+                <Text style={styles.profileCaption}>{caption}</Text>
             </View>
         </View>
     );
@@ -66,43 +66,42 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
     },
     top70: {
-        height: '95%',      // exactly 7/10 of the screen
-        width: '100%',
+        height: height*0.95,
+        width: width,
         justifyContent: 'center',
         alignItems: 'center',
     },
     image: {
-        width: '100%',      // fill the container
-        height: '100%',
+        width: width,
+        height: height,
     },
     backButton: {
         position: 'absolute',
-        top: 20,
-        left: 15,
+        top: height/50,
+        left: width/20,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        padding: 8,
-        borderRadius: 8,
+        padding: width/50,
+        borderRadius: width/50,
     },
     backText: {
         color: 'white',
-        fontSize: 16,
+        fontSize: height/60,
     },
     videoContent: {
         backgroundColor: "grey",
-        width: "100%",
+        width: width,
         resizeMode: "contain",
-        height: '100%',
+        height: height,
     },
     profileUser: {
         position: 'absolute',
-        bottom: 45,
-        left: 20,
-        height: 100,
+        bottom: height/8,
+        left: width/20,
     },
     avatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 60,
+        width: width/12,
+        height: width/12,
+        borderRadius: 999,
     },
     upperProfile: {
         flexDirection: 'row',
@@ -111,10 +110,12 @@ const styles = StyleSheet.create({
     profileText: {
         color: "#D3D3FF",
         fontWeight: "bold",
-        marginLeft: 10,
+        marginLeft: width/50,
     },
     profileCaption: {
         color: "#D3D3FF",
-        marginTop: 10
+        marginTop: height/100
     }
 });
+
+export default Page;

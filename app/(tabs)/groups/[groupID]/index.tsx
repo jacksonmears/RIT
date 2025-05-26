@@ -1,280 +1,245 @@
 import {
     View,
     Text,
-    Button,
     StyleSheet,
     FlatList,
-    Touchable,
-    ScrollView,
     TouchableOpacity,
-    Pressable,
-    TextInput, RefreshControl
+    TextInput,
+    Dimensions,
 } from "react-native";
-import {Link, useLocalSearchParams, useRouter} from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-    doc,
-    getDoc,
-    getDocs,
-    updateDoc,
-    arrayUnion,
-    collection,
-    query,
-    orderBy,
-    limit,
-    setDoc,
-    addDoc, serverTimestamp, onSnapshot, startAfter, Timestamp
-} from "firebase/firestore";
 import { auth, db } from "@/firebase";
-import GroupPost from "@/components/GroupPost"; // Import reusable component
-import GroupMessage from "@/components/GroupMessage"; // Import reusable component
+import GroupPost from "@/components/GroupPost";
+import GroupMessage from "@/components/GroupMessage";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import firestore from '@react-native-firebase/firestore';
 
-import {Checkbox} from "react-native-paper";
+const { width, height } = Dimensions.get("window");
+
+type PostType = {
+    id: string;
+    mode: string;
+};
+
+type MessageType = {
+    groupID: string;
+    id: string;
+    content: string;
+    caption: string;
+    userName: string;
+    pfp: string;
+    mode: string;
+    firstName: string;
+    lastName: string;
+    timestamp: FirebaseFirestoreTypes.Timestamp;
+};
 
 const Index = () => {
-    // const { id } = useLocalSearchParams(); // Get the dynamic group ID from the URL
     const { groupID, groupName } = useLocalSearchParams();
     const groupIDString = String(groupID);
     const groupNameString = String(groupName);
     const router = useRouter();
-    const user = auth.currentUser;
-    const [posts, setPosts] = useState<{ id: string, mode: string }[] | null>(null);
-    const [messageContents, setMessageContents] = useState<{ groupID: string, id: string, content: string, caption: string, userName: string, pfp: string, mode: string, firstName: string, lastName: string, timestamp: Timestamp }[] | null>(null);
+    const user = auth().currentUser;
+    const [posts, setPosts] = useState<PostType[]>([]);
+    const [messageContents, setMessageContents] = useState<MessageType[]>([]);
     const [message, setMessage] = useState("");
     const [loadingMore, setLoadingMore] = useState(false);
-    const [loadMorePosts, setLoadMorePosts] = useState<boolean>(false);
-    // const [lastVisible, setLastVisible] = useState<{ groupID: string, id: string } | null>(null);
-    const [morePosts, setMorePosts] = useState<{ id: string, mode: string }[] | null>(null);
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "groups", groupIDString, "messages"), async () => {
-            await getPostIds(); // Refresh posts when collection is updated
-        });
+        const unsubscribe = db()
+            .collection("groups")
+            .doc(groupIDString)
+            .collection("messages")
+            .orderBy("timestamp", "desc")
+            .limit(20)
+            .onSnapshot(async () => {
+                await getPostIds();
+            });
 
-        return () => {
-            unsubscribe(); // Clean up the listener on unmount
-        };
+        return () => unsubscribe();
     }, [groupIDString]);
 
-
     useEffect(() => {
-        getPostContent()
+        getPostContent().catch(console.error);
     }, [posts]);
-
-
-    // const unsubscribe = onSnapshot(collection(db, "groups", groupIDString, "messages"), async () => {
-    //     await getPostIds()
-    // });
-
-
-    // useEffect(() => {
-    //     const fetchGroup = async () => {
-    //         try {
-    //             const usersDocs = await getDocs(collection(db, "groups", groupIDString, "users"));
-    //
-    //             const usersList = usersDocs.docs.map((doc) => ({
-    //                 id: doc.id, // User's UID is the document ID
-    //                 name: doc.data().name, // Assuming "name" is the field in each user document
-    //             }));
-    //
-    //             setFriends(usersList);
-    //         } catch (error) {
-    //             console.error("Error fetching data:", error);
-    //         }
-    //     };
-    //
-    //     fetchGroup();
-    // }, []);
 
     const getPostIds = async () => {
         if (!user) return;
 
         try {
-            const q = query(
-                collection(db, "groups", groupIDString, "messages"),
-                orderBy("timestamp", "desc"),
-                limit(20)
-            );
+            const snapshot = await db()
+                .collection("groups")
+                .doc(groupIDString)
+                .collection("messages")
+                .orderBy("timestamp", "desc")
+                .limit(20)
+                .get();
 
-            const querySnapshot = await getDocs(q);
-
-            const postsRef = querySnapshot.docs.map(doc => ({
+            const postsRef = snapshot.docs.map(doc => ({
                 id: doc.id,
                 mode: doc.data().mode,
-                // ...doc.data()
             }));
-            setPosts(postsRef);
 
+            setPosts(postsRef);
         } catch (error) {
             console.error("Error retrieving posts:", error);
         }
     };
 
     const getMorePosts = async () => {
-        console.log("refreshing... ")
-        const lastVisible = messageContents?.[messageContents.length - 1];
-        if (!lastVisible || loadingMore) return;
-        setLoadingMore(true);
-        const nextQuery = query(
-            collection(db, "groups", groupIDString, "messages"),
-            orderBy("timestamp", "desc"),
-            startAfter(lastVisible.timestamp),
-            limit(20)
-        );
-        const querySnapshot = await getDocs(nextQuery);
-        const postsRef = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            mode: doc.data().mode,
-            // ...doc.data()
-        }));
+        if (!messageContents.length || loadingMore) return;
 
-        setPosts(prevPosts => {
-            const safePrevPosts = prevPosts ?? [];
-            return [...safePrevPosts, ...postsRef];
-        });
-        console.log(postsRef);
-        setLoadingMore(false);
+        const lastVisible = messageContents[messageContents.length - 1];
+        if (!lastVisible) return;
+
+        try {
+            setLoadingMore(true);
+            const snapshot = await db()
+                .collection("groups")
+                .doc(groupIDString)
+                .collection("messages")
+                .orderBy("timestamp", "desc")
+                .startAfter(lastVisible.timestamp)
+                .limit(20)
+                .get();
+
+            const postsRef = snapshot.docs.map(doc => ({
+                id: doc.id,
+                mode: doc.data().mode,
+            }));
+
+            setPosts(prev => [...prev, ...postsRef]);
+            setLoadingMore(false);
+        } catch (error) {
+            console.error("Error retrieving more posts:", error);
+        }
+    };
+
+    const getMessage = async (post: PostType, postSnap: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        try {
+            const userID = postSnap.data()?.sender_id;
+            const friendDoc = await db().collection("users").doc(userID).get();
+            if (!friendDoc.exists) return null;
+
+            return {
+                groupID: groupIDString,
+                id: post.id,
+                content: postSnap.data()?.content,
+                caption: postSnap.data()?.caption,
+                userName: friendDoc.data()?.displayName,
+                pfp: friendDoc.data()?.photoURL,
+                mode: postSnap.data()?.mode,
+                firstName: friendDoc.data()?.firstName,
+                lastName: friendDoc.data()?.lastName,
+                timestamp: postSnap.data()?.timestamp,
+            };
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
     };
 
 
     const getPostContent = async () => {
-        if (!posts) return;
-
         try {
-            const postContents = await Promise.all(posts.map(async (post) => {
-                if (post.mode === "text"){
-                    const postSnap = await getDoc(doc(db, "groups", groupIDString, "messages", post.id));
-                    if (postSnap.exists()) {
-                        const userID = postSnap.data().sender_id;
-                        const content = postSnap.data().content;
-                        const mode = postSnap.data().mode;
-                        const timestamp = postSnap.data().timestamp;
+            const raw = await Promise.all(
+                posts.map(async post => {
+                    const postSnap =
+                        post.mode === "text"
+                            ? await db()
+                                .collection("groups")
+                                .doc(groupIDString)
+                                .collection("messages")
+                                .doc(post.id)
+                                .get()
+                            : await db().collection("posts").doc(post.id).get();
 
-                        const friendDoc = await getDoc(doc(db, "users", userID));
-                        let userName = ''
-                        let pfp = ''
-                        let firstName = ''
-                        let lastName = ''
-                        if (friendDoc.exists()) {
-                            userName = friendDoc.data().displayName;
-                            pfp = friendDoc.data().photoURL;
-                            firstName = friendDoc.data().firstName;
-                            lastName = friendDoc.data().lastName;
-                        }
+                    if (!postSnap.exists) return null;
 
-                        // let timestamp = "Unknown date";
-                        //
-                        // const rawTimestamp = postSnap.data().timestamp;
-                        // if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
-                        //     try {
-                        //         const dateObj = rawTimestamp.toDate();
-                        //         timestamp = dateObj.toDate();
-                        //     } catch (error) {
-                        //         console.error("Error converting timestamp:", error);
-                        //     }
-                        // } else {
-                        //     console.warn("Timestamp missing or invalid for post:", postSnap.id, rawTimestamp);
-                        // }
+                    return await getMessage(post, postSnap);
+                })
+            );
 
-                        return { groupID: groupIDString, id: post.id, content: content, caption: "null", userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName, timestamp: timestamp };
-                    } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '', timestamp: '' };
-                    }
-                }
-                else {
-                    const postRef = doc(db, "posts", post.id);
-                    const postSnap = await getDoc(postRef);
-
-                    if (postSnap.exists()) {
-                        const userID = postSnap.data().sender_id;
-                        const mode = postSnap.data().mode;
-                        const content = postSnap.data().content;
-                        const timestamp = postSnap.data().timestamp;
-                        const friendDoc = await getDoc(doc(db, "users", userID));
-                        let userName = ''
-                        let pfp = ''
-                        let firstName = ''
-                        let lastName = ''
-                        if (friendDoc.exists()) {
-                            userName = friendDoc.data().displayName;
-                            pfp = friendDoc.data().photoURL;
-                            firstName = friendDoc.data().firstName;
-                            lastName = friendDoc.data().lastName;
-                        }
-
-                        return { groupID: groupIDString, id: post.id, content: content, caption: postSnap.data().caption, userName: userName, pfp: pfp, mode: mode, firstName: firstName, lastName: lastName, timestamp: timestamp };
-                    } else {
-                        return { groupID: groupIDString, id: post.id, content: "Content not found", caption: "failed", userName: "failed", pfp: "failed", mode: "failed", firstName: '', lastName: '', timestamp: '' };
-                    }
-                }
-            }));
-
-            setMessageContents(postContents);
+            const validPosts = raw.filter((m): m is MessageType => m !== null);
+            setMessageContents(validPosts);
         } catch (error) {
             console.error("Error fetching post content:", error);
         }
     };
 
-    const testingRefresh = () => {
-        console.log("Refreshing...");
-    }
-
     const pushTextMessage = async () => {
-        if (!user || message.length < 1) return;
-        await addDoc(collection(db, "groups", groupIDString, "messages"), {
-            sender_id: user.uid,
-            mode: "text",
-            content: message,
-            timestamp: serverTimestamp(),
-        });
+        if (!user || message.trim().length === 0) return;
 
-        setMessage(""); // Clear the input after sending
+        try {
+            await db()
+                .collection("groups")
+                .doc(groupIDString)
+                .collection("messages")
+                .add({
+                    sender_id: user.uid,
+                    mode: "text",
+                    content: message.trim(),
+                    timestamp: firestore.FieldValue.serverTimestamp(),
+                });
 
-        // await getPostIds(); // Refresh messages
-    }
+            setMessage("");
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
-                {/*<TouchableOpacity style={styles.goBackButton} onPress={() => router.back()}>*/}
-                {/*    <Text style={styles.buttonText}>Go Back</Text>*/}
-                {/*</TouchableOpacity>*/}
-
-                {/*<TouchableOpacity style={styles.addFriendButton} onPress={() => router.push(`/groups/${groupID}/addFriends`)}>*/}
-                {/*    <Text style={styles.buttonText}>Add Friend</Text>*/}
-                {/*</TouchableOpacity>*/}
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.back()}>
                         <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />
                     </TouchableOpacity>
                     <Text style={styles.topBarText}>{groupNameString}</Text>
                 </View>
-                <TouchableOpacity onPress={() => router.push({pathname: "/groups/[groupID]/addFriends", params: {groupID: groupIDString, groupName: groupNameString}})}>
+                <TouchableOpacity
+                    onPress={() =>
+                        router.push({
+                            pathname: "/groups/[groupID]/addFriends",
+                            params: { groupID: groupIDString, groupName: groupNameString },
+                        })
+                    }>
                     <AntDesign name="adduser" size={18} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
 
-            <FlatList
-                inverted
-                style={styles.groups}
-                data={messageContents}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={[styles.messageContainer, {alignSelf: user?.displayName === item.userName ? "flex-end" : "flex-start",},]}>
-                        {item.mode !== "text" ? (
-                        <GroupPost post={item} />
-                        ) : (
-                        <GroupMessage post={item} />
-                        )}
-                    </View>
-                )}
-                onEndReached={getMorePosts}
-                onEndReachedThreshold={0.00001}
-                // ListFooterComponent={loadingMore ? <ActivityIndicator size="small" /> : null}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-            />
+            {user && (
+                <FlatList
+                    inverted
+                    style={styles.groups}
+                    data={messageContents}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <View
+                            style={[
+                                styles.messageContainer,
+                                {
+                                    alignSelf:
+                                        user.displayName === item.userName
+                                            ? "flex-end"
+                                            : "flex-start",
+                                },
+                            ]}>
+                            {item.mode !== "text" ? (
+                                <GroupPost post={item} />
+                            ) : (
+                                <GroupMessage post={item} />
+                            )}
+                        </View>
+                    )}
+                    onEndReached={getMorePosts}
+                    onEndReachedThreshold={0.00001}
+                    ItemSeparatorComponent={() => <View style={styles.separator} />}
+                />
+            )}
 
             <View style={styles.textBar}>
                 <TextInput
@@ -284,7 +249,7 @@ const Index = () => {
                     onChangeText={setMessage}
                     inputMode={"search"}
                 />
-                <TouchableOpacity onPress={() => pushTextMessage()}>
+                <TouchableOpacity onPress={pushTextMessage}>
                     <Text style={styles.text}> send </Text>
                 </TouchableOpacity>
             </View>
@@ -296,79 +261,50 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#121212",
-        paddingBottom: 55
-    },
-    goBackButton: {
-        backgroundColor: "#28a745",
-        padding: 10,
-        borderRadius: 8,
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    addFriendButton: {
-        backgroundColor: "#007bff",
-        padding: 10,
-        borderRadius: 8,
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    buttonText: {
-        color: "white",
-        fontSize: 16,
-    },
-    groups: {
-        flex: 1,
-        // marginTop: 20,
-    },
-    separator: {
-        height: 20,
-    },
-    // flatListContentContainer: {
-    //     paddingTop: 10, // Ensures the last items are visible, even if there's a footer
-    // },
-    textBar: {
-        flexDirection: "row",
-        padding: 20,
-        alignItems: "center",
-    },
-    text: {
-        marginRight: 40,
-        color: "white",
-    },
-    input: {
-        flex: 1,
-        marginLeft: 40,
-        borderRadius: 4,
-        backgroundColor: "grey",
-        padding: 10,
-    },
-    messageText: {
-        color: "red",
-    },
-    messageContainer: {
-        borderRadius: 8,
-        // padding: 10,
-        // marginHorizontal: 20,
-        maxWidth: "70%",
+        paddingBottom: height / 20,
     },
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        padding: 10,
-        borderBottomWidth: 0.5,
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
     topBarText: {
         color: "#D3D3FF",
     },
     backArrowName: {
-        flexDirection: 'row',
+        flexDirection: "row",
         alignItems: "center",
-    }
-
+    },
+    groups: {
+        flex: 1,
+    },
+    messageContainer: {
+        borderRadius: height / 100,
+        maxWidth: width * 0.7,
+    },
+    textBar: {
+        flexDirection: "row",
+        padding: height / 40,
+        alignItems: "center",
+    },
+    text: {
+        marginRight: width / 10,
+        color: "white",
+    },
+    input: {
+        flex: 1,
+        marginLeft: width / 10,
+        borderRadius: width / 100,
+        backgroundColor: "grey",
+        padding: height / 100,
+    },
+    separator: {
+        height: height / 33,
+    },
 });
 
 export default Index;

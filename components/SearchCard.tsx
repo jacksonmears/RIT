@@ -1,8 +1,6 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
-import React, {useEffect, useState} from "react";
-import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
-import {auth,db} from "@/firebase";
+import React from "react";
 
 interface User {
     id: string;
@@ -16,11 +14,10 @@ interface UserCompProps {
     info: User;
 }
 
-
+const { width, height } = Dimensions.get("window");
 
 const SearchCard: React.FC<UserCompProps> = ({ info }) => {
     const router = useRouter();
-    const user = auth.currentUser;
 
 
 
@@ -29,7 +26,7 @@ const SearchCard: React.FC<UserCompProps> = ({ info }) => {
         <TouchableOpacity style={styles.resultItem} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: info.id }})}>
             <View style={styles.avatarView}>
                 <Image source={{ uri: info.photoURL }} style={styles.avatar} />
-                <View style={styles.namesView}>
+                <View>
                     <Text style={styles.userNameText}>{info.username}</Text>
                     <Text style={styles.nameText}>{info.firstName} {info.lastName}</Text>
                 </View>
@@ -40,38 +37,28 @@ const SearchCard: React.FC<UserCompProps> = ({ info }) => {
 
 const styles = StyleSheet.create({
     resultItem: {
-        padding: 15,
-        // borderWidth: 1,
-        // borderColor: '#D3D3FF',
+        padding: height/75,
         flexDirection: 'row',
-        marginBottom: 2,
     },
     avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 10,
-        // backgroundColor: '#ccc',
-    },
-    friendReqButton: {
-        borderRadius: 4,
-        padding: 1,
+        width: width/10,
+        height: width/10,
+        borderRadius: 999,
+        marginRight: width/40,
     },
     userNameText: {
-        fontSize: 16,
+        fontSize: height/55,
         color: 'white',
     },
     nameText: {
       color: 'grey',
-      fontSize: 12
+      fontSize: height/75
     },
     avatarView: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    namesView: {
 
-    }
 });
 
 export default SearchCard;
