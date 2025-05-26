@@ -170,19 +170,18 @@ const Page = () => {
     const acceptFriend = async (displayName: string) => {
         if (user) {
             const friendRef = await db().collection("displayName").doc(displayName).get();
-            let friend = '';
-            const data= friendRef.data();
-            if (!friendRef.exists() || !data) return;
+            const friend= friendRef.data();
+            if (!friendRef.exists() || !friend) return;
 
 
-            const userFriendDocRef = db().collection("users").doc(user.uid).collection("friends").doc(data.uid);
-            const friendFriendDocRef = db().collection("friends").doc(data.uid).collection("users").doc(user.uid);
+            const userFriendDocRef = db().collection("users").doc(user.uid).collection("friends").doc(friend.uid);
+            const friendFriendDocRef = db().collection("users").doc(friend.uid).collection("friends").doc(user.uid);
 
             try {
                 const friendData = { timestamp: db.FieldValue.serverTimestamp(),};
                 await userFriendDocRef.set(friendData);
                 await friendFriendDocRef.set(friendData);
-                await removeFriendRequest(friend);
+                await removeFriendRequest(friend.uid);
 
             } catch (error) {
                 console.error("Error accepting friend request: ", error);
@@ -194,9 +193,16 @@ const Page = () => {
         if (!user) return;
 
         const docRef = db().collection("users").doc(user.uid);
+        const getData = await docRef.get();
+        const data = getData.data();
+        if (!data) return;
+
         try {
+            const currentRequests: string[] = data.friendRequests || [];
+            const updatedRequests = currentRequests.filter(id => id !== friend);
+
             await docRef.update({
-                friendRequests: arrayRemove(friend)
+                friendRequests: updatedRequests
             });
             await fetchFriendRequestsAndUsernames();
 
@@ -209,9 +215,16 @@ const Page = () => {
         if (!user) return;
 
         const docRef = db().collection("users").doc(user.uid);
+        const getData = await docRef.get();
+        const data = getData.data();
+        if (!data) return;
+
         try {
+            const currentRequests: string[] = data.groupRequests || [];
+            const updatedRequests = currentRequests.filter(id => id !== groupID);
+
             await docRef.update({
-                groupRequests: arrayRemove(groupID)
+                groupRequests: updatedRequests
             });
             await fetchGroupRequests();
 

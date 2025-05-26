@@ -125,7 +125,7 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
 
             <View style={styles.captionBar}>
                 <Text style={styles.userNameCaption}>{post.userName}</Text>
-                <Text style={styles.username}>{post.caption}</Text>
+                <Text style={styles.caption}>{post.caption}</Text>
             </View>
             <Text style={styles.timeText}>{post.timestamp}</Text>
 
@@ -157,10 +157,6 @@ const styles = StyleSheet.create({
         height: width/15,
         borderRadius: 999,
     },
-    username: {
-        color: "#D3D3FF",
-        marginLeft: width/40
-    },
     contentViewPicture: {
         width: width,
         height: height/1.92,
@@ -189,14 +185,20 @@ const styles = StyleSheet.create({
         marginTop: height/90,
         flexDirection: "row",
         paddingHorizontal: width/60,
+        alignItems: "center",
     },
     userNameCaption: {
         fontWeight: "bold",
         color: "#D3D3FF"
     },
+    username: {
+        color: "#D3D3FF",
+        marginLeft: width/40,
+    },
     caption: {
         color: "#D3D3FF",
-        paddingLeft: height/90
+        marginLeft: width/40,
+        fontSize: height/75
     },
     likeText: {
         color: "red",
