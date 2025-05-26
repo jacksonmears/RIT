@@ -105,12 +105,14 @@ export default function SignUpPage() {
                     placeholder="First Name"
                     value={firstName}
                     onChangeText={setFirstName}
+                    maxLength={30}
                 />
                 <TextInput
                     style={[styles.input, styles.flex]}
                     placeholder="Last Name"
                     value={lastName}
                     onChangeText={setLastName}
+                    maxLength={30}
                 />
             </View>
 
@@ -120,6 +122,7 @@ export default function SignUpPage() {
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
+                maxLength={30}
             />
 
             <TextInput
@@ -129,6 +132,7 @@ export default function SignUpPage() {
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
+                maxLength={256}
             />
 
             <TextInput
@@ -137,6 +141,8 @@ export default function SignUpPage() {
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
+                maxLength={100}
+
             />
             <TextInput
                 style={styles.input}
@@ -144,6 +150,8 @@ export default function SignUpPage() {
                 secureTextEntry
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
+                maxLength={100}
+
             />
 
             {loading ? (

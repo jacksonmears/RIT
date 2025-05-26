@@ -1,6 +1,6 @@
 import {View, Text, Image, StyleSheet, TouchableOpacity, Dimensions,TextInput, ActivityIndicator} from "react-native";
 import {useLocalSearchParams, useRouter} from "expo-router";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Video from "react-native-video";
 
@@ -12,6 +12,11 @@ const Page = () => {
     const localUri = String(fillerUri);
     const mode = String(fillerMode);
     const [caption, setCaption] = useState<string>("");
+    const [remaingingCharacters, setRemaingingCharacters] = useState<number>(50);
+
+    useEffect(() => {
+        setRemaingingCharacters(50-caption.length);
+    }, [caption])
 
 
     if (!fillerUri) {
@@ -59,6 +64,8 @@ const Page = () => {
                 }
             </View>
 
+            <Text style={styles.remCharText}>{remaingingCharacters}</Text>
+
             <TextInput
                 style={styles.captionText}
                 value={caption}
@@ -67,7 +74,7 @@ const Page = () => {
                 keyboardType="default"
                 placeholder="Add a caption..."
                 placeholderTextColor={"white"}
-                // multiline={true}
+                maxLength={50}
             />
 
 
@@ -120,11 +127,14 @@ const styles = StyleSheet.create({
         borderRadius: height/100
     },
     captionText: {
-        marginTop: height/60,
         marginHorizontal: width/20,
         color: "white",
         paddingBottom: height/7
     },
+    remCharText: {
+        color: "grey",
+        left: width*0.85,
+    }
 
 });
 
