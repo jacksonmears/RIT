@@ -1,26 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, Button, StyleSheet, TextInput, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
 import { auth, db } from '@/firebase';
-import { updateProfile } from '@firebase/auth';
-import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
-import * as ImagePicker from 'expo-image-picker';
-import {Link, useLocalSearchParams, useRouter} from 'expo-router'
-import {doc, getDoc, getDocs, collection, query, orderBy, limit, setDoc} from "firebase/firestore";
+import { useLocalSearchParams, useRouter} from 'expo-router'
 import AccountPost from "../../../components/AccountPost";
-import {string} from "prop-types";
-import friendRequests from "@/app/(tabs)/home/notifications";
+import Feather from "@expo/vector-icons/Feather";
+
+type Post = {
+    id: string;
+    content: string;
+    mode: string;
+    userID: string;
+}
+
+type PostID = {
+    id: string;
+}
 
 
 const { width, height } = Dimensions.get('window');
 
 const Page = () => {
-    const user = auth.currentUser;
-    const [name, setName] = useState('');
+    const user = auth().currentUser;
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [bio, setBio] = useState('');
-    const [postContents, setPostContents] = useState<{ id: string, content: string, mode: string }[] | null>(null);
-    const [posts, setPosts] = useState<{ id: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<Post[] | []>([]);
+    const [posts, setPosts] = useState<PostID[] | []>([]);
     const {friendID} = useLocalSearchParams();
     const friend = String(friendID);
     const router = useRouter();
@@ -30,15 +35,39 @@ const Page = () => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
 
+    useEffect(() => {
+        getBioInfo().catch((err) => {
+            console.error("error fetching Bio info", err);
+        });
+        fetchFriendStatus().catch((err) => {
+            console.error("Error fetching data:", err);
+        });
+    }, []);
 
     useEffect(() => {
-        const fetchUserPosts = async () => {
-            if (!friend) return;
-            try {
-                const postsRef = collection(db, "users", friend, "posts");
-                const orderedQuery = query(postsRef, orderBy("timestamp", "asc")); // or "asc"
-                const usersDocs = await getDocs(orderedQuery);
+        getPostContent().catch((err) => {
+            console.error("error fetching data:", err);
+        })
+    }, [posts]);
 
+    useEffect(() => {
+        fetchUserPosts().catch((err) => {
+            console.error("Error fetching data:", err);
+        });
+    }, [friend]);
+
+
+
+    const fetchUserPosts = async () => {
+        if (!friend) return;
+        try {
+            const postsRef = db().collection("users").doc(friend).collection("posts");
+            const orderedQuery = postsRef.orderBy("timestamp", "asc");
+            const usersDocs = await orderedQuery.get();
+
+            if (usersDocs.empty) return;
+
+            try {
                 const postList = usersDocs.docs.map((doc) => ({
                     id: doc.id,
                     timestamp: doc.data().timestamp,
@@ -49,59 +78,40 @@ const Page = () => {
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
-        };
-        fetchUserPosts();
-    }, []);
+        } catch (err) {
+            console.error("Error fetching data:", err);
+        }
+    };
 
+    const fetchFriendStatus = async () => {
+        if (!user || !friend) return;
+        const friendsRef = await db().collection("users").doc(user.uid).collection("friends").doc(friend).get();
+        if (friendsRef.exists()) {
+            setFriendStatus(true);
+        }
+        else if (user.uid === friend) setFriendStatus(true);
+        else {
+            const friendReqRef = await db().collection("users").doc(friend).get();
+            const data = friendReqRef.data();
+            if (!friendReqRef.exists() || !data) return;
 
-
-
-    useEffect(() => {
-        getBioInfo()
-    }, []);
-
-    useEffect(() => {
-        const fetchMyFriends = async () => {
-            if (!user || !friend) return;
-            const friendsRef = await getDoc(doc(db, "users", user.uid, "friends", friend));
-            if (friendsRef.exists()) {
-                setFriendStatus(true);
-            }
-            else if (user.uid === friend) setFriendStatus(true);
-            else {
-                const friendReqRef = await getDoc(doc(db, "users", friend));
-                if (friendReqRef.exists()) {
-                    if (friendReqRef.data().friendRequests.includes(user.uid)) setRequestStatus(true);
-                }
-            }
-        };
-        fetchMyFriends();
-    }, []);
-
-    useEffect(() => {
-        console.log(friendStatus);
-    }, [friendStatus]);
-
-
-
-    useEffect(() => {
-        getPostContent()
-    }, [posts]);
-
-
+            if (data.friendRequests.includes(user.uid)) setRequestStatus(true);
+        }
+    };
 
     const getBioInfo = async () => {
         if (!friend) return;
-        const getInfo = await getDoc(doc(db,"users", friend));
-        if (getInfo.exists()){
-            setName(getInfo.data().displayName);
-            setBio(getInfo.data().bio);
-            setPfp(getInfo.data().photoURL);
-            setFirstName(getInfo.data().firstName);
-            setLastName(getInfo.data().lastName);
-        }
-        const fetchFriendCount = await getDocs(collection(db, "users", friend, "friends"));
-        const fetchPostCount = await getDocs(collection(db, "users", friend, "posts"));
+        const getInfo = await db().collection("users").doc(friend).get();
+        const data = getInfo.data()
+        if (!getInfo.exists() || !data) return;
+
+        setBio(data.bio);
+        setPfp(data.photoURL);
+        setFirstName(data.firstName);
+        setLastName(data.lastName);
+
+        const fetchFriendCount = await db().collection("users").doc(friend).collection("friends").get();
+        const fetchPostCount = await db().collection("users").doc(friend).collection("posts").get();
 
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);
@@ -109,30 +119,17 @@ const Page = () => {
     }
 
 
-
     const sendRequest = async () => {
         if (!user) return;
         try {
             if (friend === '' || user.uid === friend) return;
-            const docRef = doc(db, "users", friend);
-            const docSnap = await getDoc(docRef);
+            const docRef = db().collection("users").doc(friend);
+            const docSnap = await docRef.get();
             const friendRequests = docSnap.data()?.friendRequests || [];
-            // const friendCheck = await getDoc(doc(db, "users", user.uid, "friends", friend));
-            //
-            // if (friendRequests.includes(user.uid)){
-            //     console.log("Friend request already sent!");
-            //     return;
-            // }
-            //
-            // else if (friendCheck.exists()){
-            //     console.log("already friends!");
-            //     return;
-            // }
-
             if (docSnap.exists()) {
-                await setDoc(docRef, { friendRequests: [...friendRequests, user.uid] }, { merge: true });
+                await docRef.set({ friendRequests: [...friendRequests, user.uid] }, { merge: true });
             } else {
-                await setDoc(docRef, { friendRequests: [user.uid] });
+                await docRef.set({ friendRequests: [user.uid] });
             }
             setRequestStatus(true);
         }
@@ -142,162 +139,59 @@ const Page = () => {
     }
 
 
-
-
-
     const getPostContent = async () => {
         if (!posts) return;
         try {
-            const postContents = await Promise.all(posts.map(async (post) => {
-                const postRef = doc(db, "posts", post.id);
-                const postSnap = await getDoc(postRef);
+            const raw = await Promise.all(posts.map(async (post) => {
+                const postRef = db().collection("posts").doc(post.id);
+                const postSnap = await postRef.get();
+                const data = postSnap.data();
 
-                if (postSnap.exists()) {
+                if (!postSnap.exists() || !data) return;
+                return { id: post.id, content: data.content, mode: data.mode };
 
-                    return { id: post.id, content: postSnap.data().content, mode: postSnap.data().mode };
-                } else {
-                    return { id: post.id, content: "Content not found", mode: "failed"};
-                }
             }));
+            const validPosts = raw.filter((p): p is Post => p !== null);
+            setPostContents(validPosts.reverse());
 
-            setPostContents(postContents.reverse());
         } catch (error) {
             console.error("Error fetching post content:", error);
         }
     };
 
 
-    // const [followers, setFollowers] = useState(auth.currentUser);
-    // const [newDisplayName, setNewDisplayName] = useState('');
-    // const [photoUrl, setPhotoUrl] = useState<string | undefined>(auth.currentUser?.photoURL || undefined);
-
-    // const uploadImageToStorage = async (pickerResult: ImagePicker.ImagePickerResult, userId: string) => {
-    //     try {
-    //         const storage = getStorage();
-    //         const storageRef = ref(storage, `profilePics/${userId}`);
-    //
-    //         // 1) Extract the local URI from the picker result
-    //         if (pickerResult.assets?.length) {
-    //             const assetUri = pickerResult.assets[0].uri;
-    //             // 2) Fetch the file data and convert it to a Blob
-    //             const response = await fetch(assetUri);
-    //             const blob = await response.blob();
-    //
-    //             // 3) Upload the Blob to Firebase Storage
-    //             await uploadBytes(storageRef, blob);
-    //
-    //             // 4) Get the public download URL
-    //             const url = await getDownloadURL(storageRef);
-    //             return url;
-    //         }
-    //
-    //     } catch (error) {
-    //         console.error('Error uploading image to Storage:', error);
-    //         throw error;
-    //     }
-    // };
-
-
-
-
-    // const handleUpdateDisplayName = async () => {
-    //     try {
-    //         if (auth.currentUser) {
-    //             await updateProfile(auth.currentUser, { displayName: newDisplayName });
-    //             console.log('Profile updated successfully');
-    //         } else {
-    //             console.error('No user is logged in');
-    //         }
-    //     } catch (error) {
-    //         console.error('Error updating profile', error);
-    //     }
-    // };
-
-    const handleLogout = async () => {
-        auth.signOut();
-    }
-
-    // const handleUpdatePhotoURl = async () => {
-    //     try {
-    //         if (!auth.currentUser) {
-    //             console.log('No user logged in');
-    //             return;
-    //         }
-    //
-    //         const result = await ImagePicker.launchImageLibraryAsync({
-    //             // Better to specify the correct enum for images only:
-    //             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    //             allowsEditing: true,
-    //             aspect: [4, 3],
-    //             quality: 1,
-    //         });
-    //
-    //         // Log the entire result for debugging
-    //         console.log('ImagePicker result:', result);
-    //
-    //         // Check if the user canceled or if we have valid assets
-    //         if (!result.canceled && result.assets) {
-    //             // Upload the image and update the profile
-    //             const url = await uploadImageToStorage(result, auth.currentUser.uid);
-    //             await updateProfile(auth.currentUser, { photoURL: url });
-    //             setPhotoUrl(url); // Update state so we can display it immediately
-    //             console.log('Profile URL updated successfully');
-    //         } else {
-    //             console.log('URL not updated (picker canceled or no assets)');
-    //         }
-    //     } catch (error) {
-    //         console.error('Error in handleUpdatePhotoURL:', error);
-    //     }
-    // };
-
     return (
 
 
         <View style={styles.container}>
-            <View style={styles.topBar}>
-                <View style={styles.backContainer}>
-                    <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                        <Text style={styles.backButtonText}>Back</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-            <View style={styles.infoBar}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                <Feather name="x" size={height/45} color="#D3D3FF" />
+                <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+
+            <View style={styles.infoContainer}>
                 <View style={styles.pfpAndInfo}>
                     <View>
                         <Image source={{ uri: pfp }} style={styles.pfp} />
                     </View>
-                    <View style={styles.pfpSeparator}></View>
-                    <View style={styles.infoBox}>
-                        <View style={styles.name}>
-                            <Text style={styles.nameText}>{firstName} {lastName}</Text>
-                        </View>
+                    <View style={styles.nameAndInfo}>
+                        <Text style={styles.nameText}>{firstName} {lastName}</Text>
                         <View style={styles.info}>
-                            <View style={styles.postsInfo}>
-                                <Text style={styles.genericText}>{numPosts}</Text>
-                                <Text style={styles.genericText}>posts</Text>
+                            <View>
+                                <Text style={styles.infoNumber}>{numPosts}</Text>
+                                <Text style={styles.infoText}>posts</Text>
                             </View>
-                            <View style={styles.pfpSeparator}></View>
-                            <View style={styles.friendInfo}>
-                                <Text style={styles.genericText}>{numFriends}</Text>
-                                <Text style={styles.genericText}>friends</Text>
+                            <View style={styles.friendsBox}>
+                                <Text style={styles.infoNumber}>{numFriends}</Text>
+                                <Text style={styles.infoText}>friends</Text>
                             </View>
                         </View>
                     </View>
                 </View>
-                <View style={styles.bioBox}>
-                    <Text style={styles.genericText}>{bio}</Text>
-                </View>
+                <Text style={styles.bioText}>{bio}</Text>
             </View>
 
             <View style={styles.buttonContainer}>
-                {/*<TouchableOpacity*/}
-                {/*    style={friendStatus ? styles.followingButton : styles.followButton}*/}
-                {/*>*/}
-                {/*    <Text style={styles.followText}>*/}
-                {/*        {friendStatus ? "friends" : "request"}*/}
-                {/*    </Text>*/}
-                {/*</TouchableOpacity>*/}
-
                 {friendStatus ? (
                     <View style={styles.followButton}>
                         <Text style={styles.followText}>friends</Text>
@@ -310,28 +204,19 @@ const Page = () => {
                         <Text style={styles.notFollowedText}>{requestStatus ? "request pending" : "request"}</Text>
                     </TouchableOpacity>
                 )}
-
-                <View style={styles.separator}></View>
-                {/*<TouchableOpacity style={styles.messageButton}>*/}
-                {/*    <Text style={styles.messageText}>message</Text>*/}
-                {/*</TouchableOpacity>*/}
             </View>
 
-            <View style={styles.postContainer}>
-                <FlatList
-                    style={styles.groups}
-                    data={postContents}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <View style={styles.itemContainer}>
-                            <AccountPost post={item} />
-                        </View>
-                    )}
-                    // contentContainerStyle={styles.flatListContentContainer}
-                    // ItemSeparatorComponent={() => <View style={styles.separator} />}
-                    numColumns={3}
-                />
-            </View>
+            <FlatList
+                style={styles.groups}
+                data={postContents}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item, index }) => (
+                    <View style={styles.itemContainer}>
+                        <AccountPost post={item} index={index}/>
+                    </View>
+                )}
+                numColumns={3}
+            />
 
         </View>
     );
@@ -342,10 +227,23 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
         flex: 1,
     },
-    infoBar: {
-        paddingTop: 60,
-        paddingLeft: 40,
+    backButton: {
+        padding: width/50,
+        borderRadius: width/50,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        width: width/6,
+        left: width/40,
+        top: height/90,
 
+    },
+    backButtonText: {
+        color: "#D3D3FF"
+    },
+    infoContainer: {
+        marginTop: height/20,
+        marginHorizontal: width/10,
     },
     pfpAndInfo: {
         flexDirection: 'row',
@@ -354,16 +252,12 @@ const styles = StyleSheet.create({
     pfp: {
         backgroundColor: 'white',
         borderRadius: 999,
-        width: 100,
-        height: 100,
+        width: width/4,
+        height: width/4,
     },
-    pfpSeparator: {
-        width: 20
-    },
-    infoBox: {
+    nameAndInfo: {
+        marginLeft: width/20
 
-    },
-    name: {
     },
     nameText: {
         color: "gold",
@@ -372,100 +266,54 @@ const styles = StyleSheet.create({
     info: {
         flexDirection: 'row',
     },
-    postsInfo: {
-
+    infoText: {
+        color: "white",
     },
-    friendInfo: {
-
+    infoNumber: {
+        marginLeft: width/30,
+        color: "white",
     },
-    bioBox: {
-        paddingLeft: 15,
-        paddingTop: 20,
+    friendsBox: {
+        marginLeft: width/20,
     },
-    genericText: {
-        color: 'white',
+    bioText: {
+        color: "white",
+        marginVertical: height/50
     },
     groups: {
         flex: 1,
-        marginTop: 20,
+        marginTop: height/50,
+        marginHorizontal: width/150
     },
     itemContainer: {
-        flex: 1 / 3, // One third of the row
-        paddingVertical: 0.5, // Optional: adds spacing between items
-        paddingHorizontal: 0.5,
-    },
-    postContainer: {
-        flex: 1,
+        flex: 1 / 3,
     },
 
-    topBar: {
-
-    },
-    backContainer: {
-        width: 60
-    },
-    backButton: {
-        backgroundColor: "#28a745",
-        padding: 10,
-        borderRadius: 8,
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    backButtonText: {
-        color: "white"
-    },
-
-    messageText: {
-        color: "white",
-    },
     buttonContainer: {
         flexDirection: "row",
-        paddingHorizontal: 40,
-        justifyContent: "space-between",
-        paddingTop: 20,
-        paddingBottom: 10
-
+        marginHorizontal: width/10,
+    },
+    followButton: {
+        flex: 1,
+        alignItems: "center",
+        borderWidth: width/200,
+        borderColor: "#D3D3FF",
+        borderRadius: width/100,
+    },
+    followText: {
+        color: "white",
     },
     notFollowedButton: {
         flex: 1,
         backgroundColor: "#D3D3FF",
         alignItems: "center",
-        padding: 4,
-        borderRadius: 4,
-    },
-    followingButton: {
-        flex: 1,
-        backgroundColor: "blue",
-        alignItems: "center",
-        padding: 4,
-        borderRadius: 2,
-    },
-    messageButton: {
-        flex: 1,
-        backgroundColor: "green",
-        alignItems: "center",
-        borderRadius: 2,
-        padding: 4
-    },
-    separator: {
-        width: 20,
-    },
-    followButton: {
-        flex: 1,
-        alignItems: "center",
-        padding: 4,
-        borderRadius: 4,
-        borderWidth: 2,
-        borderColor: "#D3D3FF",
-    },
-    followText: {
-        color: "white",
+        borderRadius: width/100,
+        padding: width/100
+
     },
     notFollowedText: {
         color: "black",
     },
-
 });
 
 export default Page;

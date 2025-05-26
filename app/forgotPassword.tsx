@@ -1,9 +1,8 @@
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, Dimensions } from 'react-native';
-import { auth } from '@/firebase';
 import { useRouter } from "expo-router";
 import React, { useState} from 'react';
-import { sendPasswordResetEmail } from "@firebase/auth";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import auth from '@react-native-firebase/auth';
 
 const { width, height } = Dimensions.get("window");
 
@@ -15,9 +14,8 @@ const Page = () => {
 
     const sendResetPassword = async () => {
         try {
-            await sendPasswordResetEmail(auth, email);
+            await auth().sendPasswordResetEmail(email);
             setIsSent(true);
-            console.log("email sent")
         } catch (error) {
             alert(error);
         }

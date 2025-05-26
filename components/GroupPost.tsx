@@ -1,7 +1,6 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import React, {useEffect, useState} from "react";
-import {doc, getDoc, deleteDoc, collection, getDocs, addDoc, setDoc, serverTimestamp} from "firebase/firestore";
 import {auth,db} from "@/firebase";
 import Video from "react-native-video";
 
@@ -21,13 +20,12 @@ interface PostCompProps {
     post: Post;
 }
 
-
+const {width, height} = Dimensions.get("window");
 
 const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     const router = useRouter();
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
-    const [likeText, setLikeText] = useState("like");
     const content = decodeURIComponent(post.content);
 
 
@@ -38,45 +36,44 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
             if (!user) return;
 
             try {
-                const likeCheck = await getDoc(doc(db, "posts", post.id, "likes", user.uid));
+                const likeCheck = await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
                 const liked = likeCheck.exists();
                 setLikeStatus(liked);
-                setLikeText(liked ? "already liked" : "like");
             } catch (error) {
                 console.error("Error checking like status:", error);
             }
         };
 
-        likeFunc();
+        likeFunc().catch((err) => {
+            console.error("Error checking like status:", err);
+        });
     }, [likeStatus]);
 
-    const likeBeta = async () => {
-        if (!user) return;
-        if (!likeStatus) try {
-            await setDoc(doc(db, "posts", post.id, "likes", user.uid), {
-                likedAt: new Date().toISOString(),
-            })
-            console.log("post liked");
-            setLikeStatus(true);
-        } catch (error){
-            console.error(error)
-        }
-        else {
-            await deleteDoc(doc(db, "posts", post.id, "likes", user.uid))
-            setLikeStatus(false);
-        }
-    }
+    // const likeBeta = async () => {
+    //     if (!user) return;
+    //     if (!likeStatus) try {
+    //         await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).set({
+    //             likedAt: new Date().toISOString(),
+    //         })
+    //         setLikeStatus(true);
+    //     } catch (error){
+    //         console.error(error)
+    //     }
+    //     else {
+    //         await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).delete();
+    //         setLikeStatus(false);
+    //     }
+    // }
 
     return (
         <View>
 
             {user?.displayName === post.userName ? (
                 <View style={styles.postView}>
-                    <View style={styles.nameContentContainer}>
                         <View style={styles.imageWrapper}>
                             <TouchableOpacity onPress={() => router.push({
                                 pathname: '/(tabs)/groups/[groupID]/post',
-                                params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName, mode: post.mode, photoURL: encodeURIComponent(post.pfp) }
+                                params: { groupID: post.groupID, rawID: post.id, rawContent: post.content, rawCaption: post.caption, rawUsername: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp) }
                             })}>
                                 {post.mode === "photo" ?
                                     <Image source={{ uri: content }} style={styles.pictureContent} />
@@ -85,25 +82,18 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                         source={{ uri: content }}
                                         style={styles.videoContent}
                                         resizeMode={'cover'}
-                                        // repeat={true}
                                         paused={true}
                                     />
                                 }
                             </TouchableOpacity>
                         </View>
-
-                        {/*<View style={styles.captionBar}>*/}
-                        {/*    <Text style={styles.userNameCaption}>{post.userName} </Text>*/}
-                        {/*    <Text> {post.caption}</Text>*/}
-                        {/*</View>*/}
-                    </View>
                 </View>
             ) : (
                 <View style={styles.postView}>
                     <View style={styles.flexFixer}>
                         <View style={styles.sideSeparator}>
-                            <View style={styles.pfpBoxPosition}>
-                                <View style={styles.pfpBox}>
+                            <View>
+                                <View>
                                     <View style={styles.avatarContainer}>
                                         {post.pfp? (
                                             <Image source={{ uri: post.pfp }} style={styles.avatar} />
@@ -117,11 +107,10 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 
                             </View>
                         </View>
-                        <View style={styles.nameContentContainer}>
                             <View style={styles.imageWrapper}>
                                 <TouchableOpacity onPress={() => router.push({
                                     pathname: '/(tabs)/groups/[groupID]/post',
-                                    params: { groupID: post.groupID, idT: post.id, contentT: post.content, captionT: post.caption, userNameT: post.userName, mode: post.mode, photoURL: encodeURIComponent(post.pfp) }
+                                    params: { groupID: post.groupID, rawId: post.id, rawContent: post.content, rawCaption: post.caption, rawUsername: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp) }
                                 })}>
                                     {post.mode === "photo" ?
                                         <Image source={{ uri: content }} style={styles.pictureContent} />
@@ -130,7 +119,6 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                             source={{ uri: content }}
                                             style={styles.videoContent}
                                             resizeMode={'cover'}
-                                            // repeat={true}
                                             paused={true}
                                         />
                                     }
@@ -139,12 +127,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                     </View>
                                 </TouchableOpacity>
                             </View>
-                            {/*<View style={styles.captionBar}>*/}
-                            {/*    <Text style={styles.userNameCaption}>{post.userName} </Text>*/}
-                            {/*    <Text> {post.caption}</Text>*/}
-                            {/*</View>*/}
                         </View>
-                    </View>
                 </View>
             )}
 
@@ -157,7 +140,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
 const styles = StyleSheet.create({
     postView: {
         justifyContent: "center",
-        marginLeft: 10,
+        marginLeft: width/50,
     },
     flexFixer: {
         flexDirection: "row",
@@ -165,27 +148,25 @@ const styles = StyleSheet.create({
     sideSeparator: {
         alignItems: "center",
         justifyContent: "flex-end",
-        marginRight: 10
-    },
-    nameContentContainer: {
+        marginRight: width/50,
     },
     topBar: {
         backgroundColor: "grey",
     },
     contentView: {
         borderColor: "#D3D3FF",
-        borderWidth: 1,
-        borderRadius: 8
+        borderWidth: width/400,
+        borderRadius: width/50
     },
     bottomBar: {
         backgroundColor: "white",
-        padding: 10,
+        padding: height/100,
         flexDirection: "row",
     },
     captionBar: {
         alignItems: "center",
         backgroundColor: "grey",
-        padding: 10,
+        padding: height/100,
         flexDirection: "row",
     },
     userNameCaption: {
@@ -194,31 +175,26 @@ const styles = StyleSheet.create({
     contentText: {
         color: "white",
     },
-    pfpBoxPosition: {
-    },
-    pfpBox: {
-
-    },
     avatarContainer: {
         alignItems: 'center',
     },
     pictureContent: {
-        width: 200,
-        height: 300,
+        width: width/2,
+        height: height/3,
         resizeMode: "cover",
         backgroundColor: "#222",
-        borderRadius: 8
+        borderRadius: width/100
     },
     videoContent: {
-        width: 200,
-        height: 300,
+        width: width/2,
+        height: height/3,
         backgroundColor: "#222",
-        borderRadius: 8
+        borderRadius: width/100
     },
     avatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 60,
+        width: width/12,
+        height: width/12,
+        borderRadius: 999,
     },
     placeholder: {
         backgroundColor: '#444',
@@ -230,18 +206,15 @@ const styles = StyleSheet.create({
     },
     overlay: {
         position: "absolute",
-        top: 8,
-        left: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
+        top: height/75,
+        left: width/40,
     },
     imageWrapper: {
         position: "relative",
-        marginVertical: 10,
-        borderRadius: 8,
+        marginVertical: height/100,
+        borderRadius: width/50,
         overflow: "hidden",
-        borderWidth: 1,
+        borderWidth: width/200,
         borderColor: "#D3D3FF",
     },
     overlayText: {

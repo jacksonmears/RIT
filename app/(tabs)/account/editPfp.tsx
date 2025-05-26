@@ -1,54 +1,50 @@
-// src/screens/editPfp.tsx
-
-import React, { useState, useEffect } from 'react';
+import React, {useState} from 'react';
 import {
     View,
     Text,
     Image,
-    Button,
     StyleSheet,
     Alert,
     ActivityIndicator,
+    Dimensions, TouchableOpacity,
 } from 'react-native';
-import { auth } from '@/firebase';           // adjust path as needed
+import {auth, db} from '@/firebase';
 import {
     pickImageAsync,
     uploadProfileImageAsync,
     setAuthUserProfilePhoto,
     deleteProfileImageAsync,
     clearAuthUserProfilePhoto,
-} from '@/firebaseUtils';                     // adjust path as needed
+} from '@/firebaseUtils';
+import Feather from "@expo/vector-icons/Feather";
+import {useLocalSearchParams, useRouter} from "expo-router";
 
-export default function EditProfileScreen() {
-    const user = auth.currentUser!;
+const {width, height} = Dimensions.get('window');
+
+export default function Page() {
+    const user = auth().currentUser!;
     const [localUri, setLocalUri] = useState<string | null>(null);
-    const [photoURL, setPhotoURL] = useState<string | null>(user.photoURL);
     const [loading, setLoading] = useState(false);
+    const { rawPhotoURL } = useLocalSearchParams()
+    const router = useRouter();
 
-    // Whenever auth.currentUser.photoURL changes (e.g. elsewhere), keep state in sync
-    useEffect(() => {
-        setPhotoURL(auth.currentUser?.photoURL ?? null);
-    }, [auth.currentUser?.photoURL]);
 
     const handlePick = async () => {
         try {
             const uri = await pickImageAsync();
             if (uri) setLocalUri(uri);
+            return uri;
         } catch (err: any) {
             Alert.alert('Error', err.message);
         }
     };
 
-    const handleUpload = async () => {
+    const handleUpload = async (localUri: string) => {
         if (!localUri) return;
         setLoading(true);
         try {
-            // upload to Storage → get download URL
             const downloadURL = await uploadProfileImageAsync(localUri);
-            // set it on the Auth user
             await setAuthUserProfilePhoto(downloadURL);
-            setPhotoURL(downloadURL);
-            setLocalUri(null);
             Alert.alert('Success', 'Your profile picture was updated.');
         } catch (err: any) {
             Alert.alert('Upload failed', err.message);
@@ -56,6 +52,22 @@ export default function EditProfileScreen() {
             setLoading(false);
         }
     };
+
+    const handleSave = async () => {
+        try {
+            const picPath = await handlePick();
+            if (!picPath) return;
+            await handleUpload(picPath);
+        } catch (error) {
+            console.error(error);
+        }
+
+
+
+
+    }
+
+
 
     const handleDelete = async () => {
         Alert.alert(
@@ -71,7 +83,10 @@ export default function EditProfileScreen() {
                         try {
                             await deleteProfileImageAsync();
                             await clearAuthUserProfilePhoto();
-                            setPhotoURL(null);
+                            await db().collection("users").doc(user.uid).update({
+                                photoURL: "",
+                            })
+                            setLocalUri(null);
                             Alert.alert('Deleted', 'Profile picture removed.');
                         } catch (err: any) {
                             Alert.alert('Delete failed', err.message);
@@ -86,51 +101,76 @@ export default function EditProfileScreen() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.header}>Edit Profile</Text>
+            <View style={styles.topBar}>
+                <View style={{flexDirection: "row", alignItems: "center"}}>
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <Feather name="x" size={height/50} color="#D3D3FF" />
+                    </TouchableOpacity>
+                    <Text style={{color: "#D3D3FF"}}>{user.displayName}</Text>
+                </View>
+            </View>
 
+
+        <View style={{alignItems: "center"}}>
             <View style={styles.avatarContainer}>
                 {loading ? (
                     <ActivityIndicator size="large" color="gold" />
                 ) : localUri ? (
                     <Image source={{ uri: localUri }} style={styles.avatar} />
-                ) : photoURL ? (
-                    <Image source={{ uri: photoURL }} style={styles.avatar} />
+                ) : rawPhotoURL ? (
+                    <Image source={{uri: String(rawPhotoURL)}} style={styles.avatar}/>
                 ) : (
                     <View style={[styles.avatar, styles.placeholder]}>
                         <Text style={styles.placeholderText}>No Photo</Text>
                     </View>
                 )}
+
             </View>
 
-            <View style={styles.buttons}>
-                <Button title="Choose New Photo" onPress={handlePick} />
-                <Button
-                    title="Save as Profile Photo"
-                    onPress={handleUpload}
-                    disabled={!localUri || loading}
-                />
-                <Button
-                    title="Remove Photo"
-                    onPress={handleDelete}
-                    disabled={!photoURL || loading}
-                    color="red"
-                />
-            </View>
+            <TouchableOpacity onPress={handleSave} style={styles.newPicButton}>
+                <Text>Choose New Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+                <Text style={{color: "white"}}>Delete pfp</Text>
+            </TouchableOpacity>
+
+        </View>
+
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: 'black', padding: 20 },
-    header: { color: 'gold', fontSize: 24, marginBottom: 20, textAlign: 'center' },
+    container: {
+        flex: 1,
+        backgroundColor: 'black',
+    },
+    topBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
+        borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
+    },
+    name: {
+        color: 'gold',
+        fontSize: height/33,
+        marginBottom: height/25,
+        marginTop: height/33,
+        textAlign: 'center'
+    },
     avatarContainer: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: height/20,
+        marginTop: height/10
     },
     avatar: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: width/2,
+        height: width/2,
+        borderRadius: 999,
     },
     placeholder: {
         backgroundColor: '#444',
@@ -140,8 +180,23 @@ const styles = StyleSheet.create({
     placeholderText: {
         color: 'white',
     },
-    buttons: {
-        height: 140,
-        justifyContent: 'space-around',
+    newPicButton: {
+        backgroundColor: "#D3D3FF",
+        alignItems: 'center',
+        height: height/25,
+        width: width*0.66,
+        marginBottom: height/25,
+        justifyContent: 'center',
     },
+    deleteButton: {
+        borderColor: "#D3D3FF",
+        alignItems: 'center',
+        height: height/25,
+        width: width*0.66,
+        justifyContent: 'center',
+        borderWidth: width/100,
+    }
+
 });
+
+// export default Page;

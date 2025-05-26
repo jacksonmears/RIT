@@ -1,67 +1,53 @@
+(globalThis as any).RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+
+
+
 import { Stack, useRouter, useSegments } from "expo-router";
-import {useEffect, useState} from "react";
-import {User} from "firebase/auth";
-import {auth} from "@/firebase";
-import { setUserId } from "firebase/analytics";
+import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import auth from '@react-native-firebase/auth';
 
 const RootLayout = () => {
     const [initializing, setInitializing] = useState(true);
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<import('@react-native-firebase/auth').FirebaseAuthTypes.User | null>(null);
     const router = useRouter();
     const segments = useSegments();
 
-
-    const onAuthStateChanged = (user: User | null) => {
-        setUser(user);
-        if (user) setUserId(auth, user.uid);
-        if (initializing) setInitializing(false);
-    };
-
+    // Subscribe to auth state changesF
     useEffect(() => {
-        return auth.onAuthStateChanged(onAuthStateChanged);
+        return auth().onAuthStateChanged(u => {
+            setUser(u);
+            if (initializing) setInitializing(false);
+        });
     }, []);
 
+    // Redirect logic
     useEffect(() => {
         if (initializing) return;
-
-        const inAuthGroup = segments[0] === '(tabs)';
-
+        const inAuthGroup = segments[0] === "(tabs)";
 
         if (user && !inAuthGroup && user.emailVerified) {
-            router.replace('/(tabs)/home');
+            router.replace("/(tabs)/home");
         } else if (!user && inAuthGroup) {
-            router.replace('/');
+            router.replace("/");
         }
-
     }, [user, initializing, segments]);
 
-    if (initializing)
+    // Loading indicator
+    if (initializing) {
         return (
-            <View
-                style={{
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flex: 1,
-                }}>
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
                 <ActivityIndicator size="large" />
             </View>
         );
-
+    }
 
     return (
-        <GestureHandlerRootView>
-            <Stack>
-                <Stack.Screen name="index" options={{headerShown: false}} />
-                <Stack.Screen name="signUp" options={{ headerShown: false }} />
-                <Stack.Screen name="forgotPassword" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-            </Stack>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <Stack screenOptions={{ headerShown: false }} />
         </GestureHandlerRootView>
-
-    )
-
+    );
 };
 
 export default RootLayout;

@@ -1,21 +1,12 @@
 import React, {useEffect, useState} from 'react';
-import {
-    Dimensions,
-    StyleSheet,
-    View,
-    Text, TouchableOpacity, ActivityIndicator,
-} from 'react-native';
+import {ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {auth, db} from "@/firebase";
 import {useRouter} from "expo-router";
-import {collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query} from "firebase/firestore";
 import {AnimatedPost} from "@/components/AnimatedPost";
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withDecay, runOnJS
-} from 'react-native-reanimated';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import Animated, {runOnJS, useAnimatedStyle, useSharedValue, withDecay} from 'react-native-reanimated';
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useConsent } from '@/hooks/useConsent';
 
 const { height, width } = Dimensions.get('window');
 type PostType = {
@@ -32,7 +23,7 @@ type PostType = {
 const Page = () => {
     const [friends, setFriends] = useState<string[]>([]);
     const [postIds, setPostIds] = useState<string[]>([]);
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const router = useRouter();
     const [postContents, setPostContents] = useState<PostType[] | []>([]);
     const [friendNotifications, setFriendNotifications] = useState<number>(0);
@@ -43,22 +34,28 @@ const Page = () => {
     const isRefreshing = useSharedValue(false);
     const REFRESH_TRIGGER_HEIGHT = 100;
     const MAX_PULL_DOWN_HEIGHT = 101;
-    const BOX_HEIGHT   = 650;
+    const POST_HEIGHT   = height*0.7;
+    const AD_HEIGHT = height/2;
     const MAX_POSITION = 0;
-    const MIN_POSITION = - ((postContents.length - 1) * BOX_HEIGHT );
+    const MIN_POSITION = - ((postContents.length - 1) * POST_HEIGHT + (postContents.length - 1) * AD_HEIGHT);
     const position   = useSharedValue(0);
     const startY     = useSharedValue(0);
+    // const [personalizedAds, setPersonalizedAds] = useState<boolean>(false);
+    const personalizedAds = useConsent();
+
 
 
     useEffect(() => {
-        if (user && user.uid) {
-            const snapshot = onSnapshot(doc(db, "users", user.uid), () => {
-                getNotifications().catch((err) => {
-                    console.error("Error fetching notifications:", err);
-                });
+        if (!user) return;
+
+        const snapshot = db().collection("users").doc(user.uid).onSnapshot(() => {
+            getNotifications().catch((err) => {
+                console.error("Error fetching notifications:", err);
             });
-            return () => snapshot();
-        }
+        });
+
+        return () => snapshot();
+
     }, [user]);
 
     useEffect(() => {
@@ -78,6 +75,17 @@ const Page = () => {
             console.error("Error fetching postContent:", err);
         });
     }, [postIds]);
+
+    const feed = React.useMemo(() => {
+        const items: Array<{ type: 'post'; post: PostType } | { type: 'ad'; id: string }> = [];
+        postContents.forEach((post) => {
+            items.push({type: 'post', post});
+            // only insert an ad _after_ each post (you could skip the last one if you want)
+            items.push({type: 'ad', id: `ad-${post.id}`});
+        });
+        return items;
+    },[postContents]);
+
 
 
     useEffect(() => {
@@ -114,7 +122,7 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const friendSnap = await getDocs(collection(db, "users", user.uid, "friends"));
+            const friendSnap = await db().collection("users").doc(user.uid).collection("friends").get();
             let friendIds: string[] = [];
 
             friendSnap.forEach((doc) => {
@@ -132,13 +140,9 @@ const Page = () => {
 
         try  {
             for (const friendId of friends) {
-                const q = query(
-                    collection(db, "users", friendId, "posts"),
-                    orderBy("timestamp", "desc"),
-                    limit(1)
-                );
+                const q = db().collection("users").doc(friendId).collection("posts").orderBy("timestamp", "desc").limit(1);
 
-                const snapshot = await getDocs(q);
+                const snapshot = await q.get();
 
                 if (!snapshot.empty) {
                     postIds.push(snapshot.docs[0].id);
@@ -151,13 +155,19 @@ const Page = () => {
     };
 
 
+
     const getNotifications = async () => {
         if (!user) return;
-        const userInfo = await getDoc(doc(db, "users", user.uid));
-        if (userInfo.exists()){
-            setFriendNotifications(userInfo.data().friendRequests.length);
-            setGroupsNotifications(userInfo.data().groupRequests.length);
-        }
+        const userInfo = await db().collection("users").doc(user.uid).get();
+        const data = userInfo.data();
+        if (!userInfo.exists() || !data) return;
+
+        // const pAds = data.personalizedAds;
+        // if (pAds === undefined) askUserConsent()
+        // setPersonalizedAds(pAds==="true");
+
+        setFriendNotifications(data.friendRequests.length);
+        setGroupsNotifications(data.groupRequests.length);
     }
 
 
@@ -170,24 +180,27 @@ const Page = () => {
         try {
             isRefreshingPosts && setIsLoading(true);
             const raw = await Promise.all(postIds.map(async (post) => {
-                const postRef = doc(db, "posts", post);
-                const postSnap = await getDoc(postRef);
-                if (!postSnap.exists()) return null;
+                const postRef = db().collection("posts").doc(post);
+                const postSnap = await postRef.get();
+                const data =postSnap.data();
+                if (!postSnap.exists() || !data) return null;
 
 
-                const userID = postSnap.data().sender_id;
-                const mode = postSnap.data().mode;
-                const userInfo = await getDoc(doc(db, "users", userID));
+                const userID = data.sender_id;
+                const mode = data.mode;
+                const userInfo = await db().collection("users").doc(userID).get();
                 let userName = ''
                 let pfp = ''
-                if (userInfo.exists()) {
-                    userName = userInfo.data().displayName;
-                    pfp = userInfo.data().photoURL;
-                }
+                const Data = userInfo.data()
+                if (!userInfo.exists() || !Data) return;
+
+                userName = Data.displayName;
+                pfp = Data.photoURL;
+
 
 
                 let timestamp = "Unknown date";
-                const rawTimestamp = postSnap.data().timestamp;
+                const rawTimestamp = data.timestamp;
                 if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
                     try {
                         const dateObj = rawTimestamp.toDate();
@@ -198,7 +211,7 @@ const Page = () => {
                 }
 
 
-                return { id: post, content: postSnap.data().content, caption: postSnap.data().caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
+                return { id: post, content: data.content, caption: data.caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
             }))
             const validPosts = raw.filter((p): p is PostType => p !== null);
             setPostContents(validPosts)
@@ -218,6 +231,35 @@ const Page = () => {
         setIsRefreshingPosts(false);
     };
 
+
+
+    // const askUserConsent = () => {
+    //     Alert.alert(
+    //         "Personalized Ads Consent",
+    //         "Do you want to allow personalized ads to improve your experience?",
+    //         [
+    //             {
+    //                 text: "No",
+    //                 onPress: () => saveConsent(false),
+    //                 style: "cancel"
+    //             },
+    //             { text: "Yes", onPress: () => saveConsent(true) }
+    //         ],
+    //         { cancelable: false }
+    //     );
+    // };
+
+    // const saveConsent = async (consent: boolean) => {
+    //     if (!user) return;
+    //     try {
+    //         await db().collection("users").doc(user.uid).update({
+    //             personalizedAds: consent ? "true" : "false"
+    //         });
+    //         setPersonalizedAds(consent);
+    //     } catch (error) {
+    //         console.error("Error saving consent:", error);
+    //     }
+    // };
 
 
 
@@ -262,6 +304,14 @@ const Page = () => {
     }));
 
 
+    if (personalizedAds === null) {
+        return (
+            <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" />
+            </View>
+        );
+    }
+
 
     const renderTopBar = () => (
         <View style={styles.topBar}>
@@ -291,21 +341,24 @@ const Page = () => {
             {isLoading || isRefreshingPosts ?
                 <ActivityIndicator size="small" style={styles.loader} />
             :
-                <GestureDetector gesture={panGesture} >
-                    <View >
-                        {postContents.map((post, index) => (
+                <GestureDetector gesture={panGesture}>
+                    <View>
+                        {feed.map((item, idx) => (
                             <AnimatedPost
-                                key={post.id}
-                                post={post}
-                                index={index}
+                                key={item.type === 'post' ? item.post!.id : item.id!}
+                                post={item.type === 'post' ? item.post : ''}
+                                index={idx}
                                 scrollY={position}
-                                boxHeight={BOX_HEIGHT}
+                                postHeight={POST_HEIGHT}
+                                adHeight={AD_HEIGHT}
+                                personalizedAds={personalizedAds}
                             />
                         ))}
                     </View>
                 </GestureDetector>
-            }
 
+
+            }
         </View>
     );
 
@@ -325,9 +378,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: width/20,
-        padding: width/50,
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
     },
     titleTextRECAP: {
         color: 'white',
@@ -357,6 +411,8 @@ const styles = StyleSheet.create({
         fontSize: height/100,
         color: "white",
     },
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
 });
 
 export default Page;

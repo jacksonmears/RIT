@@ -1,40 +1,40 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
     View,
     Text,
-    Button,
     StyleSheet,
-    TextInput,
     Image,
     Dimensions,
     FlatList,
     TouchableOpacity,
-    ActivityIndicator, Animated
+    Animated
 } from 'react-native';
 import { auth, db } from '@/firebase';
 import { useFocusEffect} from '@react-navigation/native';
-import { updateProfile } from '@firebase/auth';
-import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
-import * as ImagePicker from 'expo-image-picker';
-import { Link, useRouter } from 'expo-router'
-import {doc, getDoc, getDocs, collection, query, orderBy, limit, serverTimestamp} from "firebase/firestore";
+import { useRouter } from 'expo-router'
 import AccountPost from "../../../components/AccountPost";
-import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Svg, {G, Defs, Text as SvgText, Path, TextPath, TSpan, Line, Circle} from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
 
+type PostType = {
+    id: string;
+    content: string;
+    caption: string;
+    mode: string;
+    userID: string;
+}
+
 
 const Page = () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     const [numPosts, setNumPosts] = useState(0);
     const [numFriends, setNumFriends] = useState(0);
     const [pfp, setPfp] = useState<string>('');
     const [firstName, setFirstName] = useState<string>("");
     const [lastName, setLastName] = useState<string>('');
     const [bio, setBio] = useState('');
-    const [postContents, setPostContents] = useState<{ id: string, content: string, caption:string, mode: string, userID: string }[] | null>(null);
+    const [postContents, setPostContents] = useState<PostType[] | []>([]);
     const [posts, setPosts] = useState<{ id: string }[] | null>(null);
     const router = useRouter();
     const [refreshing, setRefreshing] = useState(false);
@@ -47,11 +47,15 @@ const Page = () => {
             await getBioInfo()
             await fetchUserPosts();
         }
-        getInfo();
+        getInfo().catch((err) => {
+            console.error(err);
+        });
     }, []);
 
     useEffect(() => {
-        getPostContent()
+        getPostContent().catch((err) => {
+            console.error(err);
+        })
     }, [posts]);
 
 
@@ -102,18 +106,18 @@ const Page = () => {
     const fetchUserPosts = async () => {
         if (!user) return;
         try {
-            const postsRef = collection(db, "users", user.uid, "posts");
-            const orderedQuery = query(postsRef, orderBy("timestamp", "asc")); // or "asc"
-            const usersDocs = await getDocs(orderedQuery);
+            const postsRef = db().collection("users").doc(user.uid).collection("posts")
+            const orderedQuery = postsRef.orderBy("timestamp", "asc")
+            const usersDocs = await orderedQuery.get();
 
-            const userPfpRef = await getDoc(doc(db, "users", user.uid));
-            if (userPfpRef.exists()) {
-                setPfp(userPfpRef.data().photoURL)
-            }
+            const userPfpRef = await db().collection("users").doc(user.uid).get()
+            const data = userPfpRef.data()
+            if (!userPfpRef.exists() || !data) return;
+            setPfp(data.photoURL)
 
             const postList = usersDocs.docs.map((doc) => ({
                 id: doc.id,
-                timestamp: serverTimestamp(),
+                timestamp: db.FieldValue.serverTimestamp(),
             }));
 
             setPosts(postList);
@@ -125,14 +129,16 @@ const Page = () => {
 
     const getBioInfo = async () => {
         if (!user) return;
-        const getInfo = await getDoc(doc(db,"users", user.uid));
-        if (getInfo.exists()){
-            setBio(getInfo.data().bio);
-            setFirstName(getInfo.data().firstName);
-            setLastName(getInfo.data().lastName);
-        }
-        const fetchFriendCount = await getDocs(collection(db, "users", user.uid, "friends"));
-        const fetchPostCount = await getDocs(collection(db, "users", user.uid, "posts"));
+        const getInfo = await db().collection("users").doc(user.uid).get()
+        const data = getInfo.data()
+        if (!getInfo.exists() || !data) return;
+
+        setBio(data.bio);
+        setFirstName(data.firstName);
+        setLastName(data.lastName);
+
+        const fetchFriendCount = await db().collection("users").doc(user.uid).collection("friends").get();
+        const fetchPostCount = await db().collection("users").doc(user.uid).collection("posts").get();
 
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);
@@ -144,18 +150,18 @@ const Page = () => {
         if (!posts || !user) return;
         try {
             const postContents = await Promise.all(posts.map(async (post) => {
-                const postRef = doc(db, "posts", post.id);
-                const postSnap = await getDoc(postRef);
+                const postRef = db().collection("posts").doc(post.id)
+                const postSnap = await postRef.get();
+                const data = postSnap.data()
 
-                if (postSnap.exists()) {
+                if (!postSnap.exists() || !data) return;
 
-                    return { id: post.id, content: postSnap.data().content, caption: postSnap.data().caption, mode: postSnap.data().mode, userID: user.uid };
-                } else {
-                    return { id: post.id, content: "Content not found", caption: "failed", mode: "failed", userID: "failed"};
-                }
+                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid };
+
             }));
+            const validPosts = postContents.filter((p):p is PostType => p !== null)
 
-            setPostContents(postContents.reverse());
+            setPostContents(validPosts.reverse());
         } catch (error) {
             console.error("Error fetching post content:", error);
         }
@@ -172,7 +178,7 @@ const Page = () => {
 
 
     const handleLogout = async () => {
-        auth.signOut();
+        await auth().signOut();
     }
 
     const renderTopBar = () => (
@@ -181,7 +187,9 @@ const Page = () => {
                 <Text style={styles.topBarText}>{user?.displayName}</Text>
             </View>
             <View>
-                <Button title="Logout" onPress={handleLogout} />
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                    <Text>LOGOUT</Text>
+                </TouchableOpacity>
             </View>
         </View>
     )
@@ -216,7 +224,7 @@ const Page = () => {
 
     const renderPfp = () => (
         <View style={styles.pfpAndInfo}>
-            <TouchableOpacity style={styles.pfpBox} onPress={() => router.push("/account/editPfp")}>
+            <TouchableOpacity style={styles.pfpBox} onPress={() => router.push({pathname: "/account/editPfp", params: {rawPhotoURL: encodeURIComponent(pfp)}})}>
                 <View>
                     {pfp ? (
                         <Image source={{ uri: pfp }} style={styles.avatar} />
@@ -232,13 +240,13 @@ const Page = () => {
             </TouchableOpacity>
             <View style={styles.pfpSeparator}></View>
             <View style={styles.infoBox}>
-                <View style={styles.info}>
-                    <View style={styles.postsInfo}>
+                <View style={styles.flexDirectionRow}>
+                    <View style={styles.flexDirectionRow}>
                         <Text style={styles.infoText}>{numPosts}</Text>
                         <Text style={styles.genericText}> posts</Text>
                     </View>
                     <View style={styles.pfpSeparator}></View>
-                    <View style={styles.friendInfo}>
+                    <View style={styles.flexDirectionRow}>
                         <Text style={styles.infoText}>{numFriends}</Text>
                         <Text style={styles.genericText}> friends</Text>
                     </View>
@@ -267,18 +275,17 @@ const Page = () => {
                 style={[styles.groups, {marginTop: height*0.02, marginBottom: height*0.07}]}
                 data={postContents}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {idT: user?.uid, contentT: item.content, captionT: item.caption, userNameT: user?.displayName, mode: item.mode, photoURL: encodeURIComponent(pfp)}})}>
+                renderItem={({ item, index }) => (
+                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user?.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user?.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp)}})}>
                         <View style={styles.itemContainer}>
-                            <AccountPost post={item} />
+                            <AccountPost post={item} index={index}/>
                         </View>
                     </TouchableOpacity>
 
                 )}
-                // contentContainerStyle={styles.flatListContentContainer}
-                // ItemSeparatorComponent={() => <View style={styles.separator} />}
-                refreshing={refreshing}              // 👈 NEW
-                onRefresh={onRefresh}                // 👈 NEW
+
+                refreshing={refreshing}
+                onRefresh={onRefresh}
                 numColumns={3}
             />
         </View>
@@ -305,27 +312,32 @@ const styles = StyleSheet.create({
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        padding: 10,
-        borderBottomWidth: 0.5,
+        paddingHorizontal: width/20,
+        borderBottomWidth: height/1000,
         borderBottomColor: "grey",
+        alignItems: 'center',
+        height: height/20
+    },
+    logoutButton: {
+        backgroundColor: "red",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: width/100
     },
     pfpBox: {
-        marginTop: 30,
-        marginBottom: 15
+        marginTop: height/40,
+        marginBottom: height/50
     },
     infoBar: {
-        marginTop: 30,
-        marginHorizontal: 40,
-
+        marginHorizontal: width/10,
         alignItems: "center",
     },
     pfpAndInfo: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: height/50,
     },
     pfpSeparator: {
-        width: 50
+        width: width/9
     },
     infoBox: {
         alignItems: 'center',
@@ -334,17 +346,11 @@ const styles = StyleSheet.create({
         color: "#D3D3FF",
         fontWeight: 'bold',
     },
-    info: {
-        flexDirection: 'row',
-    },
-    postsInfo: {
-        flexDirection: 'row',
-    },
-    friendInfo: {
+    flexDirectionRow: {
         flexDirection: 'row',
     },
     bioBox: {
-        marginTop: 10
+        marginTop: height/100
     },
     genericText: {
         color: 'white',
@@ -354,15 +360,14 @@ const styles = StyleSheet.create({
     },
     itemContainer: {
         flex: 1 / 3,
-        // paddingVertical: 0.5,
-        // paddingHorizontal: 0.5,
+
     },
     postContainer: {
         flex: 1,
     },
     avatar: {
-        width: 150,
-        height: 150,
+        width: width/2.5,
+        height: width/2.5,
         borderRadius: 999,
     },
     placeholder: {
@@ -373,7 +378,6 @@ const styles = StyleSheet.create({
     placeholderText: {
         color: 'white',
     },
-
     topBarText: {
         color: "#D3D3FF",
     },
@@ -384,27 +388,26 @@ const styles = StyleSheet.create({
     changePfp: {
         backgroundColor: "black",
         borderRadius: 999,
-        padding: 3,
+        padding: width/100,
         position: 'absolute',
-        top: 110,
-        left: 110
-
+        top: height/8,
+        left: width/3.3
     },
     editContainer: {
-        marginVertical: 20,
+        marginVertical: height/50,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 5,
-        borderWidth: 1,
+        borderRadius: width/101,
+        borderWidth: width/400,
         borderColor: "#D3D3FF",
     },
     containerName: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 25,
+        marginTop: height/33,
     },
     char: {
-        fontSize: 20,
+        fontSize: height/35,
         color: "#D3D3FF",
     },
     bioAndButtonBox: {

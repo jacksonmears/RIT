@@ -1,274 +1,216 @@
-import { Text, View, StyleSheet, TouchableOpacity, Dimensions,TextInput, ActivityIndicator } from "react-native";
-import {useState} from "react";
-import {auth, db} from '@/firebase';
+// pages/signUp.tsx
+import React, { useState } from 'react';
 import {
-    createUserWithEmailAndPassword,
-    updateProfile,
-    validatePassword,
-    sendEmailVerification
-} from "@firebase/auth";
-import { FirebaseError } from "@firebase/util";
-import { useRouter } from "expo-router";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+    Text,
+    View,
+    StyleSheet,
+    TouchableOpacity,
+    TextInput,
+    Dimensions,
+    ActivityIndicator,
+    Alert,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { auth, db } from '@/firebase';
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
-const { width, height } = Dimensions.get("window");
+const { width, height } = Dimensions.get('window');
 
-const Index = () => {
-    const [firstName, setFirstName] = useState<string>("");
-    const [lastName, setLastName] = useState("");
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+export default function SignUpPage() {
     const router = useRouter();
 
+    const [firstName, setFirstName] = useState<string>('');
+    const [lastName, setLastName] = useState<string>('');
+    const [username, setUsername] = useState<string>('');
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [confirmPassword, setConfirmPassword] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
 
     const signUp = async () => {
-        setLoading(true);
-
-        try {
-            const status = await validatePassword(auth, password);
-
-            if (!status.isValid) {
-                let errorMessage = 'Password does not meet the required criteria: ';
-
-                if (status.containsLowercaseLetter !== true) {
-                    errorMessage += 'at least one lowercase letter, ';
-                }
-                if (status.containsUppercaseLetter !== true) {
-                    errorMessage += 'at least one uppercase letter, ';
-                }
-                if (status.containsNumericCharacter !== true) {
-                    errorMessage += 'at least one digit, ';
-                }
-                if (status.containsNonAlphanumericCharacter !== true) {
-                    errorMessage += 'at least one special character, ';
-                }
-                if (status.meetsMinPasswordLength !== true) {
-                    errorMessage += 'at least 8 characters.';
-                }
-                if (status.meetsMaxPasswordLength !== true) {
-                    errorMessage += 'at most 4096 characters.';
-                }
-
-                alert(errorMessage);
-                setLoading(false);
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                alert('Passwords do not match');
-                setLoading(false);
-                return;
-            }
-
-            const docRef = doc(db, "displayName", username);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                alert("Display name is already taken.");
-                setLoading(false);
-                return;
-            }
-
-            await createUserWithEmailAndPassword(auth, email, password);
-            await auth.currentUser?.reload();
-            const user = auth.currentUser;
-            await handleUpdateProfile(user);
-
-            if (user) {
-                await sendEmailVerification(user);
-                alert('Verification email sent. Please check your inbox and verify before logging in.');
-            }
-
-
-            router.push('/')
-        } catch (error: unknown) {
-            if (error instanceof FirebaseError) {
-                alert("Registration failed: " + error.message);
-            } else {
-                console.error("Unexpected error:", error);
-            }
+        if (password.length < 8) {
+            Alert.alert('Error', 'Password must be at least 8 characters.');
+            return;
         }
-        finally {
+        if (password !== confirmPassword) {
+            Alert.alert('Error', 'Passwords do not match.');
+            return;
+        }
+        if (!username.trim()) {
+            Alert.alert('Error', 'Please choose a username.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const nameDoc = await db()
+                .collection('displayName')
+                .doc(username.toLowerCase())
+                .get();
+            if (nameDoc.exists()) {
+                Alert.alert('Error', 'Username already taken.');
+                return;
+            }
+
+            const cred: FirebaseAuthTypes.UserCredential =
+                await auth().createUserWithEmailAndPassword(email.trim(), password);
+            const user = cred.user;
+
+            await user.updateProfile({ displayName: username });
+
+            await db()
+                .collection('users')
+                .doc(user.uid)
+                .set({
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    email: email.trim(),
+                    displayName: username,
+                    bio: '',
+                    photoURL: null,
+                    friendRequests: [],
+                    groupRequests: [],
+                    joined: db.FieldValue.serverTimestamp(),
+                } as FirebaseFirestoreTypes.DocumentData);
+
+            await db()
+                .collection('displayName')
+                .doc(username.toLowerCase())
+                .set({
+                    uid: user.uid,
+                    displayName: username,
+                } as FirebaseFirestoreTypes.DocumentData);
+
+            await user.sendEmailVerification();
+            Alert.alert(
+                'Verify Your Email',
+                'A verification link has been sent. Please check your inbox before logging in.'
+            );
+
+            router.replace('/');
+        } catch (err: any) {
+            console.error('Sign-up error:', err);
+            Alert.alert('Sign-up failed', err.message);
+        } finally {
             setLoading(false);
         }
     };
 
-    const handleUpdateProfile = async (user: any) => {
-        try {
-            if (user) {
-                const displayNameRef = doc(db, "displayName", username);
-                await setDoc(doc(db, "users", user.uid), {
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    displayName: username,
-                    bio: "",
-                    photoURL: null,
-                    friendRequests: [],
-                    groupRequests: [],
-                    joined: serverTimestamp()
-                });
-                await updateProfile(user, { displayName: username });
-                await setDoc(displayNameRef, { uid: user.uid, displayName: username, lowerDisplayName: username.toLowerCase() });
-
-                console.log('Profile updated successfully');
-            } else {
-                console.error('No user is logged in');
-            }
-        } catch (error) {
-            console.error('Error updating profile', error);
-        }
-    };
-
-
     return (
-
         <View style={styles.container}>
-                <View style={styles.nameContainer}>
-                    <TextInput
-                        maxLength={30}
-                        style={styles.firstName}
-                        value={firstName}
-                        onChangeText={setFirstName}
-                        autoCapitalize="none"
-                        keyboardType="default"
-                        placeholder="First Name"
-                    />
-                    <TextInput
-                        style={styles.lastName}
-                        value={lastName}
-                        onChangeText={setLastName}
-                        autoCapitalize="none"
-                        keyboardType="default"
-                        placeholder="Last Name"
-                        maxLength={30}
-                    />
-                </View>
-            <View style={styles.separator}></View>
+            <View style={styles.row}>
                 <TextInput
-                    style={styles.input}
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
-                    keyboardType="default"
-                    placeholder="Username"
+                    style={[styles.input, styles.flex]}
+                    placeholder="First Name"
+                    value={firstName}
+                    onChangeText={setFirstName}
                     maxLength={30}
                 />
-            <View style={styles.separator}></View>
+                <TextInput
+                    style={[styles.input, styles.flex]}
+                    placeholder="Last Name"
+                    value={lastName}
+                    onChangeText={setLastName}
+                    maxLength={30}
+                />
+            </View>
 
             <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    placeholder="Email"
-                    maxLength={256}
-                />
-            <View style={styles.separator}></View>
+                style={styles.input}
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                maxLength={30}
+            />
 
             <TextInput
-                    style={styles.input}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={true}
-                    autoComplete="password"
-                    textContentType="password"
-                    placeholder="Password"
-                    maxLength={100}
-
-                />
-            <View style={styles.separator}></View>
+                style={styles.input}
+                placeholder="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                maxLength={256}
+            />
 
             <TextInput
-                    style={styles.input}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={true}
-                    autoComplete="password"
-                    textContentType="password"
-                    placeholder="Confirm Password"
-                    maxLength={100}
+                style={styles.input}
+                placeholder="Password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                maxLength={100}
 
-                />
-                {loading ? (
-                    <ActivityIndicator size='small' style={{ margin:height/100*3 }} />
-                ) : (
-                    <>
-                        <TouchableOpacity style={styles.su} onPress={signUp}>
-                            <Text style={styles.suText}>Create Account</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-                            <Text style={styles.backText}> Already Have an Account? </Text>
-                        </TouchableOpacity>
+            />
+            <TextInput
+                style={styles.input}
+                placeholder="Confirm Password"
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                maxLength={100}
 
+            />
 
-
-                    </>
-                )}
+            {loading ? (
+                <ActivityIndicator style={styles.loader} />
+            ) : (
+                <>
+                    <TouchableOpacity style={styles.button} onPress={signUp}>
+                        <Text style={styles.buttonText}>Create Account</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <Text style={styles.linkText}>
+                            Already have an account? Log in
+                        </Text>
+                    </TouchableOpacity>
+                </>
+            )}
         </View>
-
-    )
-};
-
+    );
+}
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "black",
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
+        backgroundColor: 'black',
+        padding: width * 0.1,
+        justifyContent: 'center',
     },
-    nameContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
+    row: {
+        flexDirection: 'row',
+        marginBottom: height * 0.02,
     },
-    separator: {
-        marginVertical: height/300,
-    },
-    firstName: {
+    flex: {
         flex: 1,
-        marginRight: width/100,
-        marginLeft: width/10,
-        borderRadius: width/100,
-        padding: height/45,
-        backgroundColor: "white",
-    },
-    lastName: {
-        flex: 1,
-        marginLeft: width/100,
-        marginRight: width/10,
-        borderRadius: 4,
-        padding: height/45,
-        backgroundColor: "white",
+        marginHorizontal: 4,
     },
     input: {
-        marginHorizontal: width/10,
-        borderRadius: width/100,
-        padding: height/45,
-        backgroundColor: "white",
-        width: width*0.8
+        backgroundColor: 'white',
+        borderRadius: 6,
+        padding: height * 0.02,
+        marginBottom: height * 0.015,
     },
-    su: {
-        marginVertical: height/100*1.5,
-        borderRadius: width/50,
+    button: {
+        backgroundColor: '#D3D3FF',
+        borderRadius: 6,
         alignItems: 'center',
+        paddingVertical: height * 0.015,
+        marginVertical: height * 0.02,
     },
-    suText: {
-        fontSize: height/40,
-        fontWeight: "bold",
+    buttonText: {
+        color: 'black',
+        fontWeight: 'bold',
+        fontSize: width * 0.045,
+    },
+    linkText: {
         color: '#D3D3FF',
+        textAlign: 'center',
+        marginTop: height * 0.01,
     },
-    back: {
-        borderRadius: width/50,
-        alignItems: 'center',
+    loader: {
+        marginVertical: height * 0.02,
     },
-    backText: {
-        color: "grey",
-        fontSize: height/70,
-    }
-})
-
-export default Index;
+});

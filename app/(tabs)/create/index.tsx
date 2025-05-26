@@ -1,61 +1,69 @@
-import React, {useState, useRef, useEffect, useCallback} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
-    Button,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
-    Pressable,
     ActivityIndicator,
-    Image,
-    Animated, Dimensions
+    Animated,
+    Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router'
-import Video from 'react-native-video';
 import {
     Camera,
     CameraPermissionStatus,
-    CameraRuntimeError,
     useCameraDevices,
     VideoFile,
-    CameraCaptureError, PhotoFile
+    CameraCaptureError
 } from "react-native-vision-camera";
-import { auth, db } from '@/firebase';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import Svg, {Circle} from "react-native-svg";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Feather from "@expo/vector-icons/Feather";
+import { useFocusEffect } from '@react-navigation/native';
+
 const {width, height} = Dimensions.get('window');
+const MAX_RECORDING_TIME = 300;
 
 const Page = () => {
-    const user = auth.currentUser;
     const router = useRouter();
     const cameraRef = useRef<Camera>(null);
     const [cameraPermission, setCameraPermission] = useState<CameraPermissionStatus | null>();
     const [micPermission, setMicPermission] = useState<CameraPermissionStatus | null>();
-    // const [videoPath, setVideoPath] = useState<string | null>(null);
     const devices = useCameraDevices();
-    const [cameraDevice, setCameraDevice] = useState(devices.find(device => device.position === 'back'));
-    const [mode, setMode] = useState<"photo" | "video">("video");
-    const [photo, setPhoto] = useState<PhotoFile | null>(null);
-    const [video, setVideo] = useState<VideoFile | null>(null);
-    const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
+    const [cameraDevice, setCameraDevice] = useState(devices.find(d => d.position === 'back'));
+    const [mode] = useState<"photo" | "video">("video");
     const isFocused = useIsFocused();
     const animatedValue = useRef(new Animated.Value(0)).current;
     const [isRecording, setRecording] = useState<boolean>(false);
-    const TOP_OFFSET = height * 0.10;
-    const BOTTOM_OFFSET = height * 0.20;
+    const [recordingTime, setRecordingTime] = useState(0);
+    const timerRef = useRef<number | null>(null);
+    const [isTimeExpired, setTimeExpired] = useState(false);
 
     useEffect(() => {
-        if (!isFocused && isRecording) {
-            cameraRef.current?.stopRecording();
-            setRecording(false);
-            animatedValue.setValue(0);
-            setVideo(null);
+        if (isTimeExpired) {
+            const endVideo = async () => {
+                await handleRecordingPressed();
+            }
+            endVideo().catch();
         }
-    }, [isFocused, isRecording]);
+
+    }, [isTimeExpired]);
 
 
+    useFocusEffect(
+        React.useCallback(() => {
+            setRecording(false);
+            setRecordingTime(0);
+            animatedValue.setValue(0);
+            setTimeExpired(false);
+
+            return () => {
+                if (cameraRef.current && isRecording) cameraRef.current.stopRecording().catch(console.error);
+                stopTimer();
+            };
+        }, [])
+    );
 
 
     useEffect(() => {
@@ -72,101 +80,48 @@ const Page = () => {
         })();
     }, []);
 
-    const handleTakePhoto = async () => {
-        if (!cameraRef.current) return;
-        try {
-            const photo = await cameraRef.current.takePhoto();
-            setPhoto(photo);
-            setVideo(null);
-            setIsCameraActive(false);
-            router.push({pathname: '/create/editFile', params: {fillerUri: photo?.path, fillerMode: mode}})
-        } catch (error) {
-            console.error(error);
-        }
-    }
-
-
-    const handleRecordVideo = async () => {
-        if (!cameraRef.current) return;
-
-        try {
-            cameraRef.current.startRecording({
-                onRecordingFinished: (videoFile: VideoFile) => {
-                    // 1️⃣ We immediately have the real video path
-                    console.log("✅ recorded:", videoFile.path);
-
-                    // 2️⃣ Stop the camera preview
-                    setIsCameraActive(false);
-
-                    // 3️⃣ Navigate with a guaranteed non-undefined path
-                    router.push({
-                        pathname: '/create/editFile',
-                        params: {
-                            fillerUri: videoFile.path,
-                            fillerMode: mode,
-                        },
-                    });
-                },
-                onRecordingError: (error: CameraCaptureError) => {
-                    console.error('Recording error', error);
-                },
-            });
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    const handleStopVideo = async () => {
-        await cameraRef.current?.stopRecording();
-    };
-
-    const switchCamera = () => {
-        const newDevice = cameraDevice?.position === 'back'
-            ? devices.find(device => device.position === 'front')
-            : devices.find(device => device.position === 'back');
-
-        if (newDevice) {
-            setCameraDevice(newDevice);
-        }
-    };
-
-    const switchMode = () => {
-        (mode === "photo") ? setMode("video") : setMode("photo");
-
-    }
 
     const handleRecordingPressed = async () => {
         if (isRecording) {
-            await handleStopVideo();
-            endRecording();
+            if (cameraRef.current) await cameraRef.current.stopRecording();
+            await endRecording();
             setRecording(false);
         } else {
-            // START
-            beginRecording();
-            await handleRecordVideo();
+            beginRecording().catch();
             setRecording(true);
         }
     };
 
 
 
-
-    const endRecording = async () => {
-        if (!animatedValue) return;
-
-        const animations = (val: any) => {
-            Animated.timing(val, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: false,
-            }).start();
-        }
-        animations(animatedValue);
-
+    const startTimer = async () => {
+        if (!timerRef) return;
+        setRecordingTime(0);
+        stopTimer()
+        timerRef.current = setInterval(() => {
+            setRecordingTime(prev => {
+                if (prev > MAX_RECORDING_TIME - 1) {
+                    setTimeExpired(true);
+                    return prev;
+                }
+                return prev + 1;
+            });
+        }, 1000);
     };
 
-    const beginRecording =  () => {
-        if (!animatedValue) return;
+    const stopTimer = () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
+
+    const beginRecording =  async () => {
+        if (!animatedValue || !cameraRef.current) return;
+        startTimer().catch();
+
+
 
         const animations = ({val}: { val: any }) => {
             Animated.timing(val, {
@@ -177,7 +132,65 @@ const Page = () => {
         }
         animations({val: animatedValue});
 
+        await handleVideoFile();
     }
+
+    const handleVideoFile = async () => {
+        if (!cameraRef.current) return;
+
+        try {
+            cameraRef.current.startRecording({
+                onRecordingFinished: (videoFile: VideoFile) => {
+                    router.push({pathname: '/create/editFile', params: {fillerUri: videoFile.path, fillerMode: mode,},});
+                },
+                onRecordingError: (error: CameraCaptureError) => {
+                    console.error('Recording error', error);},
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+
+
+
+
+    const endRecording = async () => {
+        if (!animatedValue || !cameraRef.current) return;
+        stopTimer();
+
+        try {
+            const animations = (val: any) => {
+                Animated.timing(val, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: false,
+                }).start();
+            }
+            animations(animatedValue);
+        } catch (e) {
+            console.error(e);
+        }
+
+    };
+
+
+
+
+
+    const switchCamera = () => {
+        if (!cameraDevice) return;
+
+        const newDevice = cameraDevice.position === 'back'
+            ? devices.find(device => device.position === 'front')
+            : devices.find(device => device.position === 'back');
+
+        if (newDevice) {
+            setCameraDevice(newDevice);
+        }
+    };
+
+
 
     const backgroundColor = animatedValue?.interpolate({
         inputRange: [0, 1],
@@ -194,6 +207,26 @@ const Page = () => {
         outputRange: [70, 35],
     });
 
+
+    const timeLeft = MAX_RECORDING_TIME - recordingTime;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+
+
+    // const handleTakePhoto = async () => {
+    //     if (!cameraRef.current) return;
+    //     try {
+    //         const photo = await cameraRef.current.takePhoto();
+    //         router.push({pathname: '/create/editFile', params: {fillerUri: photo?.path, fillerMode: mode}})
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    // }
+
+    // const switchMode = () => {
+    //     (mode === "photo") ? setMode("video") : setMode("photo");
+    //
+    // }
 
     if (!cameraDevice) {
         return (
@@ -214,85 +247,65 @@ const Page = () => {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={styles.safeArea}>
 
-                {isFocused && (
-                    <View style={[styles.cameraContainer, { top: TOP_OFFSET, bottom: BOTTOM_OFFSET}]}>
-                        <Camera
-                            key={mode}
-                            ref={cameraRef}
-                            style={styles.camera}
-                            device={cameraDevice}
-                            isActive={true}
-                            video={mode === "video"}
-                            photo={mode === "photo"}
+
+            <View style={styles.topBar}>
+                <TouchableOpacity onPress={() => router.push('/home')}>
+                    <Feather name="x" size={height/30} color="#D3D3FF"/>
+                </TouchableOpacity>
+                {isRecording && (
+                    <Text style={styles.timerText}>
+                        {`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}
+                    </Text>
+                )}
+            </View>
+
+
+            {isFocused && (
+                <View style={styles.cameraContainer}>
+                    <Camera
+                        key={mode}
+                        ref={cameraRef}
+                        style={styles.camera}
+                        device={cameraDevice}
+                        isActive={true}
+                        video={mode === "video"}
+                        photo={mode === "photo"}
+                    />
+                </View>
+            )}
+
+
+
+
+
+            <TouchableOpacity style={styles.switchModeButton} onPress={() => switchCamera()}>
+                <MaterialIcons name="cameraswitch" size={height/25} color="white" />
+            </TouchableOpacity>
+
+
+            <View style={styles.recordingButton}>
+                <TouchableOpacity onPress={handleRecordingPressed}>
+                    <View style={[styles.centerWrapper]}>
+                        <Svg
+                            height={width/3}
+                            width={width/3}
+                            style={styles.circleWrapper}>
+                            <Circle
+                                cx="50%"
+                                cy="50%"
+                                r={width/9}
+                                stroke="white"
+                                strokeWidth="5"
+                                fill="transparent"
+                            />
+                        </Svg>
+                        <Animated.View
+                            style={[{backgroundColor, borderRadius,}, {width: size, height: size,},]}
                         />
                     </View>
-                )}
-
-
-                <TouchableOpacity style={styles.backButton} onPress={() => router.push("/home")}>
-                    <Text style={styles.backText}>GO BACK</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity style={styles.switchModeButton} onPress={() => switchCamera()}>
-                    <MaterialIcons name="cameraswitch" size={36} color="white" />
-                </TouchableOpacity>
-
-                {/*{mode === 'photo' ?*/}
-                {/*    <View style={styles.controls}>*/}
-                {/*        <TouchableOpacity style={styles.button} onPress={handleTakePhoto}>*/}
-                {/*            <Text style={styles.buttonText}>Snap Pic</Text>*/}
-                {/*        </TouchableOpacity>*/}
-                {/*    </View>*/}
-                {/*    :*/}
-                {/*    <View style={styles.controls}>*/}
-                {/*        <TouchableOpacity style={styles.button} onPress={handleRecordVideo}>*/}
-                {/*            <Text style={styles.buttonText}>Record</Text>*/}
-                {/*        </TouchableOpacity>*/}
-                {/*        <TouchableOpacity style={styles.button} onPress={handleStopVideo}>*/}
-                {/*            <Text style={styles.buttonText}>Stop</Text>*/}
-                {/*        </TouchableOpacity>*/}
-                {/*    </View>*/}
-                {/*}*/}
-
-                <View style={styles.recordingButton}>
-                    <TouchableOpacity onPress={handleRecordingPressed}>
-                        <View style={[styles.centerWrapper]}>
-
-                            <Svg
-                                height={width/3} // Adjust the size of the circle
-                                width={width/3}  // Same size as the animated circle (you can modify it)
-                                style={styles.circleWrapper}>
-                                <Circle
-                                    cx="50%"
-                                    cy="50%"
-                                    r={width/9}
-                                    stroke="white"
-                                    strokeWidth="5"
-                                    fill="transparent"
-                                />
-                            </Svg>
-                            <Animated.View
-                                style={[
-                                    {
-                                        backgroundColor,
-                                        borderRadius,
-                                    },
-                                    {
-                                        width: size,
-                                        height: size,
-                                    },
-                                ]}
-                            />
-                        </View>
-                    </TouchableOpacity>
-                </View>
-
-
-
-
-            </SafeAreaView>
+            </View>
         </View>
     );
 };
@@ -302,8 +315,15 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'black',
     },
-    safeArea: {
-        flex: 1,
+    topBar: {
+        flexDirection: "row",
+        paddingVertical: height/40,
+        justifyContent: "space-between",
+        marginHorizontal: width/10,
+    },
+    cameraContainer: {
+        height: height/1.5,
+        width: width
     },
     camera: {
         flex: 1,
@@ -311,43 +331,31 @@ const styles = StyleSheet.create({
     text: {
         color: 'white',
         textAlign: 'center',
-        marginTop: 20,
+        marginTop: height/50,
     },
     switchModeButton: {
         position: "absolute",
-        bottom: '8%',
-        right: '10%',
+        bottom: height/14,
+        right: width/10,
     },
     recordingButton: {
         position: 'absolute',
-        left: '50%',
-        bottom: '10%'
+        left: width/2,
+        bottom: height/10
     },
     centerWrapper: {
         justifyContent: 'center',
         alignItems: 'center',
-        width: 1, // max width of Animated.View
-        height: 1, // max height of Animated.View
+        width: width/400,
+        height: height/900,
     },
     circleWrapper: {
         position: 'absolute',
-        zIndex: 0, // Ensure the circle stays behind the animated button
+        zIndex: 0,
     },
-    cameraContainer: {
-        position: 'absolute',
-        top: '10%',
-        height: '70%',
-        width: '100%'
-
-    },
-    backButton: {
-        position: 'absolute',
-        left: '8%',
-        top: '4%',
-        backgroundColor: 'white'
-    },
-    backText: {
-        color: 'black'
+    timerText: {
+        color: 'white',
+        fontSize: height/50,
     }
 
 });
