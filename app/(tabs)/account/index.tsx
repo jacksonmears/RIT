@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
         height: height/20
     },
     logoutButton: {
-        backgroundColor: "red",
+        backgroundColor: "#D3D3FF",
         alignItems: "center",
         justifyContent: "center",
         padding: width/100

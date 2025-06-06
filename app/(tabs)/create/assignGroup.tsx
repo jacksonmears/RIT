@@ -5,6 +5,7 @@ import React, { useEffect, useState} from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import PostLoadingScreen from "@/components/PostLoadingScreen";
 
 const { width, height } = Dimensions.get("window");
 
@@ -23,6 +24,8 @@ const Page = () => {
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
     const [selectAll, setSelectAll] = useState<boolean>(false);
+    const [posting, setPosting] = useState<boolean>(false);
+
 
 
     useEffect(() => {
@@ -153,7 +156,9 @@ const Page = () => {
     };
 
     const doneButton = async () => {
+        setPosting(true);
         await createPost();
+        setPosting(false);
         router.push({
             pathname: "/create",
             params: { reset: "true" },
@@ -181,6 +186,17 @@ const Page = () => {
             console.error(error);
         }
     };
+
+
+    // const loadingScreen = () => {
+    //     return (
+    //         <View style={{backgroundColor: "green", alignItems:"center", justifyContent:"center"}}>
+    //             <Text style={{color: "red"}}>loading lil bro!</Text>
+    //         </View>
+    //     )
+    // }
+
+    if (posting) return <PostLoadingScreen />;
 
     return (
         <View style={styles.container}>
