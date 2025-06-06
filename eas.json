@@ -5,14 +5,17 @@
   },
   "build": {
     "android": {
-      "prebuildCommand": "is android %% is android/gradlew"
+      "prebuildCommand": "echo 'Running Android prebuild...'"
     },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
       "distribution": "store",
