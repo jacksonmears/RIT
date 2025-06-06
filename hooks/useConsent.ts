@@ -1,4 +1,3 @@
-// hooks/useConsent.ts
 import { useEffect, useState } from 'react';
 import {
     AdsConsent,
@@ -11,7 +10,6 @@ import {db} from "@/firebase";
 import auth from "@react-native-firebase/auth";
 
 export function useConsent() {
-    // null = loading, true = personalized OK, false = non-personalized only
     const [personalizedAds, setPersonalizedAds] = useState<boolean|null>(null);
     const user = auth().currentUser;
 
@@ -39,11 +37,9 @@ export function useConsent() {
                     info.isConsentFormAvailable
                 ) {
                     await AdsConsent.showForm();                     // Google’s built-in form
-                    // Re-fetch status after they close it:
                     const newInfo = await AdsConsent.requestInfoUpdate();
                     setPersonalizedAds(newInfo.status === AdsConsentStatus.OBTAINED);
                 } else {
-                    // Either not required, or already granted/denied:
                     setPersonalizedAds(info.status === AdsConsentStatus.OBTAINED);
                 }
             } catch (e) {
