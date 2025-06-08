@@ -24,7 +24,8 @@
       },
       "autoIncrement": true,
       "env": {
-        "GOOGLE_SERVICES_FILE": "./android/app/google-services.json"
+        "GOOGLE_SERVICES_FILE": "./android/app/google-services.json",
+        "EXPO_DEBUG": "true"
       }
     }
   },
