@@ -30,7 +30,7 @@
     "@react-native-firebase/storage": "^22.2.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
-    "expo": "53.0.10",
+    "expo": "53.0.11",
     "expo-audio": "~0.4.6",
     "expo-av": "~15.1.5",
     "expo-blur": "~14.1.5",
