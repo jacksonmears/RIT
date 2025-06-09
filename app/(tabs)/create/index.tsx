@@ -228,6 +228,10 @@ const Page = () => {
     //
     // }
 
+    const d = useCameraDevices();
+    console.log("CAMERA DEVICES:", d);
+
+
     if (!cameraDevice) {
         return (
             <View style={styles.container}>
