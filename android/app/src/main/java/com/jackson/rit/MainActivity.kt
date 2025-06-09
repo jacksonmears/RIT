@@ -1,9 +1,6 @@
 package com.jackson.rit
 import expo.modules.splashscreen.SplashScreenManager
 
-import com.jackson.rit.R
-import com.jackson.rit.BuildConfig
-
 import android.os.Build
 import android.os.Bundle
 
