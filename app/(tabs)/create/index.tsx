@@ -227,9 +227,9 @@ const Page = () => {
     //     (mode === "photo") ? setMode("video") : setMode("photo");
     //
     // }
-
-    const d = useCameraDevices();
-    console.log("CAMERA DEVICES:", d);
+    //
+    // const d = useCameraDevices();
+    // console.log("CAMERA DEVICES:", d);
 
 
     if (!cameraDevice) {
