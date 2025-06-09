@@ -6,13 +6,13 @@ import {
     View,
     ActivityIndicator,
     Animated,
-    Dimensions
+    Dimensions, SafeAreaView
 } from 'react-native';
 import { useRouter } from 'expo-router'
 import {
     Camera,
     CameraPermissionStatus,
-    useCameraDevices,
+    useCameraDevice,
     VideoFile,
     CameraCaptureError
 } from "react-native-vision-camera";
@@ -30,8 +30,10 @@ const Page = () => {
     const cameraRef = useRef<Camera>(null);
     const [cameraPermission, setCameraPermission] = useState<CameraPermissionStatus | null>();
     const [micPermission, setMicPermission] = useState<CameraPermissionStatus | null>();
-    const devices = useCameraDevices();
-    const [cameraDevice, setCameraDevice] = useState(devices.find(d => d.position === 'back'));
+    // const devices = useCameraDevices();
+    // const [cameraDevice, setCameraDevice] = useState(devices.find(d => d.position === 'back'));
+    const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
+    const device = useCameraDevice(cameraPosition);
     const [mode] = useState<"photo" | "video">("video");
     const isFocused = useIsFocused();
     const animatedValue = useRef(new Animated.Value(0)).current;
@@ -39,6 +41,8 @@ const Page = () => {
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef<number | null>(null);
     const [isTimeExpired, setTimeExpired] = useState(false);
+    const [layoutReady, setLayoutReady] = useState(false);
+
 
     useEffect(() => {
         if (isTimeExpired) {
@@ -49,6 +53,9 @@ const Page = () => {
         }
 
     }, [isTimeExpired]);
+
+
+
 
 
     useFocusEffect(
@@ -179,15 +186,7 @@ const Page = () => {
 
 
     const switchCamera = () => {
-        if (!cameraDevice) return;
-
-        const newDevice = cameraDevice.position === 'back'
-            ? devices.find(device => device.position === 'front')
-            : devices.find(device => device.position === 'back');
-
-        if (newDevice) {
-            setCameraDevice(newDevice);
-        }
+        setCameraPosition((prev) => (prev === 'back' ? 'front' : 'back'))
     };
 
 
@@ -232,7 +231,7 @@ const Page = () => {
     // console.log("CAMERA DEVICES:", d);
 
 
-    if (!cameraDevice) {
+    if (!device) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="red" />
@@ -250,7 +249,7 @@ const Page = () => {
     }
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} onLayout={() => {if (!layoutReady) setLayoutReady(true)}}>
 
 
             <View style={styles.topBar}>
@@ -265,13 +264,13 @@ const Page = () => {
             </View>
 
 
-            {isFocused && (
+            {layoutReady && isFocused && (
                 <View style={styles.cameraContainer}>
                     <Camera
                         key={mode}
                         ref={cameraRef}
                         style={styles.camera}
-                        device={cameraDevice}
+                        device={device}
                         isActive={true}
                         video={mode === "video"}
                         photo={mode === "photo"}
@@ -310,7 +309,7 @@ const Page = () => {
                     </View>
                 </TouchableOpacity>
             </View>
-        </View>
+        </SafeAreaView>
     );
 };
 

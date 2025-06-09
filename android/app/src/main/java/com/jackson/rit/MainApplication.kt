@@ -1,8 +1,5 @@
 package com.jackson.rit
 
-import com.jackson.rit.R
-import com.jackson.rit.BuildConfig
-
 import android.app.Application
 import android.content.res.Configuration
 
