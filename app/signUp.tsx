@@ -161,11 +161,17 @@ export default function SignUpPage() {
                     <TouchableOpacity style={styles.button} onPress={signUp}>
                         <Text style={styles.buttonText}>Create Account</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Text style={styles.linkText}>
-                            Already have an account? Log in
+                    <View style={{flexDirection: "row", alignItems: "center", justifyContent: "center"}}>
+                        <Text style={styles.secondaryText}>
+                            Already have an account?
                         </Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity onPress={() => router.back()}>
+                            <Text style={styles.linkText}>
+                                  Log in
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
                 </>
             )}
         </View>
@@ -209,8 +215,14 @@ const styles = StyleSheet.create({
         color: '#D3D3FF',
         textAlign: 'center',
         marginTop: height * 0.01,
+        marginLeft: width * 0.015,
     },
     loader: {
         marginVertical: height * 0.02,
+    },
+    secondaryText: {
+        textAlign: 'center',
+        marginTop: height * 0.01,
+        color: "grey",
     },
 });
