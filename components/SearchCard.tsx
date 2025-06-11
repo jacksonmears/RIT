@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     avatar: {
+        marginLeft: width/15,
         width: width/10,
         height: width/10,
         borderRadius: 999,

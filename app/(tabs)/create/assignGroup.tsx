@@ -103,7 +103,7 @@ const Page = () => {
                 timestamp: db.FieldValue.serverTimestamp(),
             });
 
-            await addPostToGroups(parsedGroups, postID);
+            await addPostToGroups(parsedGroups, postID, postURL);
 
         } catch (error) {
             console.error(error);
@@ -137,13 +137,17 @@ const Page = () => {
     };
 
 
-    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string) => {
+    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string, postURL: string) => {
+        if (!user) return;
         try {
             await Promise.all(
                 parsedGroups.map(async (group) => {
                     await db().collection("groups").doc(group.id).collection("messages").doc(postID).set({
                         mode: mode,
+                        sender_id: user.uid,
+                        caption: caption,
                         timestamp: db.FieldValue.serverTimestamp(),
+                        content: encodeURIComponent(postURL),
                     })
                     await db().collection("posts").doc(postID).collection("groups").doc(group.id).set({
                         timestamp: db.FieldValue.serverTimestamp(),

@@ -39,7 +39,7 @@ export function AnimatedPost({ post, index, scrollY, postHeight, adHeight, perso
 
         const fadeOpacity = interpolate(
             nextClampedTop,
-            [0, 800],
+            [0, 600],
             [0, 1],
             Extrapolate.CLAMP
         );
