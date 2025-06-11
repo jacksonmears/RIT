@@ -14,7 +14,6 @@ import {
 import auth from "@react-native-firebase/auth";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { useRouter } from "expo-router";
-import {rgbaColor} from "react-native-reanimated/lib/typescript/Colors";
 
 const { width, height } = Dimensions.get("window");
 
@@ -40,7 +39,6 @@ const Index = () => {
                 return;
             }
 
-            // Navigate into your authenticated tab group
             router.replace("/(tabs)/home");
         } catch (e: any) {
             Alert.alert("Sign in failed", e.message);

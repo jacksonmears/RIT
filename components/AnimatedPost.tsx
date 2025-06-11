@@ -1,5 +1,5 @@
 import React from 'react';
-import Animated, { useAnimatedStyle, SharedValue } from 'react-native-reanimated';
+import Animated, {useAnimatedStyle, SharedValue, interpolate, Extrapolate} from 'react-native-reanimated';
 import MainPost from '@/components/MainPost';
 import {StyleSheet, View} from "react-native"
 import {BannerAd, BannerAdSize, TestIds} from "react-native-google-mobile-ads";
@@ -27,12 +27,30 @@ export function AnimatedPost({ post, index, scrollY, postHeight, adHeight, perso
             + scrollY.value;
         const clamped = Math.max(rawTop, 0);
 
+        const nextChunksBefore = Math.floor((index + 1) / 2);
+        const isNextAd = (index + 1) % 2 === 1;
+
+        const nextRawTop =
+            nextChunksBefore * (postHeight + adHeight) +
+            (isNextAd ? postHeight : 0) +
+            scrollY.value;
+
+        const nextClampedTop = Math.max(nextRawTop, 0);
+
+        const fadeOpacity = interpolate(
+            nextClampedTop,
+            [0, 800],
+            [0, 1],
+            Extrapolate.CLAMP
+        );
+
         return {
             position: 'absolute',
             top: clamped,
             left: 0,
             right: 0,
             zIndex: index,
+            opacity: fadeOpacity,
         };
     });
 
@@ -43,8 +61,8 @@ export function AnimatedPost({ post, index, scrollY, postHeight, adHeight, perso
             :
                 <View style={[styles.container, { height: adHeight}]}>
                     <BannerAd
-                        unitId="ca-app-pub-8973563413624978/1838392908"
-                        // unitId={TestIds.BANNER}
+                        // unitId="ca-app-pub-8973563413624978/1838392908"
+                        unitId={TestIds.BANNER}
                         size={BannerAdSize.MEDIUM_RECTANGLE}
                         requestOptions={{ requestNonPersonalizedAdsOnly: !personalizedAds}}
                     />
@@ -57,7 +75,7 @@ export function AnimatedPost({ post, index, scrollY, postHeight, adHeight, perso
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'black',
+        backgroundColor: "rgb(211, 211, 255)",
         justifyContent: 'center',
         alignItems: 'center',
     }

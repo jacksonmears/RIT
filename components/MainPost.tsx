@@ -140,10 +140,12 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
     header: {
-        padding: height/200,
+        padding: height/100,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        borderTopWidth: 1,
+        borderColor: "white"
     },
     nameAndPfP: {
         flexDirection: "row",

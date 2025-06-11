@@ -80,7 +80,6 @@ const Page = () => {
         const items: Array<{ type: 'post'; post: PostType } | { type: 'ad'; id: string }> = [];
         postContents.forEach((post) => {
             items.push({type: 'post', post});
-            // only insert an ad _after_ each post (you could skip the last one if you want)
             items.push({type: 'ad', id: `ad-${post.id}`});
         });
         return items;
@@ -316,8 +315,9 @@ const Page = () => {
     const renderTopBar = () => (
         <View style={styles.topBar}>
             <View style={styles.titleCardView}>
-                <Text style={styles.titleTextRECAP}>Recap</Text>
-                <Text style={styles.titleTextIT}>It</Text>
+                <Text style={styles.titleTextIT}>R</Text>
+                <Text style={styles.titleTextRECAP}>ecap</Text>
+                <Text style={styles.titleTextIT}>IT</Text>
             </View>
             <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/notifications')}>
                 <Ionicons name="notifications-outline" size={width/20} color="#D3D3FF" />
