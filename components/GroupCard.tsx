@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import {View, Text, StyleSheet, TouchableOpacity, Dimensions, Pressable} from "react-native";
 import { useRouter } from "expo-router";
 import AntDesign from '@expo/vector-icons/AntDesign';
 
@@ -19,7 +19,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
     const router = useRouter();
 
     return (
-        <TouchableOpacity
+        <Pressable
             style={styles.card}
             onPress={() => {
                 if (group.id) {
@@ -33,7 +33,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
                     <AntDesign name="videocamera" size={height/33} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 
@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
         marginBottom: height/100,
         borderWidth: width/400,
         borderColor: "#D3D3FF",
+        backgroundColor: "black"
     },
     info: {
         flex: 1,
