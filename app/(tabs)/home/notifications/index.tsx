@@ -143,6 +143,7 @@ const Page = () => {
             await docRef.set({
                 name: groupName,
                 timestamp: db.FieldValue.serverTimestamp(),
+                favorite: false
             });
 
         } catch (error) {
