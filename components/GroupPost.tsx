@@ -3,26 +3,33 @@ import { useRouter } from "expo-router";
 import React, {useEffect, useState} from "react";
 import {auth,db} from "@/firebase";
 import Video from "react-native-video";
+import type {FirebaseFirestoreTypes} from "@react-native-firebase/firestore";
 
 interface Post {
-    groupID: string;
+    groupID: string,
     id: string;
+    mode: string;
     content: string;
     caption: string;
-    userName: string;
-    pfp: string;
-    mode: string;
+    sender_id: string;
+    timestamp: FirebaseFirestoreTypes.Timestamp;
+}
+
+type groupMemberInformation = {
     firstName: string;
     lastName: string;
+    photoURL: string;
+    displayName: string;
 }
 
 interface PostCompProps {
     post: Post;
+    groupMember: groupMemberInformation;
 }
 
 const {width, height} = Dimensions.get("window");
 
-const GroupPost: React.FC<PostCompProps> = ({ post }) => {
+const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
     const router = useRouter();
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
@@ -68,12 +75,12 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
     return (
         <View>
 
-            {user?.displayName === post.userName ? (
+            {user?.uid === post.sender_id ? (
                 <View style={styles.postView}>
                         <View style={styles.imageWrapper}>
                             <TouchableOpacity onPress={() => router.push({
                                 pathname: '/(tabs)/groups/[groupID]/post',
-                                params: { groupID: post.groupID, rawID: post.id, rawContent: post.content, rawCaption: post.caption, rawUsername: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp) }
+                                params: { groupID: post.groupID, rawID: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawSenderID: post.sender_id }
                             })}>
                                 {post.mode === "photo" ?
                                     <Image source={{ uri: content }} style={styles.pictureContent} />
@@ -95,12 +102,11 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                             <View>
                                 <View>
                                     <View style={styles.avatarContainer}>
-                                        {post.pfp? (
-                                            <Image source={{ uri: post.pfp }} style={styles.avatar} />
+                                        {groupMember.photoURL? (
+                                            <Image source={{ uri: groupMember.photoURL }} style={styles.avatar} />
                                         ) : (
-                                            <View style={[styles.avatar, styles.placeholder]}>
-                                                <Text style={styles.placeholderText}>No Photo</Text>
-                                            </View>
+                                        <View style={[styles.avatar, styles.placeholder]}>
+                                        </View>
                                         )}
                                     </View>
                                 </View>
@@ -110,7 +116,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                             <View style={styles.imageWrapper}>
                                 <TouchableOpacity onPress={() => router.push({
                                     pathname: '/(tabs)/groups/[groupID]/post',
-                                    params: { groupID: post.groupID, rawId: post.id, rawContent: post.content, rawCaption: post.caption, rawUsername: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp) }
+                                    params: { groupID: post.groupID, rawId: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
                                 })}>
                                     {post.mode === "photo" ?
                                         <Image source={{ uri: content }} style={styles.pictureContent} />
@@ -123,7 +129,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post }) => {
                                         />
                                     }
                                     <View style={styles.overlay}>
-                                        <Text style={styles.overlayText}>{post.firstName} {post.lastName}</Text>
+                                        <Text style={styles.overlayText}>{groupMember.firstName} {groupMember.lastName}</Text>
                                     </View>
                                 </TouchableOpacity>
                             </View>

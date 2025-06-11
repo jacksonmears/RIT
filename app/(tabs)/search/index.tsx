@@ -129,7 +129,6 @@ const styles = StyleSheet.create({
     },
     resultsList: {
         marginTop: height/30,
-        marginHorizontal: width/15,
     },
     resultItem: {
         padding: height/40,
