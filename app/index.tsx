@@ -14,6 +14,7 @@ import {
 import auth from "@react-native-firebase/auth";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { useRouter } from "expo-router";
+import {rgbaColor} from "react-native-reanimated/lib/typescript/Colors";
 
 const { width, height } = Dimensions.get("window");
 
@@ -79,6 +80,11 @@ const Index = () => {
 
     return (
         <View style={styles.container}>
+            <View style={{flexDirection: "row", justifyContent: "center", paddingBottom: 20}}>
+                <Text style={styles.titlePrimary}>R</Text>
+                <Text style={styles.titleSecondary}>ecap</Text>
+                <Text style={styles.titlePrimary}>IT</Text>
+            </View>
             <KeyboardAvoidingView behavior="padding">
                 <TextInput
                     style={styles.input}
@@ -139,7 +145,6 @@ const styles = StyleSheet.create({
     },
     secondaryText: {
         fontSize: width * 0.035,
-        fontWeight: "bold",
         color: "grey",
     },
     signupContainer: {
@@ -151,6 +156,16 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#D3D3FF",
     },
+    titlePrimary: {
+        fontSize: height * 0.035,
+        fontWeight: "bold",
+        color: "#D3D3FF",
+    },
+    titleSecondary: {
+        fontSize: height * 0.035,
+        fontWeight: "bold",
+        color: "rgb(110,110,110)"
+    }
 });
 
 export default Index;
