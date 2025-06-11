@@ -80,7 +80,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
                         <View style={styles.imageWrapper}>
                             <TouchableOpacity onPress={() => router.push({
                                 pathname: '/(tabs)/groups/[groupID]/post',
-                                params: { groupID: post.groupID, rawID: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawSenderID: post.sender_id }
+                                params: { groupID: post.groupID, rawId: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
                             })}>
                                 {post.mode === "photo" ?
                                     <Image source={{ uri: content }} style={styles.pictureContent} />

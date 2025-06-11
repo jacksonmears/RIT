@@ -1,4 +1,4 @@
-import {View, Text, Image, StyleSheet, TouchableOpacity, Dimensions,TextInput, ActivityIndicator} from "react-native";
+import {View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, TextInput, ActivityIndicator} from "react-native";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -15,9 +15,8 @@ const Page = () => {
     const [remaingingCharacters, setRemaingingCharacters] = useState<number>(50);
 
     useEffect(() => {
-        setRemaingingCharacters(50-caption.length);
-    }, [caption])
-
+        setRemaingingCharacters(50 - caption.length);
+    }, [caption]);
 
     if (!fillerUri) {
         return (
@@ -31,8 +30,6 @@ const Page = () => {
         ? `file://${localUri}`
         : localUri;
 
-
-
     return (
         <View style={styles.container}>
             <View style={styles.topRow}>
@@ -45,23 +42,25 @@ const Page = () => {
                 </TouchableOpacity>
             </View>
 
-
             <View style={styles.imageWrapper}>
-                {mode==="photo" ?
+                {mode === "photo" ? (
                     <Image
+                        key={uri} // Forces re-render of image
                         source={{ uri }}
                         style={styles.image}
                         resizeMode="cover"
                         onError={(e) => console.error("Image load error", e.nativeEvent.error)}
                     />
-                    :
+                ) : (
                     <Video
+                        key={uri} // Forces re-render of video
                         source={{ uri }}
                         style={styles.video}
                         resizeMode="cover"
+                        paused={true} // Paused to show just the thumbnail
                         onError={(e) => console.error("Video load error", e)}
                     />
-                }
+                )}
             </View>
 
             <Text style={styles.remCharText}>{remaingingCharacters}</Text>
@@ -76,8 +75,6 @@ const Page = () => {
                 placeholderTextColor={"white"}
                 maxLength={50}
             />
-
-
         </View>
     );
 };
@@ -135,7 +132,6 @@ const styles = StyleSheet.create({
         color: "grey",
         left: width*0.85,
     }
-
 });
 
 export default Page;

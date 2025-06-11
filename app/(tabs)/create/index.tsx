@@ -326,7 +326,8 @@ const styles = StyleSheet.create({
     },
     cameraContainer: {
         height: height/1.5,
-        width: width
+        width: width,
+        marginTop: 0
     },
     camera: {
         flex: 1,
