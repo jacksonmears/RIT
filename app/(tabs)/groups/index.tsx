@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import {View, Text, StyleSheet, Dimensions, TouchableOpacity, FlatList} from 'react-native';
 import { auth, db } from '@/firebase';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -6,6 +6,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import AnimatedGroupCard from '@/components/AnimatedGroupCard';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import SwipeableRow from "@/components/SwipeableRow";
 const { width, height } = Dimensions.get("window");
 
 type GroupType = {
@@ -103,45 +104,21 @@ const Page = () => {
                 </TouchableOpacity>
             </View>
 
-            <SwipeListView
-                style={styles.groupContainer}
+            <FlatList
                 data={groups}
                 keyExtractor={(item) => item.id}
                 refreshing={refreshing}
                 onRefresh={refresh}
-                onRowOpen={(rowKey) => setOpenRowKey(rowKey)}
-                onRowClose={() => setOpenRowKey(null)}
+                contentContainerStyle={styles.groupContainer}
                 renderItem={({ item, index }) => (
-                    <AnimatedGroupCard item={item} index={index} />
+                    <SwipeableRow
+                        item={item}
+                        onFavorite={handleFavorite}
+                        onDelete={handleDelete}
+                    >
+                        <AnimatedGroupCard item={item} index={index} />
+                    </SwipeableRow>
                 )}
-                renderHiddenItem={({ item }) => {
-                    const isOpen = openRowKey === item.id;
-
-                    return (
-                        <View style={[styles.rowBack, { opacity: isOpen ? 1 : 0 }]}>
-                            {/* your buttons */}
-                            <TouchableOpacity
-                                style={[styles.backRightBtn, styles.backRightBtnLeft]}
-                                onPress={() => handleFavorite(item)}
-                            >
-                                <AntDesign
-                                    name={item.favorite ? "star" : "staro"}
-                                    size={24}
-                                    color={item.favorite ? "yellow" : "white"}
-                                />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.backRightBtn, styles.backRightBtnRight]}
-                                onPress={() => handleDelete(item)}
-                            >
-                                <Text style={styles.backTextWhite}>🗑️</Text>
-                            </TouchableOpacity>
-                        </View>
-                    );
-                }}
-
-                rightOpenValue={-130}
-                disableRightSwipe
                 ListEmptyComponent={
                     <Text style={styles.noResults}>No results found</Text>
                 }
@@ -174,34 +151,6 @@ const styles = StyleSheet.create({
     },
     groupContainer: {
       marginTop: height*0.02
-    },
-    rowBack: {
-        alignItems: 'center',
-        backgroundColor: 'black',
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        paddingRight: 15,
-        marginVertical: 8,
-        marginHorizontal: width / 50,
-        borderRadius: 10,
-    },
-    backRightBtn: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: width*0.12,
-        height: '80%',
-        marginLeft: 5,
-        borderRadius: 10,
-    },
-    backRightBtnLeft: {
-    },
-    backRightBtnRight: {
-        backgroundColor: 'red',
-    },
-    backTextWhite: {
-        fontWeight: 'bold',
-        fontSize: 18,
     },
 });
 
