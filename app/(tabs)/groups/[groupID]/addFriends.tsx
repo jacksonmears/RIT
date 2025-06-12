@@ -43,17 +43,17 @@ const Page = () => {
 
                 setFriendsID(friendSnap.docs.map((doc) => doc.id));
             } catch (err) {
-                // console.error(err);
+                console.error(err);
             }
         }
-        fetchFriendIds().catch(() => {
-            // console.error(err);
+        fetchFriendIds().catch((err) => {
+            console.error(err);
         });
     }, []);
 
     useEffect(() => {
-        fetchFriends().catch(() => {
-            // console.error(err);
+        fetchFriends().catch((err) => {
+            console.error(err);
         });
     }, [friendsID]);
 
@@ -73,7 +73,7 @@ const Page = () => {
             }
             setFriends(friendUsernames);
         } catch (error) {
-            // console.error("Error fetching friends' data:", error);
+            console.error("Error fetching friends' data:", error);
         }
     };
 
@@ -131,7 +131,7 @@ const Page = () => {
             if (docSnap.exists()) await docRef.set({ groupRequests: [...groupRequests, groupIDString] }, { merge: true });
             else await docRef.set({ groupRequests: [groupIDString] });
         } catch (error) {
-            // console.error(error);
+            console.error(error);
         }
     }
 
@@ -145,7 +145,7 @@ const Page = () => {
                     </TouchableOpacity>
                     <Text style={styles.topBarText}>{groupNameString}</Text>
                 </View>
-                    {selectedGroups && selectedGroups.size==0 ?
+                    {selectedGroups && selectedGroups.size===0 ?
                         <Ionicons name="send-outline" size={height/50} color="#D3D3FF" />
                         :
                         <TouchableOpacity onPress={() => dealDone(selectedGroups)}>

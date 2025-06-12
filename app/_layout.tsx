@@ -1,12 +1,12 @@
-(globalThis as any).RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
-
-
-
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import auth from '@react-native-firebase/auth';
+
+
+
+(globalThis as any).RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 
 const RootLayout = () => {
     const [initializing, setInitializing] = useState(true);

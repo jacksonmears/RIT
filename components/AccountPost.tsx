@@ -9,7 +9,7 @@ import {
     TouchableWithoutFeedback, Dimensions
 } from "react-native";
 import { useRouter } from "expo-router";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {auth,db} from "@/firebase";
 import {ResizeMode, Video as VideoAV} from "expo-av";
 import storage from "@react-native-firebase/storage";

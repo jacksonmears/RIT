@@ -3,9 +3,7 @@ import { auth, db } from '@/firebase';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import Entypo from '@expo/vector-icons/Entypo';
-import { SwipeListView } from 'react-native-swipe-list-view';
 import AnimatedGroupCard from '@/components/AnimatedGroupCard';
-import AntDesign from '@expo/vector-icons/AntDesign';
 import SwipeableRow from "@/components/SwipeableRow";
 const { width, height } = Dimensions.get("window");
 
@@ -21,7 +19,6 @@ const Page = () => {
     const [groups, setGroups] = useState<GroupType[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
-    const [openRowKey, setOpenRowKey] = useState<string | null>(null);
 
     useEffect(() => {
         getGroups().catch(console.error);
@@ -53,7 +50,6 @@ const Page = () => {
     };
 
     const refresh = async () => {
-        setOpenRowKey(null);
         setGroups([]);
         await getGroups();
         setRefreshing(false);

@@ -42,6 +42,58 @@ const Page = () => {
     const [totalCharacters, setTotalCharacters] = useState<string>("");
 
 
+    const fetchUserPosts = useCallback(async () => {
+        if (!user) return;
+        try {
+            const postsRef = db().collection("users").doc(user.uid).collection("posts")
+            const orderedQuery = postsRef.orderBy("timestamp", "asc")
+            const usersDocs = await orderedQuery.get();
+
+            const userPfpRef = await db().collection("users").doc(user.uid).get()
+            const data = userPfpRef.data()
+            if (!userPfpRef.exists() || !data) return;
+            setPfp(data.photoURL)
+
+            const postList = usersDocs.docs.map((doc) => ({
+                id: doc.id,
+                timestamp: db.FieldValue.serverTimestamp(),
+            }));
+
+            setPosts(postList);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    }, [user]);
+
+    const getPostContent = useCallback(async () => {
+        if (!posts || !user) return;
+        try {
+            const postContents = await Promise.all(posts.map(async (post) => {
+                const postRef = db().collection("posts").doc(post.id)
+                const postSnap = await postRef.get();
+                const data = postSnap.data()
+
+                if (!postSnap.exists() || !data) return;
+
+                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid };
+
+            }));
+            const validPosts = postContents.filter((p):p is PostType => p !== null)
+
+            setPostContents(validPosts.reverse());
+        } catch (error) {
+            console.error("Error fetching post content:", error);
+        }
+    }, [user, posts]);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchUserPosts();
+        await getBioInfo()
+        setRefreshing(false);
+    }
+
+
     useEffect(() => {
         const getInfo = async () => {
             await getBioInfo()
@@ -50,13 +102,13 @@ const Page = () => {
         getInfo().catch((err) => {
             console.error(err);
         });
-    }, []);
+    }, [fetchUserPosts]);
 
     useEffect(() => {
         getPostContent().catch((err) => {
             console.error(err);
         })
-    }, [posts]);
+    }, [posts, getPostContent]);
 
 
     useEffect(() => {
@@ -103,28 +155,7 @@ const Page = () => {
 
 
 
-    const fetchUserPosts = async () => {
-        if (!user) return;
-        try {
-            const postsRef = db().collection("users").doc(user.uid).collection("posts")
-            const orderedQuery = postsRef.orderBy("timestamp", "asc")
-            const usersDocs = await orderedQuery.get();
 
-            const userPfpRef = await db().collection("users").doc(user.uid).get()
-            const data = userPfpRef.data()
-            if (!userPfpRef.exists() || !data) return;
-            setPfp(data.photoURL)
-
-            const postList = usersDocs.docs.map((doc) => ({
-                id: doc.id,
-                timestamp: db.FieldValue.serverTimestamp(),
-            }));
-
-            setPosts(postList);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
-    };
 
 
     const getBioInfo = async () => {
@@ -146,33 +177,7 @@ const Page = () => {
     }
 
 
-    const getPostContent = async () => {
-        if (!posts || !user) return;
-        try {
-            const postContents = await Promise.all(posts.map(async (post) => {
-                const postRef = db().collection("posts").doc(post.id)
-                const postSnap = await postRef.get();
-                const data = postSnap.data()
 
-                if (!postSnap.exists() || !data) return;
-
-                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid };
-
-            }));
-            const validPosts = postContents.filter((p):p is PostType => p !== null)
-
-            setPostContents(validPosts.reverse());
-        } catch (error) {
-            console.error("Error fetching post content:", error);
-        }
-    };
-
-    const onRefresh = async () => {
-        setRefreshing(true);
-        await fetchUserPosts();
-        await getBioInfo()
-        setRefreshing(false);
-    }
 
 
 

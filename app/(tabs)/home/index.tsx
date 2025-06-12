@@ -77,7 +77,7 @@ const Page = () => {
     }, [postIds]);
 
     const feed = React.useMemo(() => {
-        const items: Array<{ type: 'post'; post: PostType } | { type: 'ad'; id: string }> = [];
+        const items: ({ type: 'post'; post: PostType } | { type: 'ad'; id: string })[] = [];
         postContents.forEach((post) => {
             items.push({type: 'post', post});
             items.push({type: 'ad', id: `ad-${post.id}`});

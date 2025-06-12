@@ -31,7 +31,7 @@ const Page = () => {
             <View style={styles.bottomContainer}>
                 <View style={styles.instructionsContainer}>
                     <Text style={styles.instructionsText}>
-                        Enter your email and we'll send you a link to get back into your account.
+                        Enter your email and we&apos;ll send you a link to get back into your account.
                     </Text>
                 </View>
                 <TextInput

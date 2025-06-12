@@ -1,5 +1,5 @@
-import { View, Text, Image, StyleSheet, Dimensions, Alert, TouchableOpacity } from "react-native";
-import { auth, db } from "@/firebase"; // import your firestore reference
+import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
+import { auth } from "@/firebase";
 import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 
 interface Post {

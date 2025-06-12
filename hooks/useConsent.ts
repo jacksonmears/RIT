@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
     AdsConsent,
-    AdsConsentDebugGeography,
+    // AdsConsentDebugGeography,
     AdsConsentInfoOptions,
     AdsConsentStatus,
     AdsConsentInfo,
