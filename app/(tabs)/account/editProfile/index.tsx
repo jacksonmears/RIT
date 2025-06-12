@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
     View,
     Text,
@@ -22,15 +22,8 @@ export default function Page(){
     const [bio, setBio] = useState<string>('');
     const isFocused = useIsFocused();
 
-    useEffect(() => {
-        if (isFocused) {
-            getUserInfo().catch((err) => {
-                console.error(err);
-            })
-        }
-    }, [isFocused]);
 
-    const getUserInfo = async () => {
+    const getUserInfo = useCallback(async () => {
         if (!user) return;
         const ref = await db().collection('users').doc(user.uid).get();
         if (!ref.exists) return;
@@ -45,9 +38,15 @@ export default function Page(){
         } catch (e) {
             console.error(e);
         }
-    }
+    }, [user]);
 
-
+    useEffect(() => {
+        if (isFocused) {
+            getUserInfo().catch((err) => {
+                console.error(err);
+            })
+        }
+    }, [isFocused, getUserInfo]);
 
     return (
         <View style={styles.container}>

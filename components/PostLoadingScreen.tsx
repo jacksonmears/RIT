@@ -1,7 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { StyleSheet, ActivityIndicator, Animated, Easing } from "react-native";
-import { Dimensions } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { StyleSheet, ActivityIndicator, Animated, Easing , Dimensions } from "react-native";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get("window");

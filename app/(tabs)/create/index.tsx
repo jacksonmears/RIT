@@ -16,11 +16,11 @@ import {
     VideoFile,
     CameraCaptureError
 } from "react-native-vision-camera";
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused , useFocusEffect } from '@react-navigation/native';
 import Svg, {Circle} from "react-native-svg";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from "@expo/vector-icons/Feather";
-import { useFocusEffect } from '@react-navigation/native';
+
 
 const {width, height} = Dimensions.get('window');
 const MAX_RECORDING_TIME = 300;
@@ -41,7 +41,6 @@ const Page = () => {
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef<number | null>(null);
     const [isTimeExpired, setTimeExpired] = useState(false);
-    const [layoutReady, setLayoutReady] = useState(false);
 
 
     useEffect(() => {
@@ -53,8 +52,6 @@ const Page = () => {
         }
 
     }, [isTimeExpired]);
-
-
 
 
 
@@ -126,7 +123,7 @@ const Page = () => {
 
     const beginRecording =  async () => {
         if (!animatedValue || !cameraRef.current) return;
-        startTimer().catch();
+        await startTimer();
 
 
 
@@ -139,7 +136,7 @@ const Page = () => {
         }
         animations({val: animatedValue});
 
-        await handleVideoFile();
+        handleVideoFile().catch(console.error);
     }
 
     const handleVideoFile = async () => {
@@ -249,9 +246,7 @@ const Page = () => {
     }
 
     return (
-        <SafeAreaView style={styles.container} onLayout={() => {if (!layoutReady) setLayoutReady(true)}}>
-
-
+        <SafeAreaView style={styles.container}>
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => router.push('/home')}>
                     <Feather name="x" size={height/30} color="#D3D3FF"/>
@@ -264,7 +259,7 @@ const Page = () => {
             </View>
 
 
-            {layoutReady && isFocused && (
+            {isFocused && (
                 <View style={styles.cameraContainer}>
                     <Camera
                         key={mode}

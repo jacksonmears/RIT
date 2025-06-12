@@ -11,8 +11,8 @@ import {
     ActivityIndicator,
     Alert,
 } from "react-native";
-import auth from "@react-native-firebase/auth";
-import { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+
 import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
@@ -65,7 +65,7 @@ const Index = () => {
             </TouchableOpacity>
 
             <View style={styles.signupContainer}>
-                <Text style={styles.secondaryText}>Don't have an account? </Text>
+                <Text style={styles.secondaryText}>Don&apos;t have an account? </Text>
                 <TouchableOpacity
                     onPress={() => router.push("/signUp")}
                     disabled={loading}
