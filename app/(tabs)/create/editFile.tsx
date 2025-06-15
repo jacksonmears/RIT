@@ -14,6 +14,7 @@ const Page = () => {
     const [caption, setCaption] = useState<string>("");
     const [remaingingCharacters, setRemaingingCharacters] = useState<number>(50);
 
+
     useEffect(() => {
         setRemaingingCharacters(50 - caption.length);
     }, [caption]);

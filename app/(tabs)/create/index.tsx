@@ -20,6 +20,7 @@ import { useIsFocused , useFocusEffect } from '@react-navigation/native';
 import Svg, {Circle} from "react-native-svg";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from "@expo/vector-icons/Feather";
+import { Video } from 'react-native-compressor';
 
 
 const {width, height} = Dimensions.get('window');
@@ -139,14 +140,38 @@ const Page = () => {
         handleVideoFile().catch(console.error);
     }
 
+    const convertToMp4 = async (movPath: string): Promise<string> => {
+        try {
+            const mp4Path = await Video.compress(movPath, {
+                compressionMethod: 'auto',
+                minimumFileSizeForCompress: 1,
+            });
+
+            // console.log("Converted video to:", mp4Path);
+            return mp4Path;
+        } catch (error) {
+            console.error("Compression failed:", error);
+            return movPath;
+        }
+    };
+
+
     const handleVideoFile = async () => {
         if (!cameraRef.current) return;
 
         try {
             cameraRef.current.startRecording({
-                onRecordingFinished: (videoFile: VideoFile) => {
-                    router.push({pathname: '/create/editFile', params: {fillerUri: videoFile.path, fillerMode: mode,},});
+                onRecordingFinished: async (videoFile: VideoFile) => {
+                    const mp4Path = await convertToMp4(videoFile.path);
+                    router.push({
+                        pathname: '/create/editFile',
+                        params: {
+                            fillerUri: mp4Path,
+                            fillerMode: mode,
+                        },
+                    });
                 },
+
                 onRecordingError: (error: CameraCaptureError) => {
                     console.error('Recording error', error);},
             });

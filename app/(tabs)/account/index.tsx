@@ -281,7 +281,7 @@ const Page = () => {
                 data={postContents}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item, index }) => (
-                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user?.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user?.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp)}})}>
+                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user?.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user?.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp), rawPostID: item.id}})}>
                         <View style={styles.itemContainer}>
                             <AccountPost post={item} index={index}/>
                         </View>

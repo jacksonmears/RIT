@@ -4,43 +4,97 @@ import {
     StyleSheet,
     Image,
     TouchableOpacity,
-    Dimensions
+    Dimensions,
+    Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Video from "react-native-video";
 
 const { width, height } = Dimensions.get("window");
 
 const Page = () => {
-    const { rawContent, rawCaption, rawUsername, rawMode, rawPhotoURL } = useLocalSearchParams();
-    const content = String(rawContent);
+    const { rawContent, rawCaption, rawUsername, rawMode, rawPhotoURL, rawPostID } = useLocalSearchParams();
+    const content = Array.isArray(rawContent) ? rawContent[0] : rawContent || "";
     const userName = String(rawUsername);
+    const postID = String(rawPostID);
     const caption = String(rawCaption);
     const router = useRouter();
     const photoURLString = String(rawPhotoURL)
+    const [videoUri, setVideoUri] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
+    // useEffect(() => {
+    //     console.log("content: ", content);
+    //     console.log("videoUri: ", videoUri);
+    //     console.log("rawPostID: ", rawPostID);
+    // }, [content, videoUri, rawPostID]);
+
+    const getSignedDownloadUrl = async (filename: string): Promise<string | undefined> => {
+        try {
+            const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${filename}`);
+            if (!response.ok) {
+                const text = await response.text();
+                console.error(`Failed to get signed download URL: ${response.status} ${text}`);
+                return undefined;
+            }
+            const data = await response.json();
+            return data.url;
+        } catch (error) {
+            console.error("Error fetching signed download URL:", error);
+            return undefined;
+        }
+    };
+
+    useEffect(() => {
+        if (rawMode === "video" && postID) {
+            const filenameWithExtension = `${postID}.mov`; // Make sure you match Firebase file name
+            getSignedDownloadUrl(filenameWithExtension).then((url) => {
+                if (url) {
+                    setVideoUri(url);
+                } else {
+                    console.error("Failed to get signed URL, using fallback.");
+                    setVideoUri(content); // fallback
+                }
+            });
+        }
+    }, [content, rawMode, rawPostID]);
 
     return (
         <View style={styles.container}>
             <View style={styles.top70}>
-                {rawMode==="photo" ?
+                {rawMode === "photo" ? (
                     <Image
                         source={{ uri: content }}
                         style={styles.image}
                         resizeMode="cover"
                         onError={(e) => console.error('Image load error', e.nativeEvent.error)}
                     />
-                    :
-                    <Video
-                        source={{ uri: content }}
-                        style={styles.videoContent}
-                        resizeMode={'cover'}
-                        repeat={true}
-                    />
-                }
+                ) : videoUri ? (
+                    <>
+                        {loading && (
+                            <Text style={{ color: 'white', position: 'absolute', top: 50 }}>Loading video...</Text>
+                        )}
+                        <Video
+                            source={{ uri: videoUri }}
+                            style={styles.videoContent}
+                            resizeMode="cover"
+                            repeat
+                            controls
+                            paused={false}
+                            onLoadStart={() => setLoading(true)}
+                            onLoad={() => setLoading(false)}
+                            onError={(e) => {
+                                console.error("Video failed to load", e);
+                                setLoading(false);
+                                Alert.alert("Error", "Video could not be loaded.");
+                            }}
+                        />
+                    </>
+                ) : (
+                    <Text style={{ color: 'white' }}>Fetching video URL...</Text>
+                )}
             </View>
-
 
             <TouchableOpacity
                 style={styles.backButton}
@@ -58,7 +112,7 @@ const Page = () => {
             </View>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -66,7 +120,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
     },
     top70: {
-        height: height*0.95,
+        height: height * 0.95,
         width: width,
         justifyContent: 'center',
         alignItems: 'center',
@@ -77,30 +131,29 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: 'absolute',
-        top: height/50,
-        left: width/20,
+        top: height / 50,
+        left: width / 20,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        padding: width/50,
-        borderRadius: width/50,
+        padding: width / 50,
+        borderRadius: width / 50,
     },
     backText: {
         color: 'white',
-        fontSize: height/60,
+        fontSize: height / 60,
     },
     videoContent: {
         backgroundColor: "grey",
         width: width,
-        resizeMode: "contain",
         height: height,
     },
     profileUser: {
         position: 'absolute',
-        bottom: height/8,
-        left: width/20,
+        bottom: height / 8,
+        left: width / 20,
     },
     avatar: {
-        width: width/12,
-        height: width/12,
+        width: width / 12,
+        height: width / 12,
         borderRadius: 999,
     },
     upperProfile: {
@@ -110,11 +163,11 @@ const styles = StyleSheet.create({
     profileText: {
         color: "#D3D3FF",
         fontWeight: "bold",
-        marginLeft: width/50,
+        marginLeft: width / 50,
     },
     profileCaption: {
         color: "#D3D3FF",
-        marginTop: height/100
+        marginTop: height / 100
     }
 });
 
