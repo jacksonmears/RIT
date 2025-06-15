@@ -1,18 +1,18 @@
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
-import { auth, db } from '@/firebase'; // Removed storage import because we upload with fetch now
+import { auth, db } from '@/firebase';
 import { Checkbox } from 'react-native-paper';
-import React, { useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import PostLoadingScreen from "@/components/PostLoadingScreen";
+import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get("window");
 
 type GroupType = {
     id: string,
     name: string,
-}
+};
 
 const Page = () => {
     const user = auth().currentUser;
@@ -20,11 +20,10 @@ const Page = () => {
     const caption = String(fillerCaption);
     const localUri = String(fillerURI);
     const mode = String(fillerMode);
-    const [groups, setGroups] = useState<GroupType[] | []>([]);
+    const [groups, setGroups] = useState<GroupType[]>([]);
     const router = useRouter();
-    const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
+    const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean>>(new Map());
     const [selectAll, setSelectAll] = useState<boolean>(false);
-    const [posting, setPosting] = useState<boolean>(false);
 
     useEffect(() => {
         if (!user) return;
@@ -45,121 +44,129 @@ const Page = () => {
             }
         };
 
-        getGroups().catch((err) => {
-            console.error(err);
-        });
+        getGroups().catch(console.error);
     }, [user]);
 
     const toggleSelection = (id: string) => {
         if (!id) return;
 
-        try {
-            setSelectedGroups((prev) => {
-                const next = new Map(prev);
-                if (next.has(id)) {
-                    next.delete(id);
-                } else {
-                    next.set(id, true);
-                }
-                return next;
-            });
-        } catch (err) {
-            console.error(err);
-        }
+        setSelectedGroups((prev) => {
+            const next = new Map(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.set(id, true);
+            }
+            return next;
+        });
     };
 
-    const createPost = async () => {
+    const doneButton = async () => {
         if (!user || !selectedGroups) return;
 
         const parsedGroups = [...selectedGroups.keys()]
-            .filter((groupId) => selectedGroups.get(groupId)) // Only keep selected groups (true)
+            .filter((groupId) => selectedGroups.get(groupId))
             .map((groupId) => ({ id: groupId }));
-        const hasSelectedGroup = [...selectedGroups.values()].some(value => value);
 
-        if (!hasSelectedGroup) return;
+        const hasSelectedGroup = parsedGroups.length > 0;
+        if (!hasSelectedGroup) {
+            console.warn("No groups selected");
+            return;
+        }
+
         try {
             const postRef = await db().collection("posts").add({
                 sender_id: user.uid,
-                mode: mode,
-                caption: caption,
+                mode,
+                caption,
+                content: null,
                 timestamp: db.FieldValue.serverTimestamp(),
             });
 
             const postID = postRef.id;
 
-            const postURL = mode === "photo"
-                ? await uploadPhoto(postID)
-                : await uploadVideo(postID, localUri);
-
-            if (!postURL) return;
-
-            await db().collection("posts").doc(postID).update({
-                content: encodeURIComponent(postURL),
-            });
-
             await db().collection("users").doc(user.uid).collection("posts").doc(postID).set({
                 timestamp: db.FieldValue.serverTimestamp(),
             });
 
-            await addPostToGroups(parsedGroups, postID, postURL);
+            await addPostToGroups(parsedGroups, postID, null);
+
+            // Start background upload but don’t wait for it
+            const uploadFn = mode === "photo" ? uploadPhoto : uploadVideo;
+            uploadFn(postID, localUri).then(async (postURL) => {
+                if (!postURL) {
+                    console.error("Upload failed");
+                    return;
+                }
+
+                await db().collection("posts").doc(postID).update({
+                    content: encodeURIComponent(postURL),
+                });
+
+                await Promise.all(parsedGroups.map(async (group) => {
+                    await db().collection("groups").doc(group.id).collection("messages").doc(postID).update({
+                        content: encodeURIComponent(postURL),
+                    });
+                }));
+            });
+
+            // Navigate to PostLoadingScreen and then to Home after 1 second
+            router.push("/create/postLoadingScreen");
+            // setTimeout(() => {
+            //     router.push("/create")
+            //     router.push("/home");
+            // }, 2000);
 
         } catch (error) {
-            console.error(error);
+            console.error("Error in createPost:", error);
         }
     };
 
-    // NEW: Function to request signed upload URL from your backend or Firebase function
-    const getSignedUploadURL = async (postID: string, fileType: "photo" | "video") : Promise<{uploadURL: string, publicURL: string} | undefined> => {
+    const getSignedUploadUrl = async (postID: string, fileType: "photo" | "video"): Promise<{ uploadURL: string, publicURL: string } | undefined> => {
+        const fileExtension = fileType === "photo" ? "jpg" : "mov";
+        const filename = `${postID}.${fileExtension}`;
+        const contentType = fileType === "photo" ? "image/jpeg" : "video/quicktime";
+
         try {
-            // Example fetch request - replace with your actual endpoint
-            const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedUploadURL?postID=${postID}&fileType=${fileType}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    // add auth headers if need
+            const response = await fetch(
+                `https://getsigneduploadurl-ondqjhe3ua-uc.a.run.app?filename=${filename}&contentType=${encodeURIComponent(contentType)}`,
+                {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
                 }
-            });
+            );
+
             if (!response.ok) {
-                throw new Error(`Failed to get signed URL: ${response.statusText}`);
+                const text = await response.text();
+                console.error(`Failed to get signed URL: ${response.status} ${text}`);
+                return;
             }
+
             const data = await response.json();
-            // Expected data shape: { uploadURL: string, publicURL: string }
-            return data;
+            const publicURL = `https://firebasestorage.googleapis.com/v0/b/recap-d22e0.appspot.com/o/${encodeURIComponent(`uploads/${filename}`)}?alt=media`;
+
+            return { uploadURL: data.url, publicURL };
         } catch (error) {
             console.error("Error getting signed upload URL:", error);
         }
     };
 
-    // Helper to read file as blob for fetch upload
-    const readFileAsBlob = async (uri: string): Promise<Blob> => {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        return blob;
-    };
-
-    const uploadPhoto = async (postID: string): Promise<string | undefined> => {
+    const uploadPhoto = async (postID: string, localUri: string): Promise<string | undefined> => {
         if (!localUri) return;
 
         try {
-            const signedURLs = await getSignedUploadURL(postID, "photo");
+            const signedURLs = await getSignedUploadUrl(postID, "photo");
             if (!signedURLs) return;
 
-            const fileBlob = await readFileAsBlob(localUri);
-
-            // Upload via PUT to signed URL
-            const uploadResponse = await fetch(signedURLs.uploadURL, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "image/jpeg",
-                },
-                body: fileBlob,
+            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, localUri, {
+                httpMethod: "PUT",
+                headers: { "Content-Type": "image/jpeg" },
             });
 
-            if (!uploadResponse.ok) {
-                throw new Error(`Upload failed with status ${uploadResponse.status}`);
+            if (uploadResult.status !== 200) {
+                throw new Error(`Upload failed with status ${uploadResult.status}`);
             }
 
-            // Return the public URL to be stored in Firestore
             return signedURLs.publicURL;
         } catch (error) {
             console.error('Upload failed:', error);
@@ -170,22 +177,16 @@ const Page = () => {
         if (!localUri) return;
 
         try {
-            const signedURLs = await getSignedUploadURL(postID, "video");
+            const signedURLs = await getSignedUploadUrl(postID, "video");
             if (!signedURLs) return;
 
-            const fileBlob = await readFileAsBlob(localUri);
-
-            // Upload via PUT to signed URL
-            const uploadResponse = await fetch(signedURLs.uploadURL, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "video/quicktime", // or "video/mp4" depending on your video type
-                },
-                body: fileBlob,
+            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, localUri, {
+                httpMethod: "PUT",
+                headers: { "Content-Type": "video/quicktime" },
             });
 
-            if (!uploadResponse.ok) {
-                throw new Error(`Upload failed with status ${uploadResponse.status}`);
+            if (uploadResult.status !== 200) {
+                throw new Error(`Upload failed with status ${uploadResult.status}`);
             }
 
             return signedURLs.publicURL;
@@ -194,7 +195,7 @@ const Page = () => {
         }
     };
 
-    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string, postURL: string) => {
+    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string, postURL: string | null) => {
         if (!user) return;
         try {
             await Promise.all(
@@ -204,30 +205,16 @@ const Page = () => {
                         sender_id: user.uid,
                         caption: caption,
                         timestamp: db.FieldValue.serverTimestamp(),
-                        content: encodeURIComponent(postURL),
-                    })
+                        content: postURL ? encodeURIComponent(postURL) : null,
+                    });
                     await db().collection("posts").doc(postID).collection("groups").doc(group.id).set({
                         timestamp: db.FieldValue.serverTimestamp(),
-                    })
+                    });
                 })
             );
         } catch (error) {
             console.error("Error adding post to groups:", error);
         }
-    };
-
-    const doneButton = async () => {
-        setPosting(true);
-        await createPost();
-        setPosting(false);
-        router.push({
-            pathname: "/create",
-            params: { reset: "true" },
-        });
-
-        setTimeout(() => {
-            router.push("../home");
-        }, 0);
     };
 
     const selectAllFunction = () => {
@@ -248,11 +235,8 @@ const Page = () => {
         }
     };
 
-    if (posting) return <PostLoadingScreen />;
-
     return (
         <View style={styles.container}>
-
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.back()}>
@@ -260,27 +244,20 @@ const Page = () => {
                     </TouchableOpacity>
                     {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
                 </View>
-                {selectedGroups && (selectedGroups.size) === 0 ?
+                {selectedGroups && (selectedGroups.size) === 0 ? (
                     <Ionicons name="send-outline" size={width / 20} color="#D3D3FF" />
-                    :
+                ) : (
                     <TouchableOpacity onPress={() => doneButton()}>
                         <Ionicons name="send" size={width / 20} color="#D3D3FF" />
                     </TouchableOpacity>
-                }
+                )}
             </View>
 
             <View style={styles.groupContainer}>
                 <TouchableOpacity style={styles.groupRow} onPress={selectAllFunction}>
                     <View style={styles.backArrowName}>
-                        <Text style={styles.text}>
-                            {(selectAll ?
-                                    "unselect all"
-                                    :
-                                    "select all"
-                            )}
-                        </Text>
+                        <Text style={styles.text}>{selectAll ? "unselect all" : "select all"}</Text>
                     </View>
-
                     <Checkbox
                         status={selectAll ? "checked" : "unchecked"}
                         onPress={selectAllFunction}
@@ -298,24 +275,21 @@ const Page = () => {
                             <View style={styles.backArrowName}>
                                 <Text style={styles.text}>{item.name}</Text>
                             </View>
-                            {selectedGroups &&
+                            {selectedGroups && (
                                 <Checkbox
                                     status={selectedGroups.get(item.id) ? "checked" : "unchecked"}
                                     onPress={() => toggleSelection(item.id)}
                                 />
-                            }
-
+                            )}
                         </TouchableOpacity>
                     </View>
                 )}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={<Text style={styles.noResults}>You added all your friends!</Text>}
             />
-
         </View>
     );
-
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -348,13 +322,12 @@ const styles = StyleSheet.create({
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: width/20,
-        borderBottomWidth: height/1000,
+        paddingHorizontal: width / 20,
+        borderBottomWidth: height / 1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height / 20
     },
-
     topBarText: {
         color: "#D3D3FF",
     },
@@ -367,7 +340,6 @@ const styles = StyleSheet.create({
         color: 'gray',
         textAlign: 'center',
     },
-
 });
 
 export default Page;
