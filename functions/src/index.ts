@@ -1,0 +1,53 @@
+import * as functions from 'firebase-functions'
+import * as admin from 'firebase-admin'
+
+admin.initializeApp()
+
+const bucket = admin.storage().bucket()
+
+export const getSignedUploadUrl = functions.https.onRequest(async (req, res) => {
+    const { filename, contentType } = req.query
+
+    if (!filename || typeof filename !== 'string') {
+        res.status(400).json({ error: 'Missing or invalid filename' })
+        return
+    }
+
+    try {
+        const file = bucket.file(`uploads/${filename}`)
+        const [url] = await file.getSignedUrl({
+            version: 'v4',
+            action: 'write',
+            expires: Date.now() + 15 * 60 * 1000,
+            contentType: typeof contentType === 'string' ? contentType : 'video/mp4',
+        })
+        res.status(200).json({ url })
+    } catch (err) {
+        console.error('Error generating signed URL:', err)
+        res.status(500).json({ error: 'Internal Server Error' })
+    }
+})
+
+
+export const getSignedDownloadUrl = functions.https.onRequest(async (req, res) => {
+    const { filename } = req.query;
+
+    if (!filename || typeof filename !== 'string') {
+        res.status(400).json({ error: 'Missing or invalid filename' });
+        return;
+    }
+
+    try {
+        const file = bucket.file(`uploads/${filename}`);
+        const [url] = await file.getSignedUrl({
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+        });
+        res.status(200).json({ url });
+    } catch (err) {
+        console.error('Error generating signed download URL:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+

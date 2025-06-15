@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
-import { auth, db, storage } from '@/firebase';
+import { auth, db } from '@/firebase'; // Removed storage import because we upload with fetch now
 import { Checkbox } from 'react-native-paper';
 import React, { useEffect, useState} from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -25,8 +25,6 @@ const Page = () => {
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean> | null>(new Map());
     const [selectAll, setSelectAll] = useState<boolean>(false);
     const [posting, setPosting] = useState<boolean>(false);
-
-
 
     useEffect(() => {
         if (!user) return;
@@ -110,32 +108,91 @@ const Page = () => {
         }
     };
 
+    // NEW: Function to request signed upload URL from your backend or Firebase function
+    const getSignedUploadURL = async (postID: string, fileType: "photo" | "video") : Promise<{uploadURL: string, publicURL: string} | undefined> => {
+        try {
+            // Example fetch request - replace with your actual endpoint
+            const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedUploadURL?postID=${postID}&fileType=${fileType}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    // add auth headers if need
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to get signed URL: ${response.statusText}`);
+            }
+            const data = await response.json();
+            // Expected data shape: { uploadURL: string, publicURL: string }
+            return data;
+        } catch (error) {
+            console.error("Error getting signed upload URL:", error);
+        }
+    };
+
+    // Helper to read file as blob for fetch upload
+    const readFileAsBlob = async (uri: string): Promise<Blob> => {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return blob;
+    };
+
     const uploadPhoto = async (postID: string): Promise<string | undefined> => {
         if (!localUri) return;
 
         try {
-            const ref = storage().ref(`postPictures/${postID}.jpg`);
-            await ref.putFile(localUri);
-            return await ref.getDownloadURL();
+            const signedURLs = await getSignedUploadURL(postID, "photo");
+            if (!signedURLs) return;
+
+            const fileBlob = await readFileAsBlob(localUri);
+
+            // Upload via PUT to signed URL
+            const uploadResponse = await fetch(signedURLs.uploadURL, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "image/jpeg",
+                },
+                body: fileBlob,
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error(`Upload failed with status ${uploadResponse.status}`);
+            }
+
+            // Return the public URL to be stored in Firestore
+            return signedURLs.publicURL;
         } catch (error) {
             console.error('Upload failed:', error);
         }
     };
-
 
     const uploadVideo = async (postID: string, localUri: string): Promise<string | undefined> => {
         if (!localUri) return;
 
-
         try {
-            const ref = storage().ref(`postVideos/${postID}.mov`);
-            await ref.putFile(localUri);
-            return await ref.getDownloadURL();
+            const signedURLs = await getSignedUploadURL(postID, "video");
+            if (!signedURLs) return;
+
+            const fileBlob = await readFileAsBlob(localUri);
+
+            // Upload via PUT to signed URL
+            const uploadResponse = await fetch(signedURLs.uploadURL, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "video/quicktime", // or "video/mp4" depending on your video type
+                },
+                body: fileBlob,
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error(`Upload failed with status ${uploadResponse.status}`);
+            }
+
+            return signedURLs.publicURL;
         } catch (error) {
             console.error('Upload failed:', error);
         }
     };
-
 
     const addPostToGroups = async (parsedGroups: { id: string }[], postID: string, postURL: string) => {
         if (!user) return;
@@ -190,15 +247,6 @@ const Page = () => {
             console.error(error);
         }
     };
-
-
-    // const loadingScreen = () => {
-    //     return (
-    //         <View style={{backgroundColor: "green", alignItems:"center", justifyContent:"center"}}>
-    //             <Text style={{color: "red"}}>loading lil bro!</Text>
-    //         </View>
-    //     )
-    // }
 
     if (posting) return <PostLoadingScreen />;
 
