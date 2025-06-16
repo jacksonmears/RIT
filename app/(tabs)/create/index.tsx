@@ -43,6 +43,12 @@ const Page = () => {
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef<number | null>(null);
     const [isTimeExpired, setTimeExpired] = useState(false);
+    const [isCameraReady, setIsCameraReady] = useState(false);
+
+
+    useEffect(() => {
+        console.log(isCameraReady, isFocused);
+    }, [isCameraReady, isFocused]);
 
 
     useEffect(() => {
@@ -63,6 +69,7 @@ const Page = () => {
             setRecordingTime(0);
             animatedValue.setValue(0);
             setTimeExpired(false);
+            setIsCameraReady(false);
 
             return () => {
                 if (cameraRef.current && isRecording) cameraRef.current.stopRecording().catch(console.error);
@@ -71,6 +78,14 @@ const Page = () => {
         }, [])
     );
 
+    useEffect(() => {
+        if (device && cameraPermission === 'granted' && micPermission === 'granted') {
+            const timeout = setTimeout(() => setIsCameraReady(true), 300);
+            return () => clearTimeout(timeout);
+        } else {
+            setIsCameraReady(false);
+        }
+    }, [isFocused, device, cameraPermission, micPermission]);
 
     useEffect(() => {
         (async () => {
@@ -269,15 +284,7 @@ const Page = () => {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="red" />
-            </View>
-        );
-    }
-    if (cameraPermission !== 'granted' || micPermission !== 'granted') {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.text}>
-                    Camera and/or microphone permission not granted
-                </Text>
+                <Text>Failed to connect to device restart app</Text>
             </View>
         );
     }
@@ -296,10 +303,10 @@ const Page = () => {
             </View>
 
 
-            {isFocused && (
+            {isFocused && isCameraReady ? (
                 <View style={styles.cameraContainer}>
                     <Camera
-                        key={mode}
+                        key={`${cameraPosition}-${isCameraReady}`}  // Force remount when camera changes or ready toggles
                         ref={cameraRef}
                         style={styles.camera}
                         device={device}
@@ -308,7 +315,11 @@ const Page = () => {
                         photo={mode === "photo"}
                     />
                 </View>
-            )}
+            ) :
+                <View style={[styles.camera, styles.loadingContainer]}>
+                    <Text style={styles.text}>Loading camera...</Text>
+                </View>
+            }
 
 
 
@@ -392,7 +403,14 @@ const styles = StyleSheet.create({
     timerText: {
         color: 'white',
         fontSize: height/50,
-    }
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'black',
+    },
+
+
 
 });
 
