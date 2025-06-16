@@ -23,6 +23,7 @@ type PostType = {
     caption: string;
     mode: string;
     userID: string;
+    thumbnail: string;
 }
 
 
@@ -75,7 +76,7 @@ const Page = () => {
 
                 if (!postSnap.exists() || !data) return;
 
-                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid };
+                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid, thumbnail: data.thumbnail };
 
             }));
             const validPosts = postContents.filter((p):p is PostType => p !== null)
@@ -271,7 +272,6 @@ const Page = () => {
             </TouchableOpacity>
 
         </View>
-
     )
 
     const renderFlatList = () => (

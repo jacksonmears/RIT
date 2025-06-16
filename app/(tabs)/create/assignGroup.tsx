@@ -112,7 +112,7 @@ const Page = () => {
                 timestamp: db.FieldValue.serverTimestamp(),
             });
 
-            await addPostToGroups(parsedGroups, postID, null);
+            await addPostToGroups(parsedGroups, postID, null, null);
 
             const uploadFn = mode === "photo" ? uploadPhoto : uploadVideo;
 
@@ -121,20 +121,20 @@ const Page = () => {
                 uploadThumbnail(postID, thumbnail),
             ]);
 
-            if (!postURL) {
+            if (!postURL || !thumbnailURL) {
                 console.error("Upload failed");
                 return;
             }
 
             await db().collection("posts").doc(postID).update({
                 content: encodeURIComponent(postURL),
-                thumbnail: thumbnailURL ? encodeURIComponent(thumbnailURL) : null,
+                thumbnail: encodeURIComponent(thumbnailURL)
             });
 
             await Promise.all(parsedGroups.map(async (group) => {
                 await db().collection("groups").doc(group.id).collection("messages").doc(postID).update({
                     content: encodeURIComponent(postURL),
-                    thumbnail: thumbnailURL ? encodeURIComponent(thumbnailURL) : null,
+                    thumbnail: encodeURIComponent(thumbnailURL)
                 });
             }));
 
@@ -222,7 +222,7 @@ const Page = () => {
         }
     };
 
-    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string, postURL: string | null) => {
+    const addPostToGroups = async (parsedGroups: { id: string }[], postID: string, postURL: string | null, thumbnailURL: string | null) => {
         if (!user) return;
         try {
             await Promise.all(
@@ -233,6 +233,7 @@ const Page = () => {
                         caption: caption,
                         timestamp: db.FieldValue.serverTimestamp(),
                         content: postURL ? encodeURIComponent(postURL) : null,
+                        thumbnail: thumbnailURL ? encodeURIComponent(thumbnailURL) : null,
                     });
                     await db().collection("posts").doc(postID).collection("groups").doc(group.id).set({
                         timestamp: db.FieldValue.serverTimestamp(),
