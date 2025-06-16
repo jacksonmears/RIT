@@ -83,12 +83,12 @@ const PostLoadingScreen = () => {
 
     return (
         <Animated.View style={[styles.loadingContainer, { backgroundColor }]}>
-            <Animated.Text
-                style={{ color: "red", position: "absolute", top: height * 0.05, left: width * 0.1, fontSize: height / 50 }}
-                onPress={() => router.push("../home")}
-            >
-                Back
-            </Animated.Text>
+            {/*<Animated.Text*/}
+            {/*    style={{ color: "red", position: "absolute", top: height * 0.05, left: width * 0.1, fontSize: height / 50 }}*/}
+            {/*    onPress={() => router.push("../home")}*/}
+            {/*>*/}
+            {/*    Back*/}
+            {/*</Animated.Text>*/}
 
             <ActivityIndicator size="large" color="#D3D3FF" style={{ marginBottom: 30 }} />
             <Animated.Text style={[styles.loadingText, { transform: [{ scale: pulseAnim }] }]}>
