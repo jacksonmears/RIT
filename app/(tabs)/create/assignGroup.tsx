@@ -116,29 +116,34 @@ const Page = () => {
 
             const uploadFn = mode === "photo" ? uploadPhoto : uploadVideo;
 
-            const [postURL, thumbnailURL] = await Promise.all([
+            Promise.all([
                 uploadFn(postID, localUri),
                 uploadThumbnail(postID, thumbnail),
-            ]);
+            ])
+                .then(async ([postURL, thumbnailURL]) => {
+                    if (!postURL || !thumbnailURL) {
+                        console.error("Upload failed");
+                        return;
+                    }
 
-            if (!postURL || !thumbnailURL) {
-                console.error("Upload failed");
-                return;
-            }
+                    await db().collection("posts").doc(postID).update({
+                        content: encodeURIComponent(postURL),
+                        thumbnail: encodeURIComponent(thumbnailURL),
+                    });
 
-            await db().collection("posts").doc(postID).update({
-                content: encodeURIComponent(postURL),
-                thumbnail: encodeURIComponent(thumbnailURL)
-            });
-
-            await Promise.all(parsedGroups.map(async (group) => {
-                await db().collection("groups").doc(group.id).collection("messages").doc(postID).update({
-                    content: encodeURIComponent(postURL),
-                    thumbnail: encodeURIComponent(thumbnailURL)
+                    await Promise.all(parsedGroups.map(async (group) => {
+                        await db().collection("groups").doc(group.id).collection("messages").doc(postID).update({
+                            content: encodeURIComponent(postURL),
+                            thumbnail: encodeURIComponent(thumbnailURL),
+                        });
+                    }));
+                })
+                .catch((err) => {
+                    console.error("Background upload failed:", err);
                 });
-            }));
 
             router.push("/create/postLoadingScreen");
+
 
         } catch (error) {
             console.error("Error in createPost:", error);
