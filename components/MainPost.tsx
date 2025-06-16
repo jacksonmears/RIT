@@ -3,7 +3,6 @@ import {useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
 import {auth, db} from "@/firebase";
 import AntDesign from '@expo/vector-icons/AntDesign';
-import {ResizeMode, Video as VideoAV} from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,9 +29,9 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
     const [numLikes, setNumLikes] = useState<number>(0);
-    const {width, height} = Dimensions.get('window');
-    const POST_WIDTH = width;
-    const POST_HEIGHT = height*0.7;
+    // const {width, height} = Dimensions.get('window');
+    // const POST_WIDTH = width;
+    // const POST_HEIGHT = height*0.7;
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
 
@@ -56,7 +55,7 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
         };
 
 
-        getSignedThumbnailUrl(post.id);
+        getSignedThumbnailUrl(post.id).catch((err) => console.error(err));
     }, [post.id]);
     useEffect(() => {
         const likeFunc = async () => {

@@ -9,7 +9,7 @@ import {
     Dimensions,
 } from "react-native";
 import {useLocalSearchParams, useRouter} from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import { auth, db } from "@/firebase";
 import {Checkbox} from "react-native-paper";
 import Feather from '@expo/vector-icons/Feather';
@@ -51,14 +51,10 @@ const Page = () => {
         });
     }, []);
 
-    useEffect(() => {
-        fetchFriends().catch((err) => {
-            console.error(err);
-        });
-    }, [friendsID]);
 
 
-    const fetchFriends = async () => {
+
+    const fetchFriends = useCallback(async () => {
         if (!user || !friendsID || friendsID.length === 0) return;
 
         try {
@@ -75,7 +71,13 @@ const Page = () => {
         } catch (error) {
             console.error("Error fetching friends' data:", error);
         }
-    };
+    }, [user, friendsID]);
+
+    useEffect(() => {
+        fetchFriends().catch((err) => {
+            console.error(err);
+        });
+    }, [friendsID]);
 
     const toggleSelection = (id: string) => {
         if (!id) return;

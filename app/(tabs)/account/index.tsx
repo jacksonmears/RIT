@@ -95,15 +95,7 @@ const Page = () => {
     }
 
 
-    useEffect(() => {
-        const getInfo = async () => {
-            await getBioInfo()
-            await fetchUserPosts();
-        }
-        getInfo().catch((err) => {
-            console.error(err);
-        });
-    }, [fetchUserPosts]);
+
 
     useEffect(() => {
         getPostContent().catch((err) => {
@@ -159,7 +151,7 @@ const Page = () => {
 
 
 
-    const getBioInfo = async () => {
+    const getBioInfo = useCallback(async () => {
         if (!user) return;
         const getInfo = await db().collection("users").doc(user.uid).get()
         const data = getInfo.data()
@@ -175,10 +167,18 @@ const Page = () => {
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);
 
-    }
+    },[user]);
 
 
-
+    useEffect(() => {
+        const getInfo = async () => {
+            await getBioInfo()
+            await fetchUserPosts();
+        }
+        getInfo().catch((err) => {
+            console.error(err);
+        });
+    }, [fetchUserPosts]);
 
 
 

@@ -9,7 +9,7 @@ import {
     Image,
     Dimensions,
 } from 'react-native';
-import React, { useEffect, useState } from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import { db, auth } from "@/firebase"
 import {useRouter} from 'expo-router';
 import Feather from "@expo/vector-icons/Feather";
@@ -53,13 +53,9 @@ const Page = () => {
         });
     }, []);
 
-    useEffect(() => {
-        fetchFriends().catch((err) => {
-            console.error(err);
-        });
-    }, [friendsID]);
 
-    const fetchFriends = async () => {
+
+    const fetchFriends = useCallback(async () => {
         if (!user || !friendsID || friendsID.length === 0) return;
 
         try {
@@ -78,8 +74,13 @@ const Page = () => {
         } catch (error) {
             console.error("Error fetching friends' data:", error);
         }
-    };
+    }, [user, friendsID]);
 
+    useEffect(() => {
+        fetchFriends().catch((err) => {
+            console.error(err);
+        });
+    }, [friendsID]);
 
 
     const createGroup = async () => {

@@ -2,7 +2,6 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from "rea
 import { useRouter } from "expo-router";
 import React, {useEffect, useState} from "react";
 import {auth,db} from "@/firebase";
-import Video from "react-native-video";
 import type {FirebaseFirestoreTypes} from "@react-native-firebase/firestore";
 
 interface Post {
@@ -34,7 +33,6 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
     const router = useRouter();
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
-    const content = decodeURIComponent(post.content);
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -57,7 +55,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
         };
 
 
-        getSignedThumbnailUrl(post.id);
+        getSignedThumbnailUrl(post.id).catch((err) => console.error(err));
     }, [post.id]);
 
     useEffect(() => {
