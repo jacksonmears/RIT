@@ -17,6 +17,7 @@ type PostType = {
     timestamp: string;
     pfp: string;
     mode: string;
+    thumbnail: string;
 };
 
 
@@ -210,7 +211,7 @@ const Page = () => {
                 }
 
 
-                return { id: post, content: data.content, caption: data.caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
+                return { id: post, content: data.content, caption: data.caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode, thumbnail: data.thumbnail };
             }))
             const validPosts = raw.filter((p): p is PostType => p !== null);
             setPostContents(validPosts)

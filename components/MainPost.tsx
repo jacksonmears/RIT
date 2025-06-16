@@ -33,7 +33,31 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const {width, height} = Dimensions.get('window');
     const POST_WIDTH = width;
     const POST_HEIGHT = height*0.7;
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
+
+    useEffect(() => {
+        const getSignedThumbnailUrl = async (postId: string): Promise<string | undefined> => {
+            try {
+                const path = encodeURIComponent(`${postId}/thumbnail.jpg`);
+                const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${path}`);
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error(`Failed to get signed thumbnail URL: ${response.status} ${text}`);
+                    return undefined;
+                }
+                const data = await response.json();
+                setThumbnailUrl(data.url);
+                return data.url;
+            } catch (error) {
+                console.error("Error fetching signed thumbnail URL:", error);
+                return undefined;
+            }
+        };
+
+
+        getSignedThumbnailUrl(post.id);
+    }, [post.id]);
     useEffect(() => {
         const likeFunc = async () => {
             if (!user) return;
@@ -95,17 +119,19 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             </View>
 
 
-            <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{rawId: post.id, rawContent: encodeURIComponent(content), rawCaption: post.caption, rawUserName: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp)}})}>
+            <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{rawPostID: post.id, rawContent: encodeURIComponent(content), rawCaption: post.caption, rawUserName: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp)}})}>
                 <View style={styles.contentViewPicture}>
-                    {post.mode==="photo" ?
-                        <Image source={{ uri: content }} style={styles.pictureContent} />
-                        :
-                        <VideoAV
-                            source={{ uri: content }}
-                            style={{width: POST_WIDTH, height: POST_HEIGHT}}
-                            resizeMode={ResizeMode.COVER}
+                    {thumbnailUrl ? (
+                        <Image
+                            source={{ uri: thumbnailUrl }}
+                            style={styles.pictureContent}
+                            resizeMode="cover"
                         />
-                    }
+                    ) : (
+                        <View style={[styles.pictureContent, { justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ color: 'white' }}>Loading...</Text>
+                        </View>
+                    )}
                 </View>
             </TouchableOpacity>
 
