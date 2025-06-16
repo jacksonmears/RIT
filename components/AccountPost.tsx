@@ -19,7 +19,6 @@ type Post = {
     content: string;
     mode: string;
     userID: string;
-    thumbnail: string;
 }
 
 type PostCompProps = {

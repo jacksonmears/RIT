@@ -2,7 +2,6 @@ import {View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, TextInput, 
 import {useLocalSearchParams, useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import Video from "react-native-video";
 
 const { width, height } = Dimensions.get("window");
 

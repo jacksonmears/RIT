@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { StyleSheet, ActivityIndicator, Animated, Easing, Dimensions, View, Text } from "react-native";
+import { StyleSheet, ActivityIndicator, Animated, Easing, Dimensions } from "react-native";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from "expo-router";
 const { width, height } = Dimensions.get("window");
