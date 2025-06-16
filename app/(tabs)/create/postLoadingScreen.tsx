@@ -2,14 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { StyleSheet, ActivityIndicator, Animated, Easing, Dimensions, View, Text } from "react-native";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from "expo-router";
-
 const { width, height } = Dimensions.get("window");
-
-// Dummy async function: replace with your actual upload/post function
-async function createPostAndUpload() {
-    // simulate network/upload delay
-    return new Promise((resolve) => setTimeout(resolve, 1500));
-}
 
 const PostLoadingScreen = () => {
     const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -71,17 +64,17 @@ const PostLoadingScreen = () => {
     }, []);
 
     useEffect(() => {
-        createPostAndUpload().catch(console.error);
-
-        const timer = setTimeout(() => {
+        const timer1 = setTimeout(() => {
             router.replace("/create");
-            setTimeout(() => {
+            const timer2 = setTimeout(() => {
                 router.replace("/home");
-            }, 50);
-        }, 250);
+            }, 10);
+            return () => clearTimeout(timer2);
+        }, 1500);
 
-        return () => clearTimeout(timer);
+        return () => clearTimeout(timer1);
     }, []);
+
 
     const backgroundColor = fadeAnim.interpolate({
         inputRange: [0, 1],
