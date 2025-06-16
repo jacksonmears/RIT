@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     TextInput,
     Dimensions,
-    ActivityIndicator,
+    ActivityIndicator, KeyboardAvoidingView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {useEffect, useState, useRef, useCallback} from "react";
@@ -348,7 +348,7 @@ const Index = () => {
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
 
-            <View style={styles.textBar}>
+            <KeyboardAvoidingView style={styles.textBar}>
                 <TextInput
                     style={styles.input}
                     placeholder="message"
@@ -359,7 +359,7 @@ const Index = () => {
                 <TouchableOpacity onPress={pushTextMessage}>
                     <Text style={styles.text}> send </Text>
                 </TouchableOpacity>
-            </View>
+            </KeyboardAvoidingView>
         </View>
     );
 };
@@ -414,6 +414,8 @@ const styles = StyleSheet.create({
         borderRadius: width / 100,
         backgroundColor: "grey",
         padding: height / 100,
+        color: "black",
+        fontSize: height * 0.02
     },
     separator: {
         height: height / 33,
