@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState, useRef } from "react";
+import React, {useEffect, useState, useRef, useCallback} from "react";
 import { auth, db } from "@/firebase";
 import GroupPost from "@/components/GroupPost";
 import GroupMessage from "@/components/GroupMessage";
@@ -63,7 +63,8 @@ const Index = () => {
     const isInitialLoadRef = useRef(true);
 
     // Fetch total message count when groupID changes
-    const fetchTotalMessageCount = async () => {
+    const fetchTotalMessageCount = useCallback(async () => {
+        if (!groupIDString) return;
         try {
             const countSnapshot = await db()
                 .collection("groups")
@@ -76,7 +77,7 @@ const Index = () => {
         } catch (error) {
             console.error("Failed to fetch total message count:", error);
         }
-    };
+    }, [groupIDString]);
 
     useEffect(() => {
         const fetchGroupMembers = async () => {

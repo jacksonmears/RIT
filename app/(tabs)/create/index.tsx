@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
     StyleSheet,
     Text,
@@ -47,15 +47,7 @@ const Page = () => {
 
 
 
-    useEffect(() => {
-        if (isTimeExpired) {
-            const endVideo = async () => {
-                await handleRecordingPressed();
-            }
-            endVideo().catch();
-        }
 
-    }, [isTimeExpired]);
 
 
 
@@ -71,7 +63,7 @@ const Page = () => {
                 if (cameraRef.current && isRecording) cameraRef.current.stopRecording().catch(console.error);
                 stopTimer();
             };
-        }, [])
+        }, [animatedValue, isRecording, animatedValue])
     );
 
     useEffect(() => {
@@ -98,7 +90,7 @@ const Page = () => {
     }, []);
 
 
-    const handleRecordingPressed = async () => {
+    const handleRecordingPressed = useCallback(async () => {
         if (isRecording) {
             if (cameraRef.current) await cameraRef.current.stopRecording();
             await endRecording();
@@ -107,9 +99,17 @@ const Page = () => {
             beginRecording().catch();
             setRecording(true);
         }
-    };
+    }, [isRecording]);
 
+    useEffect(() => {
+        if (isTimeExpired) {
+            const endVideo = async () => {
+                await handleRecordingPressed();
+            }
+            endVideo().catch();
+        }
 
+    }, [isTimeExpired]);
 
     const startTimer = async () => {
         if (!timerRef) return;
