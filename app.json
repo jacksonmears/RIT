@@ -2,7 +2,7 @@
   "expo": {
     "name": "RIT",
     "slug": "RIT",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/RiTAppIcon1-0.png",
     "scheme": "myapp",
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "versionCode": 20,
+      "versionCode": 21,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "monochromeImage": "./assets/images/adaptive-icon.png",

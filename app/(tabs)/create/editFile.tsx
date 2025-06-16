@@ -78,7 +78,7 @@ const Page = () => {
             <Text style={styles.remCharText}>{remaingingCharacters}</Text>
 
             <TextInput
-                style={styles.captionText}
+                style={styles.input}
                 value={caption}
                 onChangeText={setCaption}
                 autoCapitalize="none"
@@ -135,10 +135,11 @@ const styles = StyleSheet.create({
         backgroundColor: "#222",
         borderRadius: height/100
     },
-    captionText: {
+    input: {
         marginHorizontal: width/20,
         color: "white",
-        paddingBottom: height/7
+        paddingBottom: height/7,
+        fontSize: height*0.02
     },
     remCharText: {
         color: "grey",

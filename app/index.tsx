@@ -83,7 +83,7 @@ const Index = () => {
                 <Text style={styles.titleSecondary}>ecap</Text>
                 <Text style={styles.titlePrimary}>IT</Text>
             </View>
-            <KeyboardAvoidingView behavior="padding">
+            <KeyboardAvoidingView behavior="padding" >
                 <TextInput
                     style={styles.input}
                     editable={!loading}
@@ -125,6 +125,8 @@ const styles = StyleSheet.create({
         borderRadius: width * 0.03,
         padding: height * 0.02,
         backgroundColor: "white",
+        color: "black",
+        fontSize: height * 0.02,
     },
     loader: {
         margin: height * 0.05,
