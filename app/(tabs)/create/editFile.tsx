@@ -8,9 +8,10 @@ const { width, height } = Dimensions.get("window");
 
 const Page = () => {
     const router = useRouter();
-    const { fillerUri, fillerMode } = useLocalSearchParams();
+    const { fillerUri, fillerMode, thumbnailUri } = useLocalSearchParams();
     const localUri = String(fillerUri);
     const mode = String(fillerMode);
+    const thumbnail = String(thumbnailUri);
     const [caption, setCaption] = useState<string>("");
     const [remaingingCharacters, setRemaingingCharacters] = useState<number>(50);
 
@@ -38,7 +39,7 @@ const Page = () => {
                     <Text style={styles.backText}>Back</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption}})}>
+                <TouchableOpacity onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption, thumbnailUri: thumbnail} })}>
                     <FontAwesome name="share" size={height/40} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
@@ -53,14 +54,25 @@ const Page = () => {
                         onError={(e) => console.error("Image load error", e.nativeEvent.error)}
                     />
                 ) : (
-                    <Video
-                        key={uri} // Forces re-render of video
-                        source={{ uri }}
-                        style={styles.video}
-                        resizeMode="cover"
-                        paused={true} // Paused to show just the thumbnail
-                        onError={(e) => console.error("Video load error", e)}
-                    />
+                    thumbnail ? (
+                        <Image
+                            key={thumbnail}
+                            source={{ uri: thumbnail }}
+                            style={styles.video}
+                            resizeMode="cover"
+                            onError={(e) => console.error("Thumbnail load error", e.nativeEvent.error)}
+                        />
+                    ) : (
+                        // <Video
+                        //     key={uri}
+                        //     source={{ uri }}
+                        //     style={styles.video}
+                        //     resizeMode="cover"
+                        //     paused={true}
+                        //     onError={(e) => console.error("Video load error", e)}
+                        // />
+                        <Text>failed to render thumbnail</Text>
+                    )
                 )}
             </View>
 

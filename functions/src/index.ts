@@ -9,7 +9,6 @@ export const getSignedUploadUrl = functions.https.onRequest(async (req, res) => 
     const { filename, contentType } = req.query;
 
     console.log("getSignedUploadUrl function invoked at", new Date().toISOString());
-
     console.log("Received request:", { filename, contentType });
 
     if (!filename || typeof filename !== 'string') {
@@ -18,15 +17,29 @@ export const getSignedUploadUrl = functions.https.onRequest(async (req, res) => 
         return;
     }
 
+    const contentTypeStr = typeof contentType === 'string' ? contentType : '';
+
+    let path: string;
+    if (contentTypeStr.startsWith('video/')) {
+        path = `uploads/${filename}/content.mov`;
+    } else if (contentTypeStr.startsWith('image/')) {
+        path = `uploads/${filename}/thumbnail.jpg`;
+    } else {
+        console.error("Unsupported content type:", contentTypeStr);
+        res.status(400).json({ error: 'Unsupported content type' });
+        return;
+    }
+
     try {
-        const file = bucket.file(`uploads/${filename}`);
+        const file = bucket.file(path);
         const [url] = await file.getSignedUrl({
             version: 'v4',
             action: 'write',
-            expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-            contentType: typeof contentType === 'string' ? contentType : 'video/quicktime',
+            expires: Date.now() + 15 * 60 * 1000,
+            contentType: contentTypeStr,
         });
-        console.log("Generated signed URL:", url);
+
+        console.log("Generated signed URL for:", path);
         res.status(200).json({ url });
     } catch (err) {
         console.error('Error generating signed URL:', err);

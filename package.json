@@ -58,6 +58,7 @@
     "react-dom": "19.0.0",
     "react-native": "0.79.3",
     "react-native-compressor": "^1.11.0",
+    "react-native-create-thumbnail": "^2.1.1",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-google-mobile-ads": "^15.4.0",
     "react-native-paper": "^5.13.1",
