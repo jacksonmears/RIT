@@ -46,10 +46,6 @@ const Page = () => {
     const [isCameraReady, setIsCameraReady] = useState(false);
 
 
-    useEffect(() => {
-        console.log(isCameraReady, isFocused);
-    }, [isCameraReady, isFocused]);
-
 
     useEffect(() => {
         if (isTimeExpired) {
