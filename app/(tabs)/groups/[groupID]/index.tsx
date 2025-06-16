@@ -28,6 +28,7 @@ type PostType = {
     caption: string;
     sender_id: string;
     timestamp: FirebaseFirestoreTypes.Timestamp;
+    thumbnail: string;
 };
 
 type groupMemberInformation = {
@@ -152,6 +153,7 @@ const Index = () => {
                     caption: doc.data().caption,
                     sender_id: doc.data().sender_id,
                     timestamp: doc.data().timestamp,
+                    thumbnail: doc.data().thumbnail,
                 }));
 
                 // Set lastVisible for pagination to the last doc's timestamp
@@ -228,6 +230,7 @@ const Index = () => {
                     caption: doc.data().caption,
                     sender_id: doc.data().sender_id,
                     timestamp: doc.data().timestamp,
+                    thumbnail: doc.data().thumbnail,
                 }));
 
                 // Update lastVisible for next pagination
@@ -261,6 +264,7 @@ const Index = () => {
                     content: message.trim(),
                     timestamp: firestore.FieldValue.serverTimestamp(),
                     caption: -1,
+                    thumbnail:-1
                 });
 
             setMessage("");
