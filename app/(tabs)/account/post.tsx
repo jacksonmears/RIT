@@ -48,8 +48,8 @@ const Page = () => {
 
     useEffect(() => {
         if (rawMode === "video" && postID) {
-            const filenameWithExtension = `${postID}.mov`; // Make sure you match Firebase file name
-            getSignedDownloadUrl(filenameWithExtension).then((url) => {
+            const path = encodeURIComponent(`${postID}/content.mov`);
+            getSignedDownloadUrl(path).then((url) => {
                 if (url) {
                     setVideoUri(url);
                 } else {

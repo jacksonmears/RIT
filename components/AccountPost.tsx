@@ -19,6 +19,7 @@ type Post = {
     content: string;
     mode: string;
     userID: string;
+    thumbnail: string;
 }
 
 type PostCompProps = {
@@ -30,15 +31,37 @@ const { width, height } = Dimensions.get("window");
 
 const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
     const { width, height } = useWindowDimensions();
-    const content = decodeURIComponent(post.content);
     const user = auth().currentUser;
     const router = useRouter();
     const [sheetVisible, setSheetVisible] = useState<boolean>(false);
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
-    // useEffect(() => {
-    //     const videoRef = storage().ref(`uploads/${post.id}.mov`);
-    //     if (videoRef) console.log(videoRef);
-    // }, []);
+
+
+
+    useEffect(() => {
+        const getSignedThumbnailUrl = async (postId: string): Promise<string | undefined> => {
+            try {
+                const path = encodeURIComponent(`${postId}/thumbnail.jpg`);
+                const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${path}`);
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error(`Failed to get signed thumbnail URL: ${response.status} ${text}`);
+                    return undefined;
+                }
+                const data = await response.json();
+                setThumbnailUrl(data.url);
+                return data.url;
+            } catch (error) {
+                console.error("Error fetching signed thumbnail URL:", error);
+                return undefined;
+            }
+        };
+
+
+        getSignedThumbnailUrl(post.id);
+    }, [post.id]);
+
 
     const deleteCollection = async (collectionPath: string, batchSize: number) => {
         if (!collectionPath || !batchSize) return;
@@ -120,18 +143,18 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
 
             }
 
-            {post.mode==="photo" ?
+            {thumbnailUrl ? (
                 <Image
-                    source={{ uri: content }}
+                    source={{ uri: thumbnailUrl }}
+                    style={styles.videoContent}
                     resizeMode="cover"
                 />
-            :
-                <VideoAV
-                    source={{ uri: content }}
-                    style={[styles.videoContent]}
-                    resizeMode={ResizeMode.COVER}
-                />
-            }
+            ) : (
+                <View style={[styles.videoContent, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ color: 'white' }}>Loading...</Text>
+                </View>
+            )}
+
 
 
         </View>
