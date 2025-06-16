@@ -16,8 +16,9 @@ type GroupType = {
 
 const Page = () => {
     const user = auth().currentUser;
-    const { fillerURI, fillerMode, fillerCaption } = useLocalSearchParams();
+    const { fillerURI, fillerMode, fillerCaption, thumbnailUri } = useLocalSearchParams();
     const caption = String(fillerCaption);
+    const thumbnail = String(thumbnailUri);
     const localUri = String(fillerURI);
     const mode = String(fillerMode);
     const [groups, setGroups] = useState<GroupType[]>([]);
@@ -61,6 +62,28 @@ const Page = () => {
         });
     };
 
+    const uploadThumbnail = async (postID: string, thumbnailUri: string): Promise<string | undefined> => {
+        if (!thumbnailUri) return;
+
+        try {
+            const signedURLs = await getSignedUploadUrl(postID, "photo");
+            if (!signedURLs) return;
+
+            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, thumbnailUri, {
+                httpMethod: "PUT",
+                headers: { "Content-Type": "image/jpeg" },
+            });
+
+            if (uploadResult.status !== 200) {
+                throw new Error(`Thumbnail upload failed with status ${uploadResult.status}`);
+            }
+
+            return signedURLs.publicURL;
+        } catch (error) {
+            console.error('Thumbnail upload failed:', error);
+        }
+    };
+
     const doneButton = async () => {
         if (!user || !selectedGroups) return;
 
@@ -68,8 +91,7 @@ const Page = () => {
             .filter((groupId) => selectedGroups.get(groupId))
             .map((groupId) => ({ id: groupId }));
 
-        const hasSelectedGroup = parsedGroups.length > 0;
-        if (!hasSelectedGroup) {
+        if (parsedGroups.length === 0) {
             console.warn("No groups selected");
             return;
         }
@@ -80,6 +102,7 @@ const Page = () => {
                 mode,
                 caption,
                 content: null,
+                thumbnail: null,
                 timestamp: db.FieldValue.serverTimestamp(),
             });
 
@@ -91,45 +114,44 @@ const Page = () => {
 
             await addPostToGroups(parsedGroups, postID, null);
 
-            // Start background upload but don’t wait for it
             const uploadFn = mode === "photo" ? uploadPhoto : uploadVideo;
-            uploadFn(postID, localUri).then(async (postURL) => {
-                if (!postURL) {
-                    console.error("Upload failed");
-                    return;
-                }
 
-                await db().collection("posts").doc(postID).update({
-                    content: encodeURIComponent(postURL),
-                });
+            const [postURL, thumbnailURL] = await Promise.all([
+                uploadFn(postID, localUri),
+                uploadThumbnail(postID, thumbnail),
+            ]);
 
-                await Promise.all(parsedGroups.map(async (group) => {
-                    await db().collection("groups").doc(group.id).collection("messages").doc(postID).update({
-                        content: encodeURIComponent(postURL),
-                    });
-                }));
+            if (!postURL) {
+                console.error("Upload failed");
+                return;
+            }
+
+            await db().collection("posts").doc(postID).update({
+                content: encodeURIComponent(postURL),
+                thumbnail: thumbnailURL ? encodeURIComponent(thumbnailURL) : null,
             });
 
-            // Navigate to PostLoadingScreen and then to Home after 1 second
+            await Promise.all(parsedGroups.map(async (group) => {
+                await db().collection("groups").doc(group.id).collection("messages").doc(postID).update({
+                    content: encodeURIComponent(postURL),
+                    thumbnail: thumbnailURL ? encodeURIComponent(thumbnailURL) : null,
+                });
+            }));
+
             router.push("/create/postLoadingScreen");
-            // setTimeout(() => {
-            //     router.push("/create")
-            //     router.push("/home");
-            // }, 2000);
 
         } catch (error) {
             console.error("Error in createPost:", error);
         }
     };
 
+
     const getSignedUploadUrl = async (postID: string, fileType: "photo" | "video"): Promise<{ uploadURL: string, publicURL: string } | undefined> => {
-        const fileExtension = fileType === "photo" ? "jpg" : "mov";
-        const filename = `${postID}.${fileExtension}`;
         const contentType = fileType === "photo" ? "image/jpeg" : "video/quicktime";
 
         try {
             const response = await fetch(
-                `https://getsigneduploadurl-ondqjhe3ua-uc.a.run.app?filename=${filename}&contentType=${encodeURIComponent(contentType)}`,
+                `https://getsigneduploadurl-ondqjhe3ua-uc.a.run.app?filename=${postID}&contentType=${encodeURIComponent(contentType)}`,
                 {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
@@ -143,7 +165,12 @@ const Page = () => {
             }
 
             const data = await response.json();
-            const publicURL = `https://firebasestorage.googleapis.com/v0/b/recap-d22e0.appspot.com/o/${encodeURIComponent(`uploads/${filename}`)}?alt=media`;
+
+            const path = fileType === "photo"
+                ? `uploads/${postID}/thumbnail.jpg`
+                : `uploads/${postID}/content.mov`;
+
+            const publicURL = `https://firebasestorage.googleapis.com/v0/b/recap-d22e0.appspot.com/o/${encodeURIComponent(path)}?alt=media`;
 
             return { uploadURL: data.url, publicURL };
         } catch (error) {

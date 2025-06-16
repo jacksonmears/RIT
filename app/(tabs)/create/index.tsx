@@ -21,6 +21,7 @@ import Svg, {Circle} from "react-native-svg";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from "@expo/vector-icons/Feather";
 import { Video } from 'react-native-compressor';
+import { createThumbnail } from 'react-native-create-thumbnail';
 
 
 const {width, height} = Dimensions.get('window');
@@ -142,13 +143,11 @@ const Page = () => {
 
     const convertToMp4 = async (movPath: string): Promise<string> => {
         try {
-            const mp4Path = await Video.compress(movPath, {
+            return await Video.compress(movPath, {
                 compressionMethod: 'auto',
                 minimumFileSizeForCompress: 1,
             });
 
-            // console.log("Converted video to:", mp4Path);
-            return mp4Path;
         } catch (error) {
             console.error("Compression failed:", error);
             return movPath;
@@ -163,13 +162,27 @@ const Page = () => {
             cameraRef.current.startRecording({
                 onRecordingFinished: async (videoFile: VideoFile) => {
                     const mp4Path = await convertToMp4(videoFile.path);
-                    router.push({
-                        pathname: '/create/editFile',
-                        params: {
-                            fillerUri: mp4Path,
-                            fillerMode: mode,
-                        },
-                    });
+
+                    try {
+                        const thumbnail = await createThumbnail({
+                            url: mp4Path,
+                            timeStamp: 0,
+                        });
+
+                        // console.log('Thumbnail path:', thumbnail.path);
+
+                        router.push({
+                            pathname: '/create/editFile',
+                            params: {
+                                fillerUri: mp4Path,
+                                fillerMode: mode,
+                                thumbnailUri: thumbnail.path,
+                            },
+                        });
+
+                    } catch (err) {
+                        console.error('Error creating thumbnail:', err);
+                    }
                 },
 
                 onRecordingError: (error: CameraCaptureError) => {
@@ -179,8 +192,6 @@ const Page = () => {
             console.error(e);
         }
     };
-
-
 
 
 
@@ -202,6 +213,7 @@ const Page = () => {
         }
 
     };
+
 
 
 
