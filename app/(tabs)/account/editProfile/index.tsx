@@ -53,7 +53,7 @@ export default function Page(){
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.push('/account')}>
-                        <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />
+                        <MaterialIcons name="arrow-back-ios-new" size={height/40} color="#D3D3FF" />
                     </TouchableOpacity>
                     <Text style={[styles.topBarText, {left: width/3}]}>Edit Profile</Text>
                 </View>
@@ -99,10 +99,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height/50
     },
     backArrowName: {
         flexDirection: 'row',

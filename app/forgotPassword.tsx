@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
         padding: height * 0.02,
         backgroundColor: "white",
         width: width*0.75,
+        color: "black"
     },
     sendButton: {
         marginTop: height*0.035,

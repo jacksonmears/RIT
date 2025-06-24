@@ -9,7 +9,7 @@ import {
     Image,
     Dimensions,
 } from 'react-native';
-import React, { useEffect, useState } from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import { db, auth } from "@/firebase"
 import {useRouter} from 'expo-router';
 import Feather from "@expo/vector-icons/Feather";
@@ -53,13 +53,9 @@ const Page = () => {
         });
     }, []);
 
-    useEffect(() => {
-        fetchFriends().catch((err) => {
-            console.error(err);
-        });
-    }, [friendsID]);
 
-    const fetchFriends = async () => {
+
+    const fetchFriends = useCallback(async () => {
         if (!user || !friendsID || friendsID.length === 0) return;
 
         try {
@@ -78,8 +74,13 @@ const Page = () => {
         } catch (error) {
             console.error("Error fetching friends' data:", error);
         }
-    };
+    }, [user, friendsID]);
 
+    useEffect(() => {
+        fetchFriends().catch((err) => {
+            console.error(err);
+        });
+    }, [friendsID]);
 
 
     const createGroup = async () => {
@@ -197,15 +198,15 @@ const Page = () => {
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.back()}>
-                        <Feather name="x" size={height/50} color="#D3D3FF" />
+                        <Feather name="x" size={width / 17.5} color="#D3D3FF" />
                     </TouchableOpacity>
                     {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
                 </View>
                 {groupName.length === 0 ?
-                    <Ionicons name="send-outline" size={height/50} color="#D3D3FF" />
+                    <Ionicons name="send-outline" size={width / 15} color="#D3D3FF" />
                     :
                     <TouchableOpacity onPress={() => completeGroup()}>
-                        <Ionicons name="send" size={height/50} color="#D3D3FF" />
+                        <Ionicons name="send" size={width/15} color="#D3D3FF" />
                     </TouchableOpacity>
                 }
             </View>
@@ -257,10 +258,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height/50
     },
     backArrowName: {
         flexDirection: 'row',

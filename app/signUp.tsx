@@ -8,7 +8,7 @@ import {
     TextInput,
     Dimensions,
     ActivityIndicator,
-    Alert,
+    Alert, KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebase';
@@ -80,6 +80,7 @@ export default function SignUpPage() {
                 .set({
                     uid: user.uid,
                     displayName: username,
+                    lowerDisplayName: username.toLowerCase(),
                 } as FirebaseFirestoreTypes.DocumentData);
 
             await user.sendEmailVerification();
@@ -98,7 +99,7 @@ export default function SignUpPage() {
     };
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView style={styles.container}>
             <View style={styles.row}>
                 <TextInput
                     style={[styles.input, styles.flex]}
@@ -106,6 +107,7 @@ export default function SignUpPage() {
                     value={firstName}
                     onChangeText={setFirstName}
                     maxLength={30}
+                    keyboardType={"default"}
                 />
                 <TextInput
                     style={[styles.input, styles.flex]}
@@ -113,12 +115,14 @@ export default function SignUpPage() {
                     value={lastName}
                     onChangeText={setLastName}
                     maxLength={30}
+                    keyboardType={"default"}
                 />
             </View>
 
             <TextInput
                 style={styles.input}
                 placeholder="Username"
+                keyboardType={"default"}
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
@@ -174,7 +178,7 @@ export default function SignUpPage() {
 
                 </>
             )}
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -198,6 +202,8 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         padding: height * 0.02,
         marginBottom: height * 0.015,
+        color: "black",
+        fontSize: height*0.02
     },
     button: {
         backgroundColor: '#D3D3FF',

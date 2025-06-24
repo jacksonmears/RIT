@@ -28,6 +28,7 @@ export async function pickImageAsync(): Promise<string | null> {
 export async function uploadProfileImageAsync(localUri: string): Promise<string> {
     const user = auth().currentUser;
 
+
     if (!user) {
         throw new Error('No user logged in');
     }
@@ -35,10 +36,14 @@ export async function uploadProfileImageAsync(localUri: string): Promise<string>
     const response = await fetch(localUri);
     const blob = await response.blob();
 
+
     const path = PROFILE_PIC_PATH(user.uid);
     const ref = storage().ref(path);
-
-    await ref.put(blob);
+    try {
+        await ref.put(blob);
+    } catch (e) {
+        console.error("Upload failed:", e);
+    }
 
     return await ref.getDownloadURL();
 }
@@ -60,6 +65,7 @@ export async function setAuthUserProfilePhoto(downloadURL: string): Promise<void
 
 export async function deleteProfileImageAsync(): Promise<void> {
     const user = auth().currentUser;
+
     if (!user) {
         throw new Error('No user logged in');
     }

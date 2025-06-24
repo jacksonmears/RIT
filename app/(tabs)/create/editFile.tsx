@@ -2,17 +2,18 @@ import {View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, TextInput, 
 import {useLocalSearchParams, useRouter} from "expo-router";
 import React, {useEffect, useState} from "react";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import Video from "react-native-video";
 
 const { width, height } = Dimensions.get("window");
 
 const Page = () => {
     const router = useRouter();
-    const { fillerUri, fillerMode } = useLocalSearchParams();
+    const { fillerUri, fillerMode, thumbnailUri } = useLocalSearchParams();
     const localUri = String(fillerUri);
     const mode = String(fillerMode);
+    const thumbnail = String(thumbnailUri);
     const [caption, setCaption] = useState<string>("");
     const [remaingingCharacters, setRemaingingCharacters] = useState<number>(50);
+
 
     useEffect(() => {
         setRemaingingCharacters(50 - caption.length);
@@ -37,8 +38,8 @@ const Page = () => {
                     <Text style={styles.backText}>Back</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption}})}>
-                    <FontAwesome name="share" size={height/40} color="#D3D3FF" />
+                <TouchableOpacity onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption, thumbnailUri: thumbnail} })}>
+                    <FontAwesome name="share" size={height/30} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
 
@@ -52,21 +53,32 @@ const Page = () => {
                         onError={(e) => console.error("Image load error", e.nativeEvent.error)}
                     />
                 ) : (
-                    <Video
-                        key={uri} // Forces re-render of video
-                        source={{ uri }}
-                        style={styles.video}
-                        resizeMode="cover"
-                        paused={true} // Paused to show just the thumbnail
-                        onError={(e) => console.error("Video load error", e)}
-                    />
+                    thumbnail ? (
+                        <Image
+                            key={thumbnail}
+                            source={{ uri: thumbnail }}
+                            style={styles.video}
+                            resizeMode="cover"
+                            onError={(e) => console.error("Thumbnail load error", e.nativeEvent.error)}
+                        />
+                    ) : (
+                        // <Video
+                        //     key={uri}
+                        //     source={{ uri }}
+                        //     style={styles.video}
+                        //     resizeMode="cover"
+                        //     paused={true}
+                        //     onError={(e) => console.error("Video load error", e)}
+                        // />
+                        <Text>failed to render thumbnail</Text>
+                    )
                 )}
             </View>
 
             <Text style={styles.remCharText}>{remaingingCharacters}</Text>
 
             <TextInput
-                style={styles.captionText}
+                style={styles.input}
                 value={caption}
                 onChangeText={setCaption}
                 autoCapitalize="none"
@@ -91,11 +103,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     backText: {
         color: "white",
-        fontSize: 16,
+        fontSize: height/50,
     },
     imageWrapper: {
         justifyContent: "center",
@@ -123,10 +135,11 @@ const styles = StyleSheet.create({
         backgroundColor: "#222",
         borderRadius: height/100
     },
-    captionText: {
+    input: {
         marginHorizontal: width/20,
         color: "white",
-        paddingBottom: height/7
+        paddingBottom: height/7,
+        fontSize: height*0.02
     },
     remCharText: {
         color: "grey",

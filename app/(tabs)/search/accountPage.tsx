@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {View, Text, StyleSheet, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
 import { auth, db } from '@/firebase';
 import { useLocalSearchParams, useRouter} from 'expo-router'
@@ -35,30 +35,11 @@ const Page = () => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
 
-    useEffect(() => {
-        getBioInfo().catch((err) => {
-            console.error("error fetching Bio info", err);
-        });
-        fetchFriendStatus().catch((err) => {
-            console.error("Error fetching data:", err);
-        });
-    }, []);
-
-    useEffect(() => {
-        getPostContent().catch((err) => {
-            console.error("error fetching data:", err);
-        })
-    }, [posts]);
-
-    useEffect(() => {
-        fetchUserPosts().catch((err) => {
-            console.error("Error fetching data:", err);
-        });
-    }, [friend]);
 
 
 
-    const fetchUserPosts = async () => {
+
+    const fetchUserPosts = useCallback(async () => {
         if (!friend) return;
         try {
             const postsRef = db().collection("users").doc(friend).collection("posts");
@@ -81,9 +62,10 @@ const Page = () => {
         } catch (err) {
             console.error("Error fetching data:", err);
         }
-    };
+    }, [friend]);
 
-    const fetchFriendStatus = async () => {
+
+    const fetchFriendStatus = useCallback(async () => {
         if (!user || !friend) return;
         const friendsRef = await db().collection("users").doc(user.uid).collection("friends").doc(friend).get();
         if (friendsRef.exists()) {
@@ -97,9 +79,9 @@ const Page = () => {
 
             if (data.friendRequests.includes(user.uid)) setRequestStatus(true);
         }
-    };
+    }, [user, friend]);
 
-    const getBioInfo = async () => {
+    const getBioInfo = useCallback(async () => {
         if (!friend) return;
         const getInfo = await db().collection("users").doc(friend).get();
         const data = getInfo.data()
@@ -116,7 +98,7 @@ const Page = () => {
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);
 
-    }
+    },[friend]);
 
 
     const sendRequest = async () => {
@@ -139,7 +121,7 @@ const Page = () => {
     }
 
 
-    const getPostContent = async () => {
+    const getPostContent = useCallback(async () => {
         if (!posts) return;
         try {
             const raw = await Promise.all(posts.map(async (post) => {
@@ -157,7 +139,28 @@ const Page = () => {
         } catch (error) {
             console.error("Error fetching post content:", error);
         }
-    };
+    }, [posts]);
+
+    useEffect(() => {
+        getBioInfo().catch((err) => {
+            console.error("error fetching Bio info", err);
+        });
+        fetchFriendStatus().catch((err) => {
+            console.error("Error fetching data:", err);
+        });
+    }, [getBioInfo, fetchFriendStatus]);
+
+    useEffect(() => {
+        getPostContent().catch((err) => {
+            console.error("error fetching data:", err);
+        })
+    }, [getPostContent]);
+
+    useEffect(() => {
+        fetchUserPosts().catch((err) => {
+            console.error("Error fetching data:", err);
+        });
+    }, [fetchUserPosts]);
 
 
     return (

@@ -126,6 +126,8 @@ const styles = StyleSheet.create({
         borderRadius: width/100,
         padding: height/75,
         backgroundColor: "white",
+        fontSize: height*0.02,
+        color: "black"
     },
     resultsList: {
         marginTop: height/30,

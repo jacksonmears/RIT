@@ -9,7 +9,7 @@ import {
     TouchableWithoutFeedback, Dimensions
 } from "react-native";
 import { useRouter } from "expo-router";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {auth,db} from "@/firebase";
 import {ResizeMode, Video as VideoAV} from "expo-av";
 import storage from "@react-native-firebase/storage";
@@ -30,10 +30,36 @@ const { width, height } = Dimensions.get("window");
 
 const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
     const { width, height } = useWindowDimensions();
-    const content = decodeURIComponent(post.content);
     const user = auth().currentUser;
     const router = useRouter();
     const [sheetVisible, setSheetVisible] = useState<boolean>(false);
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+
+
+
+    useEffect(() => {
+        const getSignedThumbnailUrl = async (postId: string): Promise<string | undefined> => {
+            try {
+                const path = encodeURIComponent(`${postId}/thumbnail.jpg`);
+                const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${path}`);
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error(`Failed to get signed thumbnail URL: ${response.status} ${text}`);
+                    return undefined;
+                }
+                const data = await response.json();
+                setThumbnailUrl(data.url);
+                return data.url;
+            } catch (error) {
+                console.error("Error fetching signed thumbnail URL:", error);
+                return undefined;
+            }
+        };
+
+
+        getSignedThumbnailUrl(post.id);
+    }, [post.id]);
 
 
     const deleteCollection = async (collectionPath: string, batchSize: number) => {
@@ -65,7 +91,9 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
         const userRef = db().collection("users").doc(user.uid).collection("posts").doc(dummyPostID);
         const snapshot = await postRef.collection("groups").get();
         const groupIDs = snapshot.docs.map(doc => doc.id);
-        const videoRef = storage().ref(`postVideos/${dummyPostID}.mov`);
+        const videoRef = storage().ref(`uploads/${dummyPostID}.mov`);
+
+
         try {
             await Promise.all(groupIDs.map(async (groupID) => {
                 await db().collection("groups").doc(groupID).collection("messages").doc(dummyPostID).delete();
@@ -114,18 +142,18 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
 
             }
 
-            {post.mode==="photo" ?
+            {thumbnailUrl ? (
                 <Image
-                    source={{ uri: content }}
+                    source={{ uri: thumbnailUrl }}
+                    style={styles.videoContent}
                     resizeMode="cover"
                 />
-            :
-                <VideoAV
-                    source={{ uri: content }}
-                    style={[styles.videoContent]}
-                    resizeMode={ResizeMode.COVER}
-                />
-            }
+            ) : (
+                <View style={[styles.videoContent, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ color: 'white' }}>Loading...</Text>
+                </View>
+            )}
+
 
 
         </View>

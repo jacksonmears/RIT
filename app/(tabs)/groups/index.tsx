@@ -96,7 +96,7 @@ const Page = () => {
             <View style={styles.topBar}>
                 {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
                 <TouchableOpacity onPress={() => router.push('/groups/groupCreate')}>
-                    <Entypo name="add-to-list" size={24} color="#D3D3FF" />
+                    <Entypo name="add-to-list" size={height/30} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
 
@@ -135,10 +135,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height / 1000,
         borderBottomColor: 'grey',
         alignItems: 'center',
-        height: height / 20,
+        height: height / 18,
     },
     topBarText: {
         color: '#D3D3FF',
+        fontSize: height / 50
     },
     noResults: {
         fontSize: height / 50,

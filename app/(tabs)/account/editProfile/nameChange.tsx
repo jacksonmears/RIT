@@ -55,26 +55,27 @@ export default function Page() {
         } catch (err) {
             console.error(err);
         }
+        router.back();
     };
 
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => router.back()}>
-                    <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />
+                    <MaterialIcons name="arrow-back-ios-new" size={height/40} color="#D3D3FF" />
                 </TouchableOpacity>
                 <Text style={styles.topBarText}>Edit {changingVisual}</Text>
-                {change.length === 0 ? (
-                    <Text style={styles.doneTextBad}>Done</Text>
+                {change.length === 0 || change == rawInput ? (
+                    <Text style={styles.doneTextBad}>Save</Text>
                 ) : (
                     <TouchableOpacity onPress={handleSubmit}>
-                        <Text style={styles.doneTextGood}>Done</Text>
+                        <Text style={styles.doneTextGood}>Save</Text>
                     </TouchableOpacity>
                 )}
             </View>
 
             <View style={styles.inputBar}>
-                <Text style={styles.test}>{changingVisual}</Text>
+                <Text style={styles.changingValue}>{changingVisual}</Text>
                 <TextInput
                     maxLength={30}
                     style={styles.firstName}
@@ -94,11 +95,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'black',
     },
-    test: {
+    changingValue: {
         color: 'white',
-        marginLeft: width / 20,
+        marginLeft: width / 18,
         marginTop: height / 200,
-        fontSize: height / 100,
+        fontSize: height / 70,
     },
     topBar: {
         flexDirection: 'row',
@@ -107,10 +108,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height / 50
     },
     inputBar: {
         margin: height / 50,
@@ -122,9 +124,8 @@ const styles = StyleSheet.create({
         marginTop: height / 200,
         marginBottom: height / 100,
         marginLeft: width / 20,
-        borderWidth: height / 1000,
-        borderRadius: width / 100,
         color: "#D3D3FF",
+        fontSize: height / 40
     },
     doneTextGood: {
         color: "#D3D3FF",

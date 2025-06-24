@@ -2,7 +2,6 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from "rea
 import { useRouter } from "expo-router";
 import React, {useEffect, useState} from "react";
 import {auth,db} from "@/firebase";
-import Video from "react-native-video";
 import type {FirebaseFirestoreTypes} from "@react-native-firebase/firestore";
 
 interface Post {
@@ -13,6 +12,7 @@ interface Post {
     caption: string;
     sender_id: string;
     timestamp: FirebaseFirestoreTypes.Timestamp;
+    thumbnail: string;
 }
 
 type groupMemberInformation = {
@@ -33,10 +33,30 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
     const router = useRouter();
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
-    const content = decodeURIComponent(post.content);
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const getSignedThumbnailUrl = async (postId: string): Promise<string | undefined> => {
+            try {
+                const path = encodeURIComponent(`${postId}/thumbnail.jpg`);
+                const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${path}`);
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error(`Failed to get signed thumbnail URL: ${response.status} ${text}`);
+                    return undefined;
+                }
+                const data = await response.json();
+                setThumbnailUrl(data.url);
+                return data.url;
+            } catch (error) {
+                console.error("Error fetching signed thumbnail URL:", error);
+                return undefined;
+            }
+        };
 
 
-
+        getSignedThumbnailUrl(post.id).catch((err) => console.error(err));
+    }, [post.id]);
 
     useEffect(() => {
         const likeFunc = async () => {
@@ -80,18 +100,19 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
                         <View style={styles.imageWrapper}>
                             <TouchableOpacity onPress={() => router.push({
                                 pathname: '/(tabs)/groups/[groupID]/post',
-                                params: { groupID: post.groupID, rawId: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
+                                params: { groupID: post.groupID, rawPostID: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
                             })}>
-                                {post.mode === "photo" ?
-                                    <Image source={{ uri: content }} style={styles.pictureContent} />
-                                    :
-                                    <Video
-                                        source={{ uri: content }}
+                                {thumbnailUrl ? (
+                                    <Image
+                                        source={{ uri: thumbnailUrl }}
                                         style={styles.videoContent}
-                                        resizeMode={'cover'}
-                                        paused={true}
+                                        resizeMode="cover"
                                     />
-                                }
+                                ) : (
+                                    <View style={[styles.videoContent, { justifyContent: 'center', alignItems: 'center' }]}>
+                                        <Text style={{ color: 'white' }}>Loading...</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
                         </View>
                 </View>
@@ -116,18 +137,19 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
                             <View style={styles.imageWrapper}>
                                 <TouchableOpacity onPress={() => router.push({
                                     pathname: '/(tabs)/groups/[groupID]/post',
-                                    params: { groupID: post.groupID, rawId: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
+                                    params: { groupID: post.groupID, rawPostID: post.id, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
                                 })}>
-                                    {post.mode === "photo" ?
-                                        <Image source={{ uri: content }} style={styles.pictureContent} />
-                                        :
-                                        <Video
-                                            source={{ uri: content }}
+                                    {thumbnailUrl ? (
+                                        <Image
+                                            source={{ uri: thumbnailUrl }}
                                             style={styles.videoContent}
-                                            resizeMode={'cover'}
-                                            paused={true}
+                                            resizeMode="cover"
                                         />
-                                    }
+                                    ) : (
+                                        <View style={[styles.videoContent, { justifyContent: 'center', alignItems: 'center' }]}>
+                                            <Text style={{ color: 'white' }}>Loading...</Text>
+                                        </View>
+                                    )}
                                     <View style={styles.overlay}>
                                         <Text style={styles.overlayText}>{groupMember.firstName} {groupMember.lastName}</Text>
                                     </View>

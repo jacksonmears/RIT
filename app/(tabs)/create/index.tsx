@@ -20,6 +20,8 @@ import { useIsFocused , useFocusEffect } from '@react-navigation/native';
 import Svg, {Circle} from "react-native-svg";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from "@expo/vector-icons/Feather";
+import { Video } from 'react-native-compressor';
+import { createThumbnail } from 'react-native-create-thumbnail';
 
 
 const {width, height} = Dimensions.get('window');
@@ -41,6 +43,9 @@ const Page = () => {
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef<number | null>(null);
     const [isTimeExpired, setTimeExpired] = useState(false);
+    const [isCameraReady, setIsCameraReady] = useState(false);
+
+
 
 
     useEffect(() => {
@@ -61,6 +66,7 @@ const Page = () => {
             setRecordingTime(0);
             animatedValue.setValue(0);
             setTimeExpired(false);
+            setIsCameraReady(false);
 
             return () => {
                 if (cameraRef.current && isRecording) cameraRef.current.stopRecording().catch(console.error);
@@ -69,6 +75,14 @@ const Page = () => {
         }, [])
     );
 
+    useEffect(() => {
+        if (device && cameraPermission === 'granted' && micPermission === 'granted') {
+            const timeout = setTimeout(() => setIsCameraReady(true), 300);
+            return () => clearTimeout(timeout);
+        } else {
+            setIsCameraReady(false);
+        }
+    }, [isFocused, device, cameraPermission, micPermission]);
 
     useEffect(() => {
         (async () => {
@@ -139,14 +153,50 @@ const Page = () => {
         handleVideoFile().catch(console.error);
     }
 
+    const convertToMp4 = async (movPath: string): Promise<string> => {
+        try {
+            return await Video.compress(movPath, {
+                compressionMethod: 'auto',
+                minimumFileSizeForCompress: 1,
+            });
+
+        } catch (error) {
+            console.error("Compression failed:", error);
+            return movPath;
+        }
+    };
+
+
     const handleVideoFile = async () => {
         if (!cameraRef.current) return;
 
         try {
             cameraRef.current.startRecording({
-                onRecordingFinished: (videoFile: VideoFile) => {
-                    router.push({pathname: '/create/editFile', params: {fillerUri: videoFile.path, fillerMode: mode,},});
+                onRecordingFinished: async (videoFile: VideoFile) => {
+                    const mp4Path = await convertToMp4(videoFile.path);
+
+                    try {
+                        const thumbnail = await createThumbnail({
+                            url: mp4Path,
+                            timeStamp: 0,
+                        });
+
+                        // console.log('Thumbnail path:', thumbnail.path);
+
+                        router.push({
+                            pathname: '/create/editFile',
+                            params: {
+                                fillerUri: mp4Path,
+                                fillerMode: mode,
+                                thumbnailUri: thumbnail.path,
+                            },
+                        });
+
+                    } catch (err) {
+                        console.error('Error creating thumbnail:', err);
+                    }
                 },
+
                 onRecordingError: (error: CameraCaptureError) => {
                     console.error('Recording error', error);},
             });
@@ -154,8 +204,6 @@ const Page = () => {
             console.error(e);
         }
     };
-
-
 
 
 
@@ -177,6 +225,7 @@ const Page = () => {
         }
 
     };
+
 
 
 
@@ -232,15 +281,7 @@ const Page = () => {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="red" />
-            </View>
-        );
-    }
-    if (cameraPermission !== 'granted' || micPermission !== 'granted') {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.text}>
-                    Camera and/or microphone permission not granted
-                </Text>
+                <Text>Failed to connect to device restart app</Text>
             </View>
         );
     }
@@ -259,19 +300,24 @@ const Page = () => {
             </View>
 
 
-            {isFocused && (
+            {isFocused && isCameraReady ? (
                 <View style={styles.cameraContainer}>
                     <Camera
-                        key={mode}
+                        key={`${cameraPosition}-${isCameraReady}`}  // Force remount when camera changes or ready toggles
                         ref={cameraRef}
                         style={styles.camera}
                         device={device}
                         isActive={true}
                         video={mode === "video"}
                         photo={mode === "photo"}
+                        audio={true}
                     />
                 </View>
-            )}
+            ) :
+                <View style={[styles.camera, styles.loadingContainer]}>
+                    <Text style={styles.text}>Loading camera...</Text>
+                </View>
+            }
 
 
 
@@ -355,7 +401,14 @@ const styles = StyleSheet.create({
     timerText: {
         color: 'white',
         fontSize: height/50,
-    }
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'black',
+    },
+
+
 
 });
 

@@ -17,6 +17,7 @@ type PostType = {
     timestamp: string;
     pfp: string;
     mode: string;
+    thumbnail: string;
 };
 
 
@@ -210,7 +211,7 @@ const Page = () => {
                 }
 
 
-                return { id: post, content: data.content, caption: data.caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode };
+                return { id: post, content: data.content, caption: data.caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode, thumbnail: data.thumbnail };
             }))
             const validPosts = raw.filter((p): p is PostType => p !== null);
             setPostContents(validPosts)
@@ -320,7 +321,7 @@ const Page = () => {
                 <Text style={styles.titleTextIT}>IT</Text>
             </View>
             <TouchableOpacity style={styles.friendRequestButtonContainer} onPress={() => router.push('/(tabs)/home/notifications')}>
-                <Ionicons name="notifications-outline" size={width/20} color="#D3D3FF" />
+                <Ionicons name="notifications-outline" size={width/15} color="#D3D3FF" />
                 {friendNotifications+groupNotifications>0 &&
                     <View style={styles.redCircle}>
                         <Text style={styles.redCircleText}>{friendNotifications+groupNotifications}</Text>
@@ -381,15 +382,17 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     titleTextRECAP: {
         color: 'white',
         fontWeight: 'bold',
+        fontSize: height/50
     },
     titleTextIT: {
         color: '#D3D3FF',
         fontWeight: 'bold',
+        fontSize: height/50
     },
     friendRequestButtonContainer: {
         flexDirection: 'row',

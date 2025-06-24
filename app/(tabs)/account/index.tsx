@@ -23,6 +23,7 @@ type PostType = {
     caption: string;
     mode: string;
     userID: string;
+    thumbnail: string;
 }
 
 
@@ -75,7 +76,7 @@ const Page = () => {
 
                 if (!postSnap.exists() || !data) return;
 
-                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid };
+                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid, thumbnail: data.thumbnail };
 
             }));
             const validPosts = postContents.filter((p):p is PostType => p !== null)
@@ -94,15 +95,7 @@ const Page = () => {
     }
 
 
-    useEffect(() => {
-        const getInfo = async () => {
-            await getBioInfo()
-            await fetchUserPosts();
-        }
-        getInfo().catch((err) => {
-            console.error(err);
-        });
-    }, [fetchUserPosts]);
+
 
     useEffect(() => {
         getPostContent().catch((err) => {
@@ -158,7 +151,7 @@ const Page = () => {
 
 
 
-    const getBioInfo = async () => {
+    const getBioInfo = useCallback(async () => {
         if (!user) return;
         const getInfo = await db().collection("users").doc(user.uid).get()
         const data = getInfo.data()
@@ -174,10 +167,18 @@ const Page = () => {
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);
 
-    }
+    },[user]);
 
 
-
+    useEffect(() => {
+        const getInfo = async () => {
+            await getBioInfo()
+            await fetchUserPosts();
+        }
+        getInfo().catch((err) => {
+            console.error(err);
+        });
+    }, [fetchUserPosts]);
 
 
 
@@ -271,7 +272,6 @@ const Page = () => {
             </TouchableOpacity>
 
         </View>
-
     )
 
     const renderFlatList = () => (
@@ -281,7 +281,7 @@ const Page = () => {
                 data={postContents}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item, index }) => (
-                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user?.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user?.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp)}})}>
+                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user?.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user?.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp), rawPostID: item.id}})}>
                         <View style={styles.itemContainer}>
                             <AccountPost post={item} index={index}/>
                         </View>
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     logoutButton: {
         backgroundColor: "#D3D3FF",
@@ -385,6 +385,7 @@ const styles = StyleSheet.create({
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height/50
     },
     backArrowName: {
         flexDirection: 'row',
