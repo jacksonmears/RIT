@@ -295,7 +295,7 @@ const Index = () => {
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.back()}>
-                        <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />
+                        <MaterialIcons name="arrow-back-ios-new" size={height/40} color="#D3D3FF" />
                     </TouchableOpacity>
                     <Text style={styles.topBarText}>{groupNameString}</Text>
                 </View>
@@ -306,7 +306,7 @@ const Index = () => {
                             params: { groupID: groupIDString, groupName: groupNameString },
                         })
                     }>
-                    <AntDesign name="adduser" size={18} color="#D3D3FF" />
+                    <AntDesign name="adduser" size={height/35} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
 
@@ -381,10 +381,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height / 1000,
         borderBottomColor: "grey",
         alignItems: "center",
-        height: height / 20,
+        height: height / 18,
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height/50
     },
     backArrowName: {
         flexDirection: "row",

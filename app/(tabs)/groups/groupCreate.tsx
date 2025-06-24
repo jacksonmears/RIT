@@ -198,15 +198,15 @@ const Page = () => {
             <View style={styles.topBar}>
                 <View style={styles.backArrowName}>
                     <TouchableOpacity onPress={() => router.back()}>
-                        <Feather name="x" size={height/50} color="#D3D3FF" />
+                        <Feather name="x" size={width / 17.5} color="#D3D3FF" />
                     </TouchableOpacity>
                     {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
                 </View>
                 {groupName.length === 0 ?
-                    <Ionicons name="send-outline" size={height/50} color="#D3D3FF" />
+                    <Ionicons name="send-outline" size={width / 15} color="#D3D3FF" />
                     :
                     <TouchableOpacity onPress={() => completeGroup()}>
-                        <Ionicons name="send" size={height/50} color="#D3D3FF" />
+                        <Ionicons name="send" size={width/15} color="#D3D3FF" />
                     </TouchableOpacity>
                 }
             </View>
@@ -258,10 +258,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height/50
     },
     backArrowName: {
         flexDirection: 'row',

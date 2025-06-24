@@ -239,7 +239,7 @@ const Page = () => {
 
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => router.back()}>
-                    <MaterialIcons name="arrow-back-ios-new" size={height/50} color="#D3D3FF" />
+                    <MaterialIcons name="arrow-back-ios-new" size={height/40} color="#D3D3FF" />
                 </TouchableOpacity>
                 {user &&
                     <View style={styles.titleCardView}>
@@ -315,10 +315,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     topBarName: {
         color: '#D3D3FF',
+        fontSize: height/60
     },
     titleCardView: {
         flexDirection: 'row',
