@@ -6,10 +6,11 @@ import {
     TouchableOpacity,
     TextInput,
     Dimensions,
-    ActivityIndicator, KeyboardAvoidingView,
+    ActivityIndicator,
+    KeyboardAvoidingView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, {useEffect, useState, useRef, useCallback} from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { auth, db } from "@/firebase";
 import GroupPost from "@/components/GroupPost";
 import GroupMessage from "@/components/GroupMessage";
@@ -36,7 +37,7 @@ type groupMemberInformation = {
     lastName: string;
     photoURL: string;
     displayName: string;
-}
+};
 
 const Index = () => {
     const { groupID, groupName } = useLocalSearchParams();
@@ -44,6 +45,7 @@ const Index = () => {
     const groupNameString = String(groupName);
     const router = useRouter();
     const user = auth().currentUser;
+
     const [posts, setPosts] = useState<PostType[]>([]);
     const [groupMemberCache, setGroupMemberCache] = useState<Record<string, groupMemberInformation>>({});
     const [message, setMessage] = useState("");
@@ -52,17 +54,11 @@ const Index = () => {
     const [initialLoad, setInitialLoad] = useState(true);
     const [showLoadingIndicator, setShowLoadingIndicator] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
-
-    // New state to track total messages count in Firestore
     const [totalMessageCount, setTotalMessageCount] = useState<number | null>(null);
 
-    // Keep track of last visible doc for pagination
     const lastVisibleRef = useRef<FirebaseFirestoreTypes.Timestamp | null>(null);
-
-    // Flag to avoid double loading on real-time updates
     const isInitialLoadRef = useRef(true);
 
-    // Fetch total message count when groupID changes
     const fetchTotalMessageCount = useCallback(async () => {
         if (!groupIDString) return;
         try {
@@ -89,7 +85,6 @@ const Index = () => {
                     .get();
 
                 const memberIDs = membersSnapshot.docs.map(doc => doc.id);
-
                 const userPromises = memberIDs.map(async (id) => {
                     const userDoc = await db().collection("users").doc(id).get();
                     const data = userDoc.data();
@@ -113,22 +108,19 @@ const Index = () => {
 
                 setGroupMemberCache(userMap);
                 setMembersLoading(false);
-
             } catch (error) {
                 console.error("Error loading group members:", error);
             }
         };
 
-        fetchGroupMembers();
+        fetchGroupMembers().catch(err => console.error(err));
     }, [groupIDString]);
 
     useEffect(() => {
         if (!user) return;
 
-        // Fetch total count on mount or group change
-        fetchTotalMessageCount();
+        fetchTotalMessageCount().catch(err => console.error("Failed to fetch total message count:", err));
 
-        // Listen for new messages in real-time (newer than the newest in posts)
         const unsubscribe = db()
             .collection("groups")
             .doc(groupIDString)
@@ -137,7 +129,6 @@ const Index = () => {
             .limit(20)
             .onSnapshot((snapshot) => {
                 if (snapshot.empty) {
-                    // No messages in group
                     setPosts([]);
                     setHasMoreMessages(false);
                     setInitialLoad(false);
@@ -157,34 +148,34 @@ const Index = () => {
                     thumbnail: doc.data().thumbnail,
                 }));
 
-                // Set lastVisible for pagination to the last doc's timestamp
                 lastVisibleRef.current = docs[docs.length - 1].data().timestamp;
 
                 if (isInitialLoadRef.current) {
-                    // Initial load: set posts
                     setPosts(fetchedPosts);
                     setInitialLoad(false);
                     isInitialLoadRef.current = false;
                     setHasMoreMessages(docs.length >= 20);
 
-                    // If fewer than 20 posts fetched, update totalMessageCount to match
                     if (docs.length < 20) {
                         setTotalMessageCount(docs.length);
                         setHasMoreMessages(false);
                     }
                 } else {
-                    // Subsequent updates - new messages that are newer than existing posts
                     setPosts(prevPosts => {
-                        // Filter out duplicates (messages already in prevPosts)
-                        const existingIds = new Set(prevPosts.map(p => p.id));
-                        const newMessages = fetchedPosts.filter(p => !existingIds.has(p.id));
-                        if (newMessages.length === 0) return prevPosts;
+                        const allPosts = [...fetchedPosts, ...prevPosts];
+                        const seen = new Set();
+                        const deduped: PostType[] = [];
 
-                        // Insert new messages at the front since list is inverted
-                        return [...newMessages, ...prevPosts];
+                        for (const post of allPosts) {
+                            if (!seen.has(post.id)) {
+                                seen.add(post.id);
+                                deduped.push(post);
+                            }
+                        }
+
+                        return deduped;
                     });
 
-                    // Increment total count by number of new messages received
                     setTotalMessageCount(prevCount =>
                         prevCount !== null ? prevCount + fetchedPosts.length : null
                     );
@@ -234,13 +225,23 @@ const Index = () => {
                     thumbnail: doc.data().thumbnail,
                 }));
 
-                // Update lastVisible for next pagination
                 lastVisibleRef.current = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
 
-                // Append older posts at the end of the list
-                setPosts(prev => [...prev, ...newPosts]);
+                setPosts(prev => {
+                    const allPosts = [...prev, ...newPosts];
+                    const seen = new Set();
+                    const deduped: PostType[] = [];
 
-                // If fewer than limit, no more messages
+                    for (const post of allPosts) {
+                        if (!seen.has(post.id)) {
+                            seen.add(post.id);
+                            deduped.push(post);
+                        }
+                    }
+
+                    return deduped;
+                });
+
                 if (snapshot.docs.length < 20) setHasMoreMessages(false);
             }
         } catch (error) {
@@ -265,7 +266,7 @@ const Index = () => {
                     content: message.trim(),
                     timestamp: firestore.FieldValue.serverTimestamp(),
                     caption: -1,
-                    thumbnail:-1
+                    thumbnail: -1,
                 });
 
             setMessage("");
@@ -274,10 +275,9 @@ const Index = () => {
         }
     };
 
-    // Remove deleted post from state and decrement totalMessageCount
     const handleDelete = (deletedPostId: string) => {
-        setPosts((prevPosts) => prevPosts.filter((post) => post.id !== deletedPostId));
-        setTotalMessageCount((prevCount) =>
+        setPosts(prev => prev.filter(p => p.id !== deletedPostId));
+        setTotalMessageCount(prevCount =>
             prevCount !== null ? prevCount - 1 : null
         );
     };
@@ -320,16 +320,14 @@ const Index = () => {
                 inverted
                 style={styles.groups}
                 data={posts}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => `${item.id}-${item.timestamp?.seconds ?? Math.random()}`}
                 renderItem={({ item }) => (
                     <View
                         style={[
                             styles.messageContainer,
                             {
                                 alignSelf:
-                                    user?.uid === item.sender_id
-                                        ? "flex-end"
-                                        : "flex-start",
+                                    user?.uid === item.sender_id ? "flex-end" : "flex-start",
                             },
                         ]}>
                         {item.mode !== "text" ? (
@@ -338,7 +336,7 @@ const Index = () => {
                             <GroupMessage
                                 post={item}
                                 groupMember={groupMemberCache[item.sender_id]}
-                                onDelete={handleDelete} // pass down here
+                                onDelete={handleDelete}
                             />
                         )}
                     </View>
@@ -377,13 +375,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     topBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        justifyContent: "space-between",
         paddingHorizontal: width / 20,
         borderBottomWidth: height / 1000,
         borderBottomColor: "grey",
-        alignItems: 'center',
-        height: height / 20
+        alignItems: "center",
+        height: height / 20,
     },
     topBarText: {
         color: "#D3D3FF",
@@ -415,7 +413,7 @@ const styles = StyleSheet.create({
         backgroundColor: "grey",
         padding: height / 100,
         color: "black",
-        fontSize: height * 0.02
+        fontSize: height * 0.02,
     },
     separator: {
         height: height / 33,

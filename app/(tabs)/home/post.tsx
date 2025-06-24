@@ -14,9 +14,9 @@ import Video from "react-native-video";
 const { width, height } = Dimensions.get("window");
 
 const Page = () => {
-    const { rawContent, rawCaption, rawUsername, rawMode, rawPhotoURL, rawPostID } = useLocalSearchParams();
+    const { rawContent, rawCaption, rawUserName, rawMode, rawPhotoURL, rawPostID } = useLocalSearchParams();
     const content = Array.isArray(rawContent) ? rawContent[0] : rawContent || "";
-    const userName = String(rawUsername);
+    const userName = String(rawUserName);
     const postID = String(rawPostID);
     const caption = String(rawCaption);
     const router = useRouter();

@@ -79,7 +79,6 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
 
 
 
-
     const likeBeta = async () => {
         if (!user) return;
         if (!likeStatus) try {
@@ -121,11 +120,13 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{rawPostID: post.id, rawContent: encodeURIComponent(content), rawCaption: post.caption, rawUserName: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp)}})}>
                 <View style={styles.contentViewPicture}>
                     {thumbnailUrl ? (
-                        <Image
-                            source={{ uri: thumbnailUrl }}
-                            style={styles.pictureContent}
-                            resizeMode="cover"
-                        />
+                        <View>
+                            <Image
+                                source={{ uri: thumbnailUrl }}
+                                style={styles.pictureContent}
+                                resizeMode="cover"
+                            />
+                        </View>
                     ) : (
                         <View style={[styles.pictureContent, { justifyContent: 'center', alignItems: 'center' }]}>
                             <Text style={{ color: 'white' }}>Loading...</Text>

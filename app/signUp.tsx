@@ -80,6 +80,7 @@ export default function SignUpPage() {
                 .set({
                     uid: user.uid,
                     displayName: username,
+                    lowerDisplayName: username.toLowerCase(),
                 } as FirebaseFirestoreTypes.DocumentData);
 
             await user.sendEmailVerification();
