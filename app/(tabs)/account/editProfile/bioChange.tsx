@@ -45,27 +45,28 @@ export default function Page() {
         } catch (error) {
             console.error(error)
         }
+        router.back();
     }
 
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => router.back()}>
-                    <MaterialIcons name="arrow-back-ios-new" size={18} color="#D3D3FF" />
+                    <MaterialIcons name="arrow-back-ios-new" size={height/40} color="#D3D3FF" />
                 </TouchableOpacity>
                 <Text style={styles.topBarText}>Edit {changingVisual}</Text>
-                {change.length === 0 ?
-                    <Text style={styles.doneTextBad}>Done</Text>
+                {change.length === 0 || change == rawInput ?
+                    <Text style={styles.doneTextBad}>Save</Text>
                     :
                     <TouchableOpacity onPress={() => handleSubmit()}>
-                        <Text style={styles.doneTextGood}>Done</Text>
+                        <Text style={styles.doneTextGood}>Save</Text>
                     </TouchableOpacity>
                 }
 
             </View>
 
             <View style={styles.inputBar}>
-                <Text style={styles.test}>{changingVisual}</Text>
+                <Text style={styles.changingValue}>{changingVisual}</Text>
                 <TextInput
                     maxLength={256}
                     style={[styles.firstName, { height: Math.max(40, inputHeight) }]}
@@ -92,11 +93,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'black',
     },
-    test: {
+    changingValue: {
         color: 'white',
-        marginLeft: width/20,
-        marginTop: height/175,
-        fontSize: height/100
+        marginLeft: width / 18,
+        marginTop: height / 200,
+        fontSize: height / 60,
     },
     topBar: {
         flexDirection: 'row',
@@ -105,20 +106,22 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height/50
     },
     backArrowName: {
         flexDirection: 'row',
         alignItems: "center",
     },
     inputBar: {
-        margin: height/50,
+        margin: height/40,
         borderWidth: width/200,
         borderColor: "#D3D3FF",
         borderRadius: height/100,
+        height: height/3,
     },
     firstName: {
         marginTop: height/200,
@@ -127,6 +130,7 @@ const styles = StyleSheet.create({
         borderWidth: height/1000,
         borderRadius: width/100,
         color: "#D3D3FF",
+        fontSize: height/50
     },
     doneTextGood: {
         color: "#D3D3FF",

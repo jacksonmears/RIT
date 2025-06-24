@@ -39,7 +39,7 @@ const Page = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => router.push({pathname: "/create/assignGroup", params: {fillerURI: uri, fillerMode: mode, fillerCaption: caption, thumbnailUri: thumbnail} })}>
-                    <FontAwesome name="share" size={height/40} color="#D3D3FF" />
+                    <FontAwesome name="share" size={height/30} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
 
@@ -103,11 +103,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     backText: {
         color: "white",
-        fontSize: 16,
+        fontSize: height/50,
     },
     imageWrapper: {
         justifyContent: "center",

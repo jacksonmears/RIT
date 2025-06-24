@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
-        height: height/20
+        height: height/18
     },
     logoutButton: {
         backgroundColor: "#D3D3FF",
@@ -385,6 +385,7 @@ const styles = StyleSheet.create({
     },
     topBarText: {
         color: "#D3D3FF",
+        fontSize: height/50
     },
     backArrowName: {
         flexDirection: 'row',
