@@ -310,6 +310,7 @@ const Page = () => {
                         isActive={true}
                         video={mode === "video"}
                         photo={mode === "photo"}
+                        audio={true}
                     />
                 </View>
             ) :
