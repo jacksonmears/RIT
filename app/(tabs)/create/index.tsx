@@ -44,8 +44,7 @@ const Page = () => {
     const timerRef = useRef<number | null>(null);
     const [isTimeExpired, setTimeExpired] = useState(false);
     const [isCameraReady, setIsCameraReady] = useState(false);
-
-
+    const [isProcessing, setIsProcessing] = useState(false);  // <-- Added processing state
 
 
     useEffect(() => {
@@ -173,6 +172,8 @@ const Page = () => {
         try {
             cameraRef.current.startRecording({
                 onRecordingFinished: async (videoFile: VideoFile) => {
+                    setIsProcessing(true);  // Show compressing overlay
+
                     const mp4Path = await convertToMp4(videoFile.path);
 
                     try {
@@ -181,7 +182,7 @@ const Page = () => {
                             timeStamp: 0,
                         });
 
-                        // console.log('Thumbnail path:', thumbnail.path);
+                        setIsProcessing(false);  // Hide compressing overlay
 
                         router.push({
                             pathname: '/create/editFile',
@@ -193,14 +194,17 @@ const Page = () => {
                         });
 
                     } catch (err) {
+                        setIsProcessing(false);
                         console.error('Error creating thumbnail:', err);
                     }
                 },
 
                 onRecordingError: (error: CameraCaptureError) => {
+                    setIsProcessing(false);
                     console.error('Recording error', error);},
             });
         } catch (e) {
+            setIsProcessing(false);
             console.error(e);
         }
     };
@@ -225,7 +229,6 @@ const Page = () => {
         }
 
     };
-
 
 
 
@@ -288,6 +291,14 @@ const Page = () => {
 
     return (
         <SafeAreaView style={styles.container}>
+
+            {isProcessing && (
+                <View style={styles.processingOverlay}>
+                    <ActivityIndicator size="large" color="#D3D3FF" />
+                    <Text style={styles.processingText}>Compressing video...</Text>
+                </View>
+            )}
+
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => router.push('/home')}>
                     <Feather name="x" size={height/30} color="#D3D3FF"/>
@@ -301,25 +312,23 @@ const Page = () => {
 
 
             {isFocused && isCameraReady ? (
-                <View style={styles.cameraContainer}>
-                    <Camera
-                        key={`${cameraPosition}-${isCameraReady}`}  // Force remount when camera changes or ready toggles
-                        ref={cameraRef}
-                        style={styles.camera}
-                        device={device}
-                        isActive={true}
-                        video={mode === "video"}
-                        photo={mode === "photo"}
-                        audio={true}
-                    />
-                </View>
-            ) :
+                    <View style={styles.cameraContainer}>
+                        <Camera
+                            key={`${cameraPosition}-${isCameraReady}`}  // Force remount when camera changes or ready toggles
+                            ref={cameraRef}
+                            style={styles.camera}
+                            device={device}
+                            isActive={true}
+                            video={mode === "video"}
+                            photo={mode === "photo"}
+                            audio={true}
+                        />
+                    </View>
+                ) :
                 <View style={[styles.camera, styles.loadingContainer]}>
                     <Text style={styles.text}>Loading camera...</Text>
                 </View>
             }
-
-
 
 
 
@@ -408,8 +417,23 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
     },
 
-
-
+    processingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    processingText: {
+        marginTop: 15,
+        color: '#D3D3FF',
+        fontSize: 18,
+        fontWeight: '600',
+    },
 });
 
 export default Page;
