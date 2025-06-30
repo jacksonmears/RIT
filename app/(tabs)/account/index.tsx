@@ -16,6 +16,7 @@ import AccountPost from "../../../components/AccountPost";
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
+const gapSize = 6; // small gap between items
 
 type PostType = {
     id: string;
@@ -25,7 +26,6 @@ type PostType = {
     userID: string;
     thumbnail: string;
 }
-
 
 const Page = () => {
     const user = auth().currentUser;
@@ -41,7 +41,6 @@ const Page = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [animatedValues, setAnimatedValues] = useState<Animated.Value[]>([]);
     const [totalCharacters, setTotalCharacters] = useState<string>("");
-
 
     const fetchUserPosts = useCallback(async () => {
         if (!user) return;
@@ -94,15 +93,11 @@ const Page = () => {
         setRefreshing(false);
     }
 
-
-
-
     useEffect(() => {
         getPostContent().catch((err) => {
             console.error(err);
         })
     }, [posts, getPostContent]);
-
 
     useEffect(() => {
         const values = Array.from({ length: totalCharacters.length}, () => new Animated.Value(0));
@@ -146,11 +141,6 @@ const Page = () => {
         }
     }, [refreshing, runAnimation]);
 
-
-
-
-
-
     const getBioInfo = useCallback(async () => {
         if (!user) return;
         const getInfo = await db().collection("users").doc(user.uid).get()
@@ -169,7 +159,6 @@ const Page = () => {
 
     },[user]);
 
-
     useEffect(() => {
         const getInfo = async () => {
             await getBioInfo()
@@ -179,9 +168,6 @@ const Page = () => {
             console.error(err);
         });
     }, [fetchUserPosts]);
-
-
-
 
     const handleLogout = async () => {
         await auth().signOut();
@@ -257,7 +243,6 @@ const Page = () => {
                         <Text style={styles.genericText}> friends</Text>
                     </View>
                 </View>
-
             </View>
         </View>
     )
@@ -297,8 +282,6 @@ const Page = () => {
     )
 
     return (
-
-
         <View style={styles.container}>
             {renderTopBar()}
             {renderAnimatedName()}
@@ -340,6 +323,7 @@ const styles = StyleSheet.create({
     pfpAndInfo: {
         alignItems: 'center',
         marginBottom: height/50,
+        justifyContent: 'center',
     },
     pfpSeparator: {
         width: width/9
@@ -364,8 +348,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     itemContainer: {
-        flex: 1 / 3,
-
+        flex: 1,
+        marginHorizontal: gapSize / 2,
+        maxWidth: (width - gapSize * 4) / 3, // evenly sized 3-column width with gap
     },
     postContainer: {
         flex: 1,
@@ -411,6 +396,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         marginTop: height/33,
+        flexWrap: 'wrap',
     },
     char: {
         fontSize: height/35,
@@ -422,7 +408,6 @@ const styles = StyleSheet.create({
     infoText: {
         color: "#D3D3FF",
     }
-
 });
 
 export default Page;

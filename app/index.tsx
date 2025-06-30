@@ -5,7 +5,6 @@ import {
     View,
     StyleSheet,
     TouchableOpacity,
-    KeyboardAvoidingView,
     Dimensions,
     TextInput,
     ActivityIndicator,
@@ -78,12 +77,11 @@ const Index = () => {
 
     return (
         <View style={styles.container}>
-            <View style={{flexDirection: "row", justifyContent: "center", paddingBottom: 20}}>
+            <View style={{flexDirection: "row", justifyContent: "center", paddingBottom: 20, marginTop: height*0.25}}>
                 <Text style={styles.titlePrimary}>R</Text>
                 <Text style={styles.titleSecondary}>ecap</Text>
                 <Text style={styles.titlePrimary}>IT</Text>
             </View>
-            <KeyboardAvoidingView behavior="padding" >
                 <TextInput
                     style={styles.input}
                     editable={!loading}
@@ -108,7 +106,6 @@ const Index = () => {
                 ) : (
                     renderButtons()
                 )}
-            </KeyboardAvoidingView>
         </View>
     );
 };
@@ -117,7 +114,7 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "black",
         flex: 1,
-        justifyContent: "center",
+        justifyContent: "flex-start",
     },
     input: {
         marginVertical: height * 0.002,

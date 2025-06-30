@@ -286,7 +286,8 @@ const styles = StyleSheet.create({
     groups: {
         flex: 1,
         marginTop: height/50,
-        marginHorizontal: width/150
+        marginHorizontal: width/150,
+        marginBottom: height/17,
     },
     itemContainer: {
         flex: 1 / 3,

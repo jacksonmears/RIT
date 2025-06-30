@@ -1,4 +1,3 @@
-// pages/signUp.tsx
 import React, { useState } from 'react';
 import {
     Text,
@@ -8,7 +7,12 @@ import {
     TextInput,
     Dimensions,
     ActivityIndicator,
-    Alert, KeyboardAvoidingView,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    TouchableWithoutFeedback,
+    Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebase';
@@ -20,13 +24,13 @@ const { width, height } = Dimensions.get('window');
 export default function SignUpPage() {
     const router = useRouter();
 
-    const [firstName, setFirstName] = useState<string>('');
-    const [lastName, setLastName] = useState<string>('');
-    const [username, setUsername] = useState<string>('');
-    const [email, setEmail] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
-    const [confirmPassword, setConfirmPassword] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const signUp = async () => {
         if (password.length < 8) {
@@ -72,7 +76,7 @@ export default function SignUpPage() {
                     friendRequests: [],
                     groupRequests: [],
                     joined: db.FieldValue.serverTimestamp(),
-                } as FirebaseFirestoreTypes.DocumentData);
+                });
 
             await db()
                 .collection('displayName')
@@ -81,7 +85,7 @@ export default function SignUpPage() {
                     uid: user.uid,
                     displayName: username,
                     lowerDisplayName: username.toLowerCase(),
-                } as FirebaseFirestoreTypes.DocumentData);
+                });
 
             await user.sendEmailVerification();
             Alert.alert(
@@ -99,99 +103,111 @@ export default function SignUpPage() {
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container}>
-            <View style={styles.row}>
-                <TextInput
-                    style={[styles.input, styles.flex]}
-                    placeholder="First Name"
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    maxLength={30}
-                    keyboardType={"default"}
-                />
-                <TextInput
-                    style={[styles.input, styles.flex]}
-                    placeholder="Last Name"
-                    value={lastName}
-                    onChangeText={setLastName}
-                    maxLength={30}
-                    keyboardType={"default"}
-                />
-            </View>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Username"
-                keyboardType={"default"}
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-                maxLength={30}
-            />
-
-            <TextInput
-                style={styles.input}
-                placeholder="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                maxLength={256}
-            />
-
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                maxLength={100}
-
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                maxLength={100}
-
-            />
-
-            {loading ? (
-                <ActivityIndicator style={styles.loader} />
-            ) : (
-                <>
-                    <TouchableOpacity style={styles.button} onPress={signUp}>
-                        <Text style={styles.buttonText}>Create Account</Text>
-                    </TouchableOpacity>
-                    <View style={{flexDirection: "row", alignItems: "center", justifyContent: "center"}}>
-                        <Text style={styles.secondaryText}>
-                            Already have an account?
-                        </Text>
-                        <TouchableOpacity onPress={() => router.back()}>
-                            <Text style={styles.linkText}>
-                                  Log in
-                            </Text>
-                        </TouchableOpacity>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+        >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <ScrollView
+                    contentContainerStyle={styles.container}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.row}>
+                        <TextInput
+                            style={[styles.input, styles.flex]}
+                            placeholder="First Name"
+                            value={firstName}
+                            onChangeText={setFirstName}
+                            maxLength={30}
+                            keyboardType="default"
+                        />
+                        <TextInput
+                            style={[styles.input, styles.flex]}
+                            placeholder="Last Name"
+                            value={lastName}
+                            onChangeText={setLastName}
+                            maxLength={30}
+                            keyboardType="default"
+                        />
                     </View>
 
-                </>
-            )}
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Username"
+                        keyboardType="default"
+                        value={username}
+                        onChangeText={setUsername}
+                        autoCapitalize="none"
+                        maxLength={30}
+                    />
+
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={email}
+                        onChangeText={setEmail}
+                        maxLength={256}
+                    />
+
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                        maxLength={100}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Confirm Password"
+                        secureTextEntry
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        maxLength={100}
+                    />
+
+                    {loading ? (
+                        <ActivityIndicator style={styles.loader} />
+                    ) : (
+                        <>
+                            <TouchableOpacity style={styles.button} onPress={signUp}>
+                                <Text style={styles.buttonText}>Create Account</Text>
+                            </TouchableOpacity>
+                            <View style={styles.loginRow}>
+                                <Text style={styles.secondaryText}>Already have an account?</Text>
+                                <TouchableOpacity onPress={() => router.back()}>
+                                    <Text style={styles.linkText}>Log in</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </>
+                    )}
+
+                    {/* Optional bottom spacing to prevent keyboard overlap */}
+                    <View style={{ height: 80 }} />
+                </ScrollView>
+            </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         backgroundColor: 'black',
         padding: width * 0.1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
     },
     row: {
         flexDirection: 'row',
-        marginBottom: height * 0.02,
+        marginTop: height * 0.125,
+    },
+    loginRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     flex: {
         flex: 1,
@@ -202,8 +218,8 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         padding: height * 0.02,
         marginBottom: height * 0.015,
-        color: "black",
-        fontSize: height*0.02
+        color: 'black',
+        fontSize: height * 0.02,
     },
     button: {
         backgroundColor: '#D3D3FF',
@@ -229,6 +245,6 @@ const styles = StyleSheet.create({
     secondaryText: {
         textAlign: 'center',
         marginTop: height * 0.01,
-        color: "grey",
+        color: 'grey',
     },
 });
