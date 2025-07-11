@@ -216,6 +216,7 @@ const Page = () => {
                 placeholder="Create a Name for your Group"
                 value={groupName}
                 onChangeText={setGroupName}
+                placeholderTextColor={"grey"}
             />
 
 

@@ -353,6 +353,8 @@ const Index = () => {
                     value={message}
                     onChangeText={setMessage}
                     inputMode={"search"}
+                    placeholderTextColor={"black"}
+
                 />
                 <TouchableOpacity onPress={pushTextMessage}>
                     <Text style={styles.text}> send </Text>
@@ -406,6 +408,7 @@ const styles = StyleSheet.create({
     text: {
         marginRight: width / 10,
         color: "white",
+        marginLeft: width / 50,
     },
     input: {
         flex: 1,

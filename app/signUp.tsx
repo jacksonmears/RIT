@@ -121,6 +121,8 @@ export default function SignUpPage() {
                             onChangeText={setFirstName}
                             maxLength={30}
                             keyboardType="default"
+                            placeholderTextColor={"grey"}
+
                         />
                         <TextInput
                             style={[styles.input, styles.flex]}
@@ -129,6 +131,8 @@ export default function SignUpPage() {
                             onChangeText={setLastName}
                             maxLength={30}
                             keyboardType="default"
+                            placeholderTextColor={"grey"}
+
                         />
                     </View>
 
@@ -140,6 +144,8 @@ export default function SignUpPage() {
                         onChangeText={setUsername}
                         autoCapitalize="none"
                         maxLength={30}
+                        placeholderTextColor={"grey"}
+
                     />
 
                     <TextInput
@@ -150,6 +156,8 @@ export default function SignUpPage() {
                         value={email}
                         onChangeText={setEmail}
                         maxLength={256}
+                        placeholderTextColor={"grey"}
+
                     />
 
                     <TextInput
@@ -159,6 +167,8 @@ export default function SignUpPage() {
                         value={password}
                         onChangeText={setPassword}
                         maxLength={100}
+                        placeholderTextColor={"grey"}
+
                     />
                     <TextInput
                         style={styles.input}
@@ -167,6 +177,8 @@ export default function SignUpPage() {
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         maxLength={100}
+                        placeholderTextColor={"grey"}
+
                     />
 
                     {loading ? (

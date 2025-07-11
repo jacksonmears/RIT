@@ -42,6 +42,7 @@ const Page = () => {
                     keyboardType="email-address"
                     placeholder="Email"
                     maxLength={256}
+                    placeholderTextColor={"grey"}
                 />
                 <TouchableOpacity onPress={sendResetPassword} style={styles.sendButton}>
                     <Text style={styles.sendButtonText}>Send Link</Text>

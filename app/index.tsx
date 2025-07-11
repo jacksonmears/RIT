@@ -91,6 +91,7 @@ const Index = () => {
                     keyboardType="email-address"
                     placeholder="Email"
                     maxLength={256}
+                    placeholderTextColor={"grey"}
                 />
                 <TextInput
                     style={styles.input}
@@ -100,6 +101,7 @@ const Index = () => {
                     secureTextEntry
                     placeholder="Password"
                     maxLength={100}
+                    placeholderTextColor={"grey"}
                 />
                 {loading ? (
                     <ActivityIndicator size="small" style={styles.loader} />

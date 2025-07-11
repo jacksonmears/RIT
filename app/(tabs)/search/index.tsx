@@ -88,6 +88,8 @@ const Page = () => {
                     placeholder="search"
                     value={search}
                     onChangeText={setSearch}
+                    placeholderTextColor={"grey"}
+
                 />
             </View>
 
