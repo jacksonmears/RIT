@@ -124,6 +124,9 @@ export default function SignUpPage() {
                             placeholderTextColor={"grey"}
 
                         />
+                        <View style={{padding: width*0.0125}}>
+
+                        </View>
                         <TextInput
                             style={[styles.input, styles.flex]}
                             placeholder="Last Name"
@@ -223,7 +226,6 @@ const styles = StyleSheet.create({
     },
     flex: {
         flex: 1,
-        marginHorizontal: 4,
     },
     input: {
         backgroundColor: 'white',
