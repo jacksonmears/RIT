@@ -23,16 +23,26 @@ const RootLayout = () => {
     }, []);
 
     // Redirect logic
+
     useEffect(() => {
         if (initializing) return;
-        const inAuthGroup = segments[0] === "(tabs)";
 
-        if (user && !inAuthGroup && user.emailVerified) {
+        const inAuthGroup = segments[0] === "(tabs)";
+        const currentPath = segments.join("/");
+
+        const allowedOutsideTabs = [
+            "post/post",
+        ];
+
+        const isAllowedOutside = allowedOutsideTabs.some(path => currentPath.startsWith(path));
+
+        if (user && !inAuthGroup && user.emailVerified && !isAllowedOutside) {
             router.replace("/(tabs)/home");
         } else if (!user && inAuthGroup) {
             router.replace("/");
         }
     }, [user, initializing, segments]);
+
 
     // Loading indicator
     if (initializing) {

@@ -13,16 +13,28 @@ import Video from "react-native-video";
 
 const { width, height } = Dimensions.get("window");
 
+
+type PostParameters = {
+    id: string;
+    content: string;
+    caption: string;
+    mode: string;
+    userID: string;
+    displayName: string;
+    pfp: string;
+}
+
 const Page = () => {
-    const { rawContent, rawCaption, rawUsername, rawMode, rawPhotoURL, rawPostID } = useLocalSearchParams();
-    const content = Array.isArray(rawContent) ? rawContent[0] : rawContent || "";
-    const userName = String(rawUsername);
-    const postID = String(rawPostID);
-    const caption = String(rawCaption);
+    const { id, content, caption, mode, userID, displayName, pfp } = useLocalSearchParams();
+    const contentString = Array.isArray(content) ? content[0] : content || "";
+    const displayNameString = String(displayName);
+    const idString = String(id);
+    const captionString = String(caption);
     const router = useRouter();
-    const photoURLString = String(rawPhotoURL)
+    const pfpString = String(pfp)
     const [videoUri, setVideoUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+
 
 
     const getSignedDownloadUrl = async (filename: string): Promise<string | undefined> => {
@@ -42,25 +54,25 @@ const Page = () => {
     };
 
     useEffect(() => {
-        if (rawMode === "video" && postID) {
-            const path = encodeURIComponent(`${postID}/content.mov`);
+        if (mode === "video" && idString) {
+            const path = encodeURIComponent(`${idString}/content.mov`);
             getSignedDownloadUrl(path).then((url) => {
                 if (url) {
                     setVideoUri(url);
                 } else {
                     console.error("Failed to get signed URL, using fallback.");
-                    setVideoUri(content); // fallback
+                    setVideoUri(contentString); // fallback
                 }
             });
         }
-    }, [content, rawMode, rawPostID]);
+    }, [contentString, mode, idString]);
 
     return (
         <View style={styles.container}>
             <View style={styles.top70}>
-                {rawMode === "photo" ? (
+                {mode === "photo" ? (
                     <Image
-                        source={{ uri: content }}
+                        source={{ uri: contentString }}
                         style={styles.image}
                         resizeMode="cover"
                         onError={(e) => console.error('Image load error', e.nativeEvent.error)}
@@ -100,8 +112,8 @@ const Page = () => {
 
             <View style={styles.profileUser}>
                 <View style={styles.upperProfile}>
-                    <Image source={{ uri: photoURLString }} style={styles.avatar} />
-                    <Text style={styles.profileText}>{userName}</Text>
+                    <Image source={{ uri: pfpString }} style={styles.avatar} />
+                    <Text style={styles.profileText}>{displayNameString}</Text>
                 </View>
                 <Text style={styles.profileCaption}>{caption}</Text>
             </View>

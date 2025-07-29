@@ -28,6 +28,8 @@ type PostType = {
     thumbnail: string;
 }
 
+
+
 const Page = () => {
     const user = auth().currentUser;
     const [numberOfPosts, setNumberOfPosts] = useState(0);
@@ -51,9 +53,15 @@ const Page = () => {
                 .doc(user.uid)
                 .collection("posts")
 
-            const orderedQuery = await postReference.orderBy("timestamp", "asc").get();
+            const orderedQuery = await postReference
+                .orderBy("timestamp", "asc")
+                .get();
 
-            const userPfpReference = await db.collection("users").doc(user.uid).get()
+            const userPfpReference = await db
+                .collection("users")
+                .doc(user.uid)
+                .get()
+
             const data = userPfpReference.data()
 
             if (!userPfpReference.exists() || !data) return;
@@ -74,12 +82,23 @@ const Page = () => {
         if (!postCollection || !user) return;
         try {
             const postContents = await Promise.all(postCollection.map(async (post) => {
-                const postReference = await db.collection("posts").doc(post.id).get();
+                const postReference = await db
+                    .collection("posts")
+                    .doc(post.id)
+                    .get();
+
                 const data = postReference.data()
 
                 if (!postReference.exists() || !data) return;
 
-                return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid, thumbnail: data.thumbnail };
+                return {
+                    id: post.id,
+                    content: data.content,
+                    caption: data.caption,
+                    mode: data.mode,
+                    userID: user.uid,
+                    thumbnail: data.thumbnail
+                };
 
             }));
             const validPosts = postContents.filter((p):p is PostType => p !== null)
@@ -186,15 +205,18 @@ const Page = () => {
         });
     }, [fetchUserPosts]);
 
+
+
     const handleLogout = async () => {
         await auth().signOut();
     }
 
     const renderTopBar = () => (
-        <View style={styles.topBar}>
+
+        (user && <View style={styles.topBar}>
             <View style={styles.backArrowName}>
                 <Text style={styles.topBarText}>
-                    {user?.displayName}
+                    {user.displayName}
                 </Text>
             </View>
             <View>
@@ -203,6 +225,7 @@ const Page = () => {
                 </TouchableOpacity>
             </View>
         </View>
+        )
     )
 
     const renderAnimatedName = () => (
@@ -241,7 +264,9 @@ const Page = () => {
                         <Image source={{ uri: pfp }} style={styles.avatar} />
                     ) : (
                         <View style={[styles.avatar, styles.placeholder]}>
-                            <Text style={styles.placeholderText}>No Photo</Text>
+                            <Text style={styles.placeholderText}>
+                                No Photo
+                            </Text>
                         </View>
                     )}
                     <View style={styles.changePfp}>
@@ -259,7 +284,7 @@ const Page = () => {
                             {numberOfPosts}
                         </Text>
                         <Text style={styles.genericText}>
-                            posts
+                             posts
                         </Text>
                     </View>
 
@@ -270,7 +295,7 @@ const Page = () => {
                             {numberOfFriends}
                         </Text>
                         <Text style={styles.genericText}>
-                            friends
+                             friends
                         </Text>
                     </View>
                 </View>
@@ -295,27 +320,49 @@ const Page = () => {
         </View>
     )
 
-    const renderFlatList = () => (
-        <View style={styles.postContainer}>
-            <FlatList
-                style={[styles.groups, {marginTop: height*0.02, marginBottom: height*0.07}]}
-                data={postContents}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item, index }) => (
-                    <TouchableOpacity onPress={() => router.push({pathname: '/account/post', params: {rawID: user?.uid, rawContent: item.content, rawCaption: item.caption, rawUsername: user?.displayName, rawMode: item.mode, rawPhotoURL: encodeURIComponent(pfp), rawPostID: item.id}})}>
-                        <View style={styles.itemContainer}>
-                            <AccountPost post={item} index={index}/>
-                        </View>
-                    </TouchableOpacity>
 
-                )}
+    const renderFlatList = () => {
+        if (!user || user.displayName === null) return null;
 
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                numColumns={3}
-            />
-        </View>
-    )
+        return (
+            <View style={styles.postContainer}>
+                <FlatList
+                    style={[styles.groups, {marginTop: height * 0.02, marginBottom: height * 0.07}]}
+                    data={postContents}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({item, index}) => (
+                        <TouchableOpacity onPress={() => router.push({
+                                pathname: `../post/post`,
+                                params: {
+                                    id: item.id,
+                                    content: item.content,
+                                    caption: item.caption,
+                                    mode: item.mode,
+                                    userID: user.uid,
+                                    displayName: user.displayName,
+                                    pfp: encodeURIComponent(pfp),
+                                },
+                        })}>
+
+                            <View style={styles.itemContainer}>
+                                <AccountPost post={item} index={index}/>
+                            </View>
+                        </TouchableOpacity>
+
+                    )}
+
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    numColumns={3}
+                />
+            </View>
+        )
+    }
+
+
+
+
+
 
     return (
         <View style={styles.container}>
@@ -326,6 +373,7 @@ const Page = () => {
             {renderFlatList()}
         </View>
     );
+
 };
 
 const styles = StyleSheet.create({
