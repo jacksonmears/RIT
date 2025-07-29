@@ -27,7 +27,7 @@ export function useConsent() {
                 // 2) Ask the SDK for consent info:
                 const info: AdsConsentInfo = await AdsConsent.requestInfoUpdate(options);
                 if (info.status === AdsConsentStatus.OBTAINED) {
-                    await db().collection('users').doc(user.uid).update({ personalizedAds: true });
+                    await db.collection('users').doc(user.uid).update({ personalizedAds: true });
                 }
 
 

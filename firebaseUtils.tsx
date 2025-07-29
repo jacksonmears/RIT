@@ -55,7 +55,7 @@ export async function setAuthUserProfilePhoto(downloadURL: string): Promise<void
         throw new Error('No user logged in');
     }
 
-    const userRef = db().collection('users').doc(user.uid);
+    const userRef = db.collection('users').doc(user.uid);
     const userSnap = await userRef.get();
 
     if (userSnap.exists()) {
@@ -82,7 +82,7 @@ export async function clearAuthUserProfilePhoto(): Promise<void> {
         throw new Error('No user logged in');
     }
 
-    const userRef = db().collection('users').doc(user.uid);
+    const userRef = db.collection('users').doc(user.uid);
     const userSnap = await userRef.get();
 
     if (userSnap.exists()) {

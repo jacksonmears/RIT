@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
     Dimensions, TouchableOpacity,
 } from 'react-native';
-import {auth, db} from '@/firebase';
+import {auth} from '@/firebase';
 import {
     pickImageAsync,
     uploadProfileImageAsync,
@@ -18,52 +18,48 @@ import {
 } from '@/firebaseUtils';
 import Feather from "@expo/vector-icons/Feather";
 import {useLocalSearchParams, useRouter} from "expo-router";
+import firestore from "@react-native-firebase/firestore";
 
 const {width, height} = Dimensions.get('window');
 
 export default function Page() {
     const user = auth().currentUser!;
-    const [localUri, setLocalUri] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const { rawPhotoURL } = useLocalSearchParams()
+    const [localPfp, setLocalPfp] = useState<string | null>(null);
+    const [pfpLoadingState, setPfpLoadingState] = useState(false);
+    const { photoURL } = useLocalSearchParams()
     const router = useRouter();
 
 
     const handlePick = async () => {
         try {
-            const uri = await pickImageAsync();
-            if (uri) setLocalUri(uri);
-            return uri;
+            return await pickImageAsync();
         } catch (err: any) {
             Alert.alert('Error', err.message);
         }
     };
 
-    const handleUpload = async (localUri: string) => {
-        if (!localUri) return;
-        setLoading(true);
+    const handleUpload = async (newPfp : string) => {
+        setPfpLoadingState(true);
         try {
-            const downloadURL = await uploadProfileImageAsync(localUri);
+            setLocalPfp(newPfp);
+            const downloadURL = await uploadProfileImageAsync(newPfp);
             await setAuthUserProfilePhoto(downloadURL);
             Alert.alert('Success', 'Your profile picture was updated.');
         } catch (err: any) {
             Alert.alert('Upload failed', err.message);
         } finally {
-            setLoading(false);
+            setPfpLoadingState(false);
         }
     };
 
     const handleSave = async () => {
         try {
-            const picPath = await handlePick();
-            if (!picPath) return;
-            await handleUpload(picPath);
+            const newPfp = await handlePick();
+            if (!newPfp) return;
+            await handleUpload(newPfp);
         } catch (error) {
             console.error(error);
         }
-
-
-
 
     }
 
@@ -79,19 +75,24 @@ export default function Page() {
                     text: 'Delete',
                     style: 'destructive',
                     onPress: async () => {
-                        setLoading(true);
+                        setPfpLoadingState(true);
                         try {
                             await deleteProfileImageAsync();
                             await clearAuthUserProfilePhoto();
-                            await db.collection("users").doc(user.uid).update({
-                                photoURL: "",
-                            })
-                            setLocalUri(null);
+                            await firestore()
+                                .collection("users")
+                                .doc(user.uid)
+                                .update({
+                                    photoURL: "",
+                                })
+
+                            setLocalPfp(null);
                             Alert.alert('Deleted', 'Profile picture removed.');
+
                         } catch (err: any) {
                             Alert.alert('Delete failed', err.message);
                         } finally {
-                            setLoading(false);
+                            setPfpLoadingState(false);
                         }
                     },
                 },
@@ -102,23 +103,23 @@ export default function Page() {
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
-                <View style={{flexDirection: "row", alignItems: "center"}}>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Feather name="x" size={height/50} color="#D3D3FF" />
-                    </TouchableOpacity>
-                    <Text style={{color: "#D3D3FF"}}>{user.displayName}</Text>
-                </View>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Feather name="x" size={height/40} color="#D3D3FF" />
+                </TouchableOpacity>
+                <Text style={styles.displayName}>
+                    {user.displayName}
+                </Text>
             </View>
 
 
         <View style={{alignItems: "center"}}>
             <View style={styles.avatarContainer}>
-                {loading ? (
+                {pfpLoadingState ? (
                     <ActivityIndicator size="large" color="gold" />
-                ) : localUri ? (
-                    <Image source={{ uri: localUri }} style={styles.avatar} />
-                ) : rawPhotoURL ? (
-                    <Image source={{uri: String(rawPhotoURL)}} style={styles.avatar}/>
+                ) : localPfp ? (
+                    <Image source={{ uri: localPfp }} style={styles.avatar} />
+                ) : photoURL ? (
+                    <Image source={{uri: String(photoURL)}} style={styles.avatar}/>
                 ) : (
                     <View style={[styles.avatar, styles.placeholder]}>
                         <Text style={styles.placeholderText}>No Photo</Text>
@@ -148,19 +149,15 @@ const styles = StyleSheet.create({
     },
     topBar: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: width/20,
-        borderBottomWidth: height/1000,
-        borderBottomColor: "grey",
+        paddingHorizontal: width / 20,
+        borderBottomWidth: height / 1000,
+        borderBottomColor: 'grey',
         alignItems: 'center',
-        height: height/20
+        height: height / 18,
     },
-    name: {
-        color: 'gold',
-        fontSize: height/33,
-        marginBottom: height/25,
-        marginTop: height/33,
-        textAlign: 'center'
+    displayName: {
+        color: '#D3D3FF',
+        fontSize: height / 50
     },
     avatarContainer: {
         alignItems: 'center',
@@ -196,7 +193,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderWidth: width/100,
     }
-
 });
 
-// export default Page;

@@ -30,14 +30,14 @@ type PostType = {
 
 const Page = () => {
     const user = auth().currentUser;
-    const [numPosts, setNumPosts] = useState(0);
-    const [numFriends, setNumFriends] = useState(0);
+    const [numberOfPosts, setNumberOfPosts] = useState(0);
+    const [numberOfFriends, setNumberOfFriends] = useState(0);
     const [pfp, setPfp] = useState<string>('');
     const [firstName, setFirstName] = useState<string>("");
     const [lastName, setLastName] = useState<string>('');
     const [bio, setBio] = useState('');
     const [postContents, setPostContents] = useState<PostType[] | []>([]);
-    const [posts, setPosts] = useState<{ id: string }[] | null>(null);
+    const [postCollection, setPostCollection] = useState<{ id: string }[] | null>(null);
     const router = useRouter();
     const [refreshing, setRefreshing] = useState(false);
     const [animatedValues, setAnimatedValues] = useState<Animated.Value[]>([]);
@@ -46,35 +46,38 @@ const Page = () => {
     const fetchUserPosts = useCallback(async () => {
         if (!user) return;
         try {
-            const postsRef = db.collection("users").doc(user.uid).collection("posts")
-            const orderedQuery = postsRef.orderBy("timestamp", "asc")
-            const usersDocs = await orderedQuery.get();
+            const postReference = db
+                .collection("users")
+                .doc(user.uid)
+                .collection("posts")
 
-            const userPfpRef = await db.collection("users").doc(user.uid).get()
-            const data = userPfpRef.data()
-            if (!userPfpRef.exists() || !data) return;
+            const orderedQuery = await postReference.orderBy("timestamp", "asc").get();
+
+            const userPfpReference = await db.collection("users").doc(user.uid).get()
+            const data = userPfpReference.data()
+
+            if (!userPfpReference.exists() || !data) return;
             setPfp(data.photoURL)
 
-            const postList = usersDocs.docs.map((doc) => ({
+            const postList = orderedQuery.docs.map((doc) => ({
                 id: doc.id,
                 timestamp: firestore.FieldValue.serverTimestamp(),
             }));
 
-            setPosts(postList);
+            setPostCollection(postList);
         } catch (error) {
             console.error("Error fetching data:", error);
         }
     }, [user]);
 
-    const getPostContent = useCallback(async () => {
-        if (!posts || !user) return;
+    const fetchPostContent = useCallback(async () => {
+        if (!postCollection || !user) return;
         try {
-            const postContents = await Promise.all(posts.map(async (post) => {
-                const postRef = db.collection("posts").doc(post.id)
-                const postSnap = await postRef.get();
-                const data = postSnap.data()
+            const postContents = await Promise.all(postCollection.map(async (post) => {
+                const postReference = await db.collection("posts").doc(post.id).get();
+                const data = postReference.data()
 
-                if (!postSnap.exists() || !data) return;
+                if (!postReference.exists() || !data) return;
 
                 return { id: post.id, content: data.content, caption: data.caption, mode: data.mode, userID: user.uid, thumbnail: data.thumbnail };
 
@@ -85,20 +88,20 @@ const Page = () => {
         } catch (error) {
             console.error("Error fetching post content:", error);
         }
-    }, [user, posts]);
+    }, [user, postCollection]);
 
     const onRefresh = async () => {
         setRefreshing(true);
         await fetchUserPosts();
-        await getBioInfo()
+        await fetchBio()
         setRefreshing(false);
     }
 
     useEffect(() => {
-        getPostContent().catch((err) => {
+        fetchPostContent().catch((err) => {
             console.error(err);
         })
-    }, [posts, getPostContent]);
+    }, [postCollection, fetchPostContent]);
 
     useEffect(() => {
         const values = Array.from({ length: totalCharacters.length}, () => new Animated.Value(0));
@@ -142,30 +145,43 @@ const Page = () => {
         }
     }, [refreshing, runAnimation]);
 
-    const getBioInfo = useCallback(async () => {
+    const fetchBio = useCallback(async () => {
         if (!user) return;
-        const getInfo = await db.collection("users").doc(user.uid).get()
-        const data = getInfo.data()
-        if (!getInfo.exists() || !data) return;
+        const bioReference = await db
+            .collection("users")
+            .doc(user.uid)
+            .get()
+
+        const data = bioReference.data()
+        if (!bioReference.exists() || !data) return;
 
         setBio(data.bio);
         setFirstName(data.firstName);
         setLastName(data.lastName);
 
-        const fetchFriendCount = await db.collection("users").doc(user.uid).collection("friends").get();
-        const fetchPostCount = await db.collection("users").doc(user.uid).collection("posts").get();
+        const friendCountReference = await db
+            .collection("users")
+            .doc(user.uid)
+            .collection("friends")
+            .get();
 
-        setNumFriends(fetchFriendCount.size);
-        setNumPosts(fetchPostCount.size);
+        const postCountReference = await db
+            .collection("users")
+            .doc(user.uid)
+            .collection("posts")
+            .get();
+
+        setNumberOfFriends(friendCountReference.size);
+        setNumberOfPosts(postCountReference.size);
 
     },[user]);
 
     useEffect(() => {
-        const getInfo = async () => {
-            await getBioInfo()
+        const fetchUserInfo = async () => {
+            await fetchBio()
             await fetchUserPosts();
         }
-        getInfo().catch((err) => {
+        fetchUserInfo().catch((err) => {
             console.error(err);
         });
     }, [fetchUserPosts]);
@@ -177,7 +193,9 @@ const Page = () => {
     const renderTopBar = () => (
         <View style={styles.topBar}>
             <View style={styles.backArrowName}>
-                <Text style={styles.topBarText}>{user?.displayName}</Text>
+                <Text style={styles.topBarText}>
+                    {user?.displayName}
+                </Text>
             </View>
             <View>
                 <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -231,17 +249,29 @@ const Page = () => {
                     </View>
                 </View>
             </TouchableOpacity>
+
             <View style={styles.pfpSeparator}></View>
+
             <View style={styles.infoBox}>
                 <View style={styles.flexDirectionRow}>
                     <View style={styles.flexDirectionRow}>
-                        <Text style={styles.infoText}>{numPosts}</Text>
-                        <Text style={styles.genericText}> posts</Text>
+                        <Text style={styles.infoText}>
+                            {numberOfPosts}
+                        </Text>
+                        <Text style={styles.genericText}>
+                            posts
+                        </Text>
                     </View>
+
                     <View style={styles.pfpSeparator}></View>
+
                     <View style={styles.flexDirectionRow}>
-                        <Text style={styles.infoText}>{numFriends}</Text>
-                        <Text style={styles.genericText}> friends</Text>
+                        <Text style={styles.infoText}>
+                            {numberOfFriends}
+                        </Text>
+                        <Text style={styles.genericText}>
+                            friends
+                        </Text>
                     </View>
                 </View>
             </View>
@@ -251,10 +281,15 @@ const Page = () => {
     const renderBio = () => (
         <View style={styles.bioAndButtonBox}>
             <View style={styles.bioBox}>
-                <Text style={styles.genericText}>{bio}</Text>
+                <Text style={styles.genericText}>
+                    {bio}
+                </Text>
             </View>
+
             <TouchableOpacity style={styles.editContainer} onPress={() => router.push("/account/editProfile")}>
-                <Text style={styles.nameText}>Edit profile</Text>
+                <Text style={styles.nameText}>
+                    Edit profile
+                </Text>
             </TouchableOpacity>
 
         </View>

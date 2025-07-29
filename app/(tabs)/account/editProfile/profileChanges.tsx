@@ -10,7 +10,6 @@ import {
 import { auth, db } from '@/firebase';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import {deleteDoc} from "@react-native-firebase/firestore";
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,7 +45,7 @@ export default function Page() {
                         .collection("displayName")
                         .doc(currentUserInformationString);
 
-                    await deleteDoc(oldDocumentReference);
+                    await oldDocumentReference.delete();
 
                     await newDocumentReference.set({
                         uid: user.uid,

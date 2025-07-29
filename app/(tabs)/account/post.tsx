@@ -24,11 +24,6 @@ const Page = () => {
     const [videoUri, setVideoUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // useEffect(() => {
-    //     console.log("content: ", content);
-    //     console.log("videoUri: ", videoUri);
-    //     console.log("rawPostID: ", rawPostID);
-    // }, [content, videoUri, rawPostID]);
 
     const getSignedDownloadUrl = async (filename: string): Promise<string | undefined> => {
         try {
