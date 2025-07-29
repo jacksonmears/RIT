@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebase';
+import firestore from '@react-native-firebase/firestore';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
@@ -48,7 +49,7 @@ export default function SignUpPage() {
 
         setLoading(true);
         try {
-            const nameDoc = await db()
+            const nameDoc = await db
                 .collection('displayName')
                 .doc(username.toLowerCase())
                 .get();
@@ -63,7 +64,7 @@ export default function SignUpPage() {
 
             await user.updateProfile({ displayName: username });
 
-            await db()
+            await db
                 .collection('users')
                 .doc(user.uid)
                 .set({
@@ -75,10 +76,10 @@ export default function SignUpPage() {
                     photoURL: null,
                     friendRequests: [],
                     groupRequests: [],
-                    joined: db.FieldValue.serverTimestamp(),
+                    joined: firestore.FieldValue.serverTimestamp(),
                 });
 
-            await db()
+            await db
                 .collection('displayName')
                 .doc(username.toLowerCase())
                 .set({

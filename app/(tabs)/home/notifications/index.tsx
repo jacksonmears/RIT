@@ -1,6 +1,7 @@
 import { Text, View, StyleSheet, FlatList, Dimensions,TouchableOpacity, Image } from "react-native";
 import React, { useState, useEffect } from "react";
 import { auth, db } from '@/firebase';
+import firestore from '@react-native-firebase/firestore';
 import { useRouter } from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Entypo from '@expo/vector-icons/Entypo';
@@ -38,7 +39,7 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const userDoc = await db().collection("users").doc(user.uid).get();
+            const userDoc = await db.collection("users").doc(user.uid).get();
             const data = userDoc.data();
             if (!userDoc.exists() || !data) return;
 
@@ -47,7 +48,7 @@ const Page = () => {
             try {
                 const detailed = await Promise.all(
                     incomingIds.map(async (groupId) => {
-                        const groupDoc = await db().collection("groups").doc(groupId).get();
+                        const groupDoc = await db.collection("groups").doc(groupId).get();
                         const Data = groupDoc.data();
                         if (!Data || !groupDoc.exists()) return;
                         return {
@@ -74,14 +75,14 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const userDoc = await db().collection("users").doc(user.uid).get();
+            const userDoc = await db.collection("users").doc(user.uid).get();
             const filler= userDoc.data();
             if (!userDoc.exists() || !filler) return;
             const friendRequests: string[] = filler.friendRequests;
 
             try {
                 const raw = await Promise.all(friendRequests.map(async (friend) => {
-                    const friendDoc = await db().collection("users").doc(friend).get();
+                    const friendDoc = await db.collection("users").doc(friend).get();
                     const data = friendDoc.data();
                     if (!friendDoc.exists() || !data) return;
                     return {id: friend, name: data.displayName, photoURL: data.photoURL};
@@ -103,7 +104,7 @@ const Page = () => {
     const acceptGroupInvite = async (groupId: string) => {
         if (!user) return;
         try {
-            const groupNameRef =  db().collection("groups").doc(groupId)
+            const groupNameRef =  db.collection("groups").doc(groupId)
             const docSnap = await groupNameRef.get();
             const data = docSnap.data();
             if (!docSnap.exists() || !data) return;
@@ -136,12 +137,12 @@ const Page = () => {
     const addGroupUserSide = async (groupID: string, groupName: string) => {
         if (!user) return;
 
-        const docRef = db().collection("users").doc(user.uid).collection("groups").doc(groupID);
+        const docRef = db.collection("users").doc(user.uid).collection("groups").doc(groupID);
 
         try {
             await docRef.set({
                 name: groupName,
-                timestamp: db.FieldValue.serverTimestamp(),
+                timestamp: firestore.FieldValue.serverTimestamp(),
                 favorite: false
             });
 
@@ -153,11 +154,11 @@ const Page = () => {
     const addGroupCollectionSide = async (groupID: string) => {
         if (!user) return;
 
-        const colRef = db().collection("groups").doc(groupID).collection("users").doc(user.uid);
+        const colRef = db.collection("groups").doc(groupID).collection("users").doc(user.uid);
         try {
             await colRef.set({
                 name: user.displayName,
-                timestamp: db.FieldValue.serverTimestamp(),
+                timestamp: firestore.FieldValue.serverTimestamp(),
             });
         } catch (err) {
             console.error(err);
@@ -169,16 +170,16 @@ const Page = () => {
 
     const acceptFriend = async (displayName: string) => {
         if (user) {
-            const friendRef = await db().collection("displayName").doc(displayName).get();
+            const friendRef = await db.collection("displayName").doc(displayName).get();
             const friend= friendRef.data();
             if (!friendRef.exists() || !friend) return;
 
 
-            const userFriendDocRef = db().collection("users").doc(user.uid).collection("friends").doc(friend.uid);
-            const friendFriendDocRef = db().collection("users").doc(friend.uid).collection("friends").doc(user.uid);
+            const userFriendDocRef = db.collection("users").doc(user.uid).collection("friends").doc(friend.uid);
+            const friendFriendDocRef = db.collection("users").doc(friend.uid).collection("friends").doc(user.uid);
 
             try {
-                const friendData = { timestamp: db.FieldValue.serverTimestamp(),};
+                const friendData = { timestamp: firestore.FieldValue.serverTimestamp(),};
                 await userFriendDocRef.set(friendData);
                 await friendFriendDocRef.set(friendData);
                 await removeFriendRequest(friend.uid);
@@ -192,7 +193,7 @@ const Page = () => {
     const removeFriendRequest = async (friend: string) => {
         if (!user) return;
 
-        const docRef = db().collection("users").doc(user.uid);
+        const docRef = db.collection("users").doc(user.uid);
         const getData = await docRef.get();
         const data = getData.data();
         if (!data) return;
@@ -214,7 +215,7 @@ const Page = () => {
     const removeGroupInvite = async (groupID: string) => {
         if (!user) return;
 
-        const docRef = db().collection("users").doc(user.uid);
+        const docRef = db.collection("users").doc(user.uid);
         const getData = await docRef.get();
         const data = getData.data();
         if (!data) return;

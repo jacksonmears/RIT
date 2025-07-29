@@ -62,9 +62,9 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             if (!user) return;
 
             try {
-                const likeCount = await db().collection("posts").doc(post.id).collection("likes").get();
+                const likeCount = await db.collection("posts").doc(post.id).collection("likes").get();
                 setNumLikes(likeCount.size)
-                const likeCheck = await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
+                const likeCheck = await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
                 const liked = likeCheck.exists();
                 setLikeStatus(liked);
             } catch (error) {
@@ -82,7 +82,7 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const likeBeta = async () => {
         if (!user) return;
         if (!likeStatus) try {
-            await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).set({
+            await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).set({
                 likedAt: new Date().toISOString(),
             });
             setLikeStatus(true);
@@ -90,7 +90,7 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             console.error(error)
         }
         else try {
-            await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).delete();
+            await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).delete();
             setLikeStatus(false);
         } catch (err) {
             console.error("Error checking like status:", err);

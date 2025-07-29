@@ -83,7 +83,7 @@ export default function Page() {
                         try {
                             await deleteProfileImageAsync();
                             await clearAuthUserProfilePhoto();
-                            await db().collection("users").doc(user.uid).update({
+                            await db.collection("users").doc(user.uid).update({
                                 photoURL: "",
                             })
                             setLocalUri(null);

@@ -23,18 +23,23 @@ export default function Page(){
     const isFocused = useIsFocused();
 
 
-    const getUserInfo = useCallback(async () => {
+    const fetchUserInfo = useCallback(async () => {
         if (!user) return;
-        const ref = await db().collection('users').doc(user.uid).get();
-        if (!ref.exists) return;
 
-        const data = ref.data();
-        if (!data) return;
+        const documentReference = await db
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (!documentReference.exists) return;
+
+        const documentData = documentReference.data();
+        if (!documentData) return;
+
         try {
-            setFirstName(data.firstName);
-            setLastName(data.lastName);
-            setUsername(data.displayName);
-            setBio(data.bio || "Empty Bio");
+            setFirstName(documentData.firstName);
+            setLastName(documentData.lastName);
+            setUsername(documentData.displayName);
+            setBio(documentData.bio || "Empty Bio");
         } catch (e) {
             console.error(e);
         }
@@ -42,39 +47,41 @@ export default function Page(){
 
     useEffect(() => {
         if (isFocused) {
-            getUserInfo().catch((err) => {
+            fetchUserInfo().catch((err) => {
                 console.error(err);
             })
         }
-    }, [isFocused, getUserInfo]);
+    }, [isFocused, fetchUserInfo]);
 
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
-                <View style={styles.backArrowName}>
-                    <TouchableOpacity onPress={() => router.push('/account')}>
-                        <MaterialIcons name="arrow-back-ios-new" size={height/40} color="#D3D3FF" />
-                    </TouchableOpacity>
-                    <Text style={[styles.topBarText, {left: width/3}]}>Edit Profile</Text>
+                <TouchableOpacity onPress={() => router.push('/account')}>
+                    <MaterialIcons name="arrow-back-ios-new" size={height/40} color="#D3D3FF" />
+                </TouchableOpacity>
+
+                <View style={styles.editProfileTextContainer}>
+                    <Text style={styles.editProfileText}>Edit Profile</Text>
                 </View>
             </View>
-            <View style={styles.variablesToChange}>
-                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/nameChange', params: {changingVisual: 'First Name', changingFirebase: 'firstName', rawInput: firstName}})}>
-                    <Text style={styles.textTitle}>First Name</Text>
 
+            <View>
+                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/profileChanges', params: {changeType: 'First Name', firebaseID: 'firstName', currentUserInformation: firstName}})}>
+                    <Text style={styles.textTitle}>First Name</Text>
                     <Text style={styles.textVariable}>{firstName}</Text>
+
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/nameChange', params: {changingVisual: 'Last Name', changingFirebase: 'lastName', rawInput: lastName}})}>
+                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/profileChanges', params: {changeType: 'Last Name', firebaseID: 'lastName', currentUserInformation: lastName}})}>
                     <Text style={styles.textTitle}>Last Name</Text>
                     <Text style={styles.textVariable}>{lastName}</Text>
 
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/nameChange', params: {changingVisual: 'Username', changingFirebase: 'displayName', rawInput: username}})}>
+                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/profileChanges', params: {changeType: 'Username', firebaseID: 'displayName', currentUserInformation: username}})}>
                     <Text style={styles.textTitle}>Username</Text>
                     <Text style={styles.textVariable}>{username}</Text>
 
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/bioChange', params: {changingVisual: 'Bio', changingFirebase: 'bio', rawInput: bio}})}>
+                <TouchableOpacity style={styles.textContainer} onPress={() => router.push({pathname: '/account/editProfile/profileChanges', params: {changeType: 'Bio', firebaseID: 'bio', currentUserInformation: bio}})}>
                     <Text style={styles.textTitle}>Bio</Text>
                     <Text style={styles.textVariable}>{bio}</Text>
 
@@ -89,28 +96,27 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'black',
     },
-    test: {
-        color: 'white',
-    },
     topBar: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         paddingHorizontal: width/20,
         borderBottomWidth: height/1000,
         borderBottomColor: "grey",
         alignItems: 'center',
         height: height/18
     },
-    topBarText: {
+    editProfileText: {
         color: "#D3D3FF",
-        fontSize: height/50
+        fontSize: height/50,
+        position: 'absolute',
+    },
+    editProfileTextContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     backArrowName: {
         flexDirection: 'row',
         alignItems: "center",
-    },
-    variablesToChange: {
-
     },
     textTitle: {
         color: 'white',
@@ -121,7 +127,6 @@ const styles = StyleSheet.create({
         paddingVertical: height/75,
         flexDirection: 'row',
     },
-
     textVariable: {
         color: 'white',
         marginLeft: width/10,
@@ -130,5 +135,4 @@ const styles = StyleSheet.create({
         width: width*0.6,
         marginRight: width/50
     }
-
 });

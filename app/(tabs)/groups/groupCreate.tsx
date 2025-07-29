@@ -10,7 +10,8 @@ import {
     Dimensions,
 } from 'react-native';
 import React, {useCallback, useEffect, useState} from "react";
-import { db, auth } from "@/firebase"
+import { db, auth } from "@/firebase";
+import firestore from '@react-native-firebase/firestore';
 import {useRouter} from 'expo-router';
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -38,7 +39,7 @@ const Page = () => {
             if (!user) return;
 
             try {
-                const friendSnap = await db().collection("users").doc(user.uid).collection("friends").get();
+                const friendSnap = await db.collection("users").doc(user.uid).collection("friends").get();
                 let friendIds: string[] = [];
                 friendSnap.forEach((doc) => {
                     friendIds.push(doc.id);
@@ -61,7 +62,7 @@ const Page = () => {
         try {
             const raw = await Promise.all(
                 friendsID.map(async (f) => {
-                    const docSnap = await db().collection("users").doc(f).get();
+                    const docSnap = await db.collection("users").doc(f).get();
                     const data = docSnap.data();
                     if (!docSnap.exists() || !data) return;
 
@@ -86,9 +87,9 @@ const Page = () => {
     const createGroup = async () => {
         if (!user || !groupName) return;
         try {
-            const docRef = await db().collection("groups").add({
+            const docRef = await db.collection("groups").add({
                 name: groupName,
-                timestamp: db.FieldValue.serverTimestamp(),
+                timestamp: firestore.FieldValue.serverTimestamp(),
                 creator: user.uid
             });
 
@@ -124,14 +125,14 @@ const Page = () => {
         if (!user || !groupName) return;
 
         try {
-            const docRef = db().collection("users").doc(user.uid).collection("groups").doc(groupID);
-            const docSnap = await db().collection("users").doc(user.uid).collection("groups").doc(groupID).get();
+            const docRef = db.collection("users").doc(user.uid).collection("groups").doc(groupID);
+            const docSnap = await db.collection("users").doc(user.uid).collection("groups").doc(groupID).get();
 
             if (docSnap.exists()) return;
 
             await docRef.set({
                 name: groupName,
-                timestamp: db.FieldValue.serverTimestamp(),
+                timestamp: firestore.FieldValue.serverTimestamp(),
                 favorite: false
             })
         } catch (err) {
@@ -142,7 +143,7 @@ const Page = () => {
     const sendRequest = async (friend: string, groupID: string | undefined) => {
         if (!user || !friend  || !groupID) return;
          try{
-            const docRef = db().collection("users").doc(friend);
+            const docRef = db.collection("users").doc(friend);
             const docSnap = await docRef.get();
             const data = docSnap.data();
             if (!docSnap.exists() || !data) return;
@@ -162,10 +163,10 @@ const Page = () => {
         if (!user || !groupID) return;
 
         try {
-            const colRef = db().collection("groups").doc(groupID).collection("users").doc(user.uid);
+            const colRef = db.collection("groups").doc(groupID).collection("users").doc(user.uid);
             await colRef.set({
                 name: user.displayName,
-                timestamp: db.FieldValue.serverTimestamp(),
+                timestamp: firestore.FieldValue.serverTimestamp(),
             })
         } catch(err) {
             console.error(err);

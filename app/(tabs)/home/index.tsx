@@ -49,7 +49,7 @@ const Page = () => {
     useEffect(() => {
         if (!user) return;
 
-        const snapshot = db().collection("users").doc(user.uid).onSnapshot(() => {
+        const snapshot = db.collection("users").doc(user.uid).onSnapshot(() => {
             getNotifications().catch((err) => {
                 console.error("Error fetching notifications:", err);
             });
@@ -122,7 +122,7 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const friendSnap = await db().collection("users").doc(user.uid).collection("friends").get();
+            const friendSnap = await db.collection("users").doc(user.uid).collection("friends").get();
             let friendIds: string[] = [];
 
             friendSnap.forEach((doc) => {
@@ -140,7 +140,7 @@ const Page = () => {
 
         try  {
             for (const friendId of friends) {
-                const q = db().collection("users").doc(friendId).collection("posts").orderBy("timestamp", "desc").limit(1);
+                const q = db.collection("users").doc(friendId).collection("posts").orderBy("timestamp", "desc").limit(1);
 
                 const snapshot = await q.get();
 
@@ -158,7 +158,7 @@ const Page = () => {
 
     const getNotifications = async () => {
         if (!user) return;
-        const userInfo = await db().collection("users").doc(user.uid).get();
+        const userInfo = await db.collection("users").doc(user.uid).get();
         const data = userInfo.data();
         if (!userInfo.exists() || !data) return;
 
@@ -180,7 +180,7 @@ const Page = () => {
         try {
             isRefreshingPosts && setIsLoading(true);
             const raw = await Promise.all(postIds.map(async (post) => {
-                const postRef = db().collection("posts").doc(post);
+                const postRef = db.collection("posts").doc(post);
                 const postSnap = await postRef.get();
                 const data =postSnap.data();
                 if (!postSnap.exists() || !data) return null;
@@ -188,7 +188,7 @@ const Page = () => {
 
                 const userID = data.sender_id;
                 const mode = data.mode;
-                const userInfo = await db().collection("users").doc(userID).get();
+                const userInfo = await db.collection("users").doc(userID).get();
                 let userName = ''
                 let pfp = ''
                 const Data = userInfo.data()

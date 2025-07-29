@@ -61,7 +61,7 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
     const deleteCollection = async (collectionPath: string, batchSize: number) => {
         if (!collectionPath || !batchSize) return;
 
-        const collectionRef = db().collection("posts").doc(post.id).collection(collectionPath);
+        const collectionRef = db.collection("posts").doc(post.id).collection(collectionPath);
         while (true) {
             try {
                 const q = collectionRef.orderBy("timestamp").limit(batchSize);
@@ -82,8 +82,8 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
         if (!user) return;
 
         const dummyPostID = post.id;
-        const postRef = db().collection("posts").doc(dummyPostID);
-        const userRef = db().collection("users").doc(user.uid).collection("posts").doc(dummyPostID);
+        const postRef = db.collection("posts").doc(dummyPostID);
+        const userRef = db.collection("users").doc(user.uid).collection("posts").doc(dummyPostID);
         const snapshot = await postRef.collection("groups").get();
         const groupIDs = snapshot.docs.map((doc) => doc.id);
         const videoRef = storage().ref(`uploads/${dummyPostID}.mov`);
@@ -91,7 +91,7 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
         try {
             await Promise.all(
                 groupIDs.map(async (groupID) => {
-                    await db().collection("groups").doc(groupID).collection("messages").doc(dummyPostID).delete();
+                    await db.collection("groups").doc(groupID).collection("messages").doc(dummyPostID).delete();
                 })
             );
             await Promise.all([

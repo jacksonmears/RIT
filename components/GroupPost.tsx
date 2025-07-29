@@ -63,7 +63,7 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
             if (!user) return;
 
             try {
-                const likeCheck = await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
+                const likeCheck = await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
                 const liked = likeCheck.exists();
                 setLikeStatus(liked);
             } catch (error) {

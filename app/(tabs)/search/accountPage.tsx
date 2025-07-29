@@ -42,7 +42,7 @@ const Page = () => {
     const fetchUserPosts = useCallback(async () => {
         if (!friend) return;
         try {
-            const postsRef = db().collection("users").doc(friend).collection("posts");
+            const postsRef = db.collection("users").doc(friend).collection("posts");
             const orderedQuery = postsRef.orderBy("timestamp", "asc");
             const usersDocs = await orderedQuery.get();
 
@@ -67,13 +67,13 @@ const Page = () => {
 
     const fetchFriendStatus = useCallback(async () => {
         if (!user || !friend) return;
-        const friendsRef = await db().collection("users").doc(user.uid).collection("friends").doc(friend).get();
+        const friendsRef = await db.collection("users").doc(user.uid).collection("friends").doc(friend).get();
         if (friendsRef.exists()) {
             setFriendStatus(true);
         }
         else if (user.uid === friend) setFriendStatus(true);
         else {
-            const friendReqRef = await db().collection("users").doc(friend).get();
+            const friendReqRef = await db.collection("users").doc(friend).get();
             const data = friendReqRef.data();
             if (!friendReqRef.exists() || !data) return;
 
@@ -83,7 +83,7 @@ const Page = () => {
 
     const getBioInfo = useCallback(async () => {
         if (!friend) return;
-        const getInfo = await db().collection("users").doc(friend).get();
+        const getInfo = await db.collection("users").doc(friend).get();
         const data = getInfo.data()
         if (!getInfo.exists() || !data) return;
 
@@ -92,8 +92,8 @@ const Page = () => {
         setFirstName(data.firstName);
         setLastName(data.lastName);
 
-        const fetchFriendCount = await db().collection("users").doc(friend).collection("friends").get();
-        const fetchPostCount = await db().collection("users").doc(friend).collection("posts").get();
+        const fetchFriendCount = await db.collection("users").doc(friend).collection("friends").get();
+        const fetchPostCount = await db.collection("users").doc(friend).collection("posts").get();
 
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);
@@ -105,7 +105,7 @@ const Page = () => {
         if (!user) return;
         try {
             if (friend === '' || user.uid === friend) return;
-            const docRef = db().collection("users").doc(friend);
+            const docRef = db.collection("users").doc(friend);
             const docSnap = await docRef.get();
             const friendRequests = docSnap.data()?.friendRequests || [];
             if (docSnap.exists()) {
@@ -125,7 +125,7 @@ const Page = () => {
         if (!posts) return;
         try {
             const raw = await Promise.all(posts.map(async (post) => {
-                const postRef = db().collection("posts").doc(post.id);
+                const postRef = db.collection("posts").doc(post.id);
                 const postSnap = await postRef.get();
                 const data = postSnap.data();
 

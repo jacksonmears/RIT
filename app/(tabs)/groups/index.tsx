@@ -28,7 +28,7 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const querySnapshot = await db()
+            const querySnapshot = await db
                 .collection("users")
                 .doc(user.uid)
                 .collection("groups")
@@ -63,7 +63,7 @@ const Page = () => {
         );
 
         try {
-            await db()
+            await db
                 .collection("users")
                 .doc(user?.uid)
                 .collection("groups")
@@ -82,7 +82,7 @@ const Page = () => {
 
 
     const handleDelete = async (item: GroupType) => {
-        await db()
+        await db
             .collection("users")
             .doc(user?.uid)
             .collection("groups")

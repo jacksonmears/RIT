@@ -38,7 +38,7 @@ const Page = () => {
             if (!user) return;
 
             try {
-                const friendSnap = await db().collection("users").doc(user.uid).collection("friends").get();
+                const friendSnap = await db.collection("users").doc(user.uid).collection("friends").get();
                 if (friendSnap.empty) return;
 
                 setFriendsID(friendSnap.docs.map((doc) => doc.id));
@@ -60,8 +60,8 @@ const Page = () => {
         try {
             const friendUsernames: FriendType[] = [];
             for (const id of friendsID) {
-                const docSnap = await db().collection("users").doc(id).get();
-                const friendsRef = await db().collection("groups").doc(groupIDString).collection("users").doc(id).get();
+                const docSnap = await db.collection("users").doc(id).get();
+                const friendsRef = await db.collection("groups").doc(groupIDString).collection("users").doc(id).get();
                 const data = docSnap.data();
                 if (!friendsRef.exists() && docSnap.exists() && data && !data.groupRequests.includes(groupIDString)) {
                     friendUsernames.push({id: id, displayName: data.displayName, photoURL: data.photoURL});
@@ -122,7 +122,7 @@ const Page = () => {
         if (!user || !friend) return;
 
         try {
-            const docRef = db().collection("users").doc(friend);
+            const docRef = db.collection("users").doc(friend);
             const docSnap = await docRef.get();
             const data = docSnap.data();
             if (!docSnap.exists() || !data) return;

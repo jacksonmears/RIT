@@ -10,6 +10,7 @@ import {
     Animated
 } from 'react-native';
 import { auth, db } from '@/firebase';
+import firestore from '@react-native-firebase/firestore';
 import { useFocusEffect} from '@react-navigation/native';
 import { useRouter } from 'expo-router'
 import AccountPost from "../../../components/AccountPost";
@@ -45,18 +46,18 @@ const Page = () => {
     const fetchUserPosts = useCallback(async () => {
         if (!user) return;
         try {
-            const postsRef = db().collection("users").doc(user.uid).collection("posts")
+            const postsRef = db.collection("users").doc(user.uid).collection("posts")
             const orderedQuery = postsRef.orderBy("timestamp", "asc")
             const usersDocs = await orderedQuery.get();
 
-            const userPfpRef = await db().collection("users").doc(user.uid).get()
+            const userPfpRef = await db.collection("users").doc(user.uid).get()
             const data = userPfpRef.data()
             if (!userPfpRef.exists() || !data) return;
             setPfp(data.photoURL)
 
             const postList = usersDocs.docs.map((doc) => ({
                 id: doc.id,
-                timestamp: db.FieldValue.serverTimestamp(),
+                timestamp: firestore.FieldValue.serverTimestamp(),
             }));
 
             setPosts(postList);
@@ -69,7 +70,7 @@ const Page = () => {
         if (!posts || !user) return;
         try {
             const postContents = await Promise.all(posts.map(async (post) => {
-                const postRef = db().collection("posts").doc(post.id)
+                const postRef = db.collection("posts").doc(post.id)
                 const postSnap = await postRef.get();
                 const data = postSnap.data()
 
@@ -143,7 +144,7 @@ const Page = () => {
 
     const getBioInfo = useCallback(async () => {
         if (!user) return;
-        const getInfo = await db().collection("users").doc(user.uid).get()
+        const getInfo = await db.collection("users").doc(user.uid).get()
         const data = getInfo.data()
         if (!getInfo.exists() || !data) return;
 
@@ -151,8 +152,8 @@ const Page = () => {
         setFirstName(data.firstName);
         setLastName(data.lastName);
 
-        const fetchFriendCount = await db().collection("users").doc(user.uid).collection("friends").get();
-        const fetchPostCount = await db().collection("users").doc(user.uid).collection("posts").get();
+        const fetchFriendCount = await db.collection("users").doc(user.uid).collection("friends").get();
+        const fetchPostCount = await db.collection("users").doc(user.uid).collection("posts").get();
 
         setNumFriends(fetchFriendCount.size);
         setNumPosts(fetchPostCount.size);

@@ -62,7 +62,7 @@ const Index = () => {
     const fetchTotalMessageCount = useCallback(async () => {
         if (!groupIDString) return;
         try {
-            const countSnapshot = await db()
+            const countSnapshot = await db
                 .collection("groups")
                 .doc(groupIDString)
                 .collection("messages")
@@ -78,7 +78,7 @@ const Index = () => {
     useEffect(() => {
         const fetchGroupMembers = async () => {
             try {
-                const membersSnapshot = await db()
+                const membersSnapshot = await db
                     .collection("groups")
                     .doc(groupIDString)
                     .collection("users")
@@ -86,7 +86,7 @@ const Index = () => {
 
                 const memberIDs = membersSnapshot.docs.map(doc => doc.id);
                 const userPromises = memberIDs.map(async (id) => {
-                    const userDoc = await db().collection("users").doc(id).get();
+                    const userDoc = await db.collection("users").doc(id).get();
                     const data = userDoc.data();
                     if (!data) return null;
                     return {
@@ -121,7 +121,7 @@ const Index = () => {
 
         fetchTotalMessageCount().catch(err => console.error("Failed to fetch total message count:", err));
 
-        const unsubscribe = db()
+        const unsubscribe = db
             .collection("groups")
             .doc(groupIDString)
             .collection("messages")
@@ -202,7 +202,7 @@ const Index = () => {
             setLoadingMore(true);
             setShowLoadingIndicator(true);
 
-            const snapshot = await db()
+            const snapshot = await db
                 .collection("groups")
                 .doc(groupIDString)
                 .collection("messages")
@@ -256,7 +256,7 @@ const Index = () => {
         if (!user || message.trim().length === 0) return;
 
         try {
-            await db()
+            await db
                 .collection("groups")
                 .doc(groupIDString)
                 .collection("messages")

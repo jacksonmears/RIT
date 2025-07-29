@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
 import { auth, db } from '@/firebase';
+import firestore from '@react-native-firebase/firestore';
 import { Checkbox } from 'react-native-paper';
 import React, { useEffect, useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -31,7 +32,7 @@ const Page = () => {
 
         const getGroups = async () => {
             try {
-                const querySnapshot = await db().collection("users").doc(user.uid).collection("groups").get();
+                const querySnapshot = await db.collection("users").doc(user.uid).collection("groups").get();
                 const groupList = querySnapshot.docs.map(doc => {
                     const data = doc.data();
                     return {
@@ -97,19 +98,19 @@ const Page = () => {
         }
 
         try {
-            const postRef = await db().collection("posts").add({
+            const postRef = await db.collection("posts").add({
                 sender_id: user.uid,
                 mode,
                 caption,
                 content: null,
                 thumbnail: null,
-                timestamp: db.FieldValue.serverTimestamp(),
+                timestamp: firestore.FieldValue.serverTimestamp(),
             });
 
             const postID = postRef.id;
 
-            await db().collection("users").doc(user.uid).collection("posts").doc(postID).set({
-                timestamp: db.FieldValue.serverTimestamp(),
+            await db.collection("users").doc(user.uid).collection("posts").doc(postID).set({
+                timestamp: firestore.FieldValue.serverTimestamp(),
             });
 
             await addPostToGroups(parsedGroups, postID, null, null);
@@ -126,13 +127,13 @@ const Page = () => {
                         return;
                     }
 
-                    await db().collection("posts").doc(postID).update({
+                    await db.collection("posts").doc(postID).update({
                         content: encodeURIComponent(postURL),
                         thumbnail: encodeURIComponent(thumbnailURL),
                     });
 
                     await Promise.all(parsedGroups.map(async (group) => {
-                        await db().collection("groups").doc(group.id).collection("messages").doc(postID).update({
+                        await db.collection("groups").doc(group.id).collection("messages").doc(postID).update({
                             content: encodeURIComponent(postURL),
                             thumbnail: encodeURIComponent(thumbnailURL),
                         });
@@ -232,16 +233,16 @@ const Page = () => {
         try {
             await Promise.all(
                 parsedGroups.map(async (group) => {
-                    await db().collection("groups").doc(group.id).collection("messages").doc(postID).set({
+                    await db.collection("groups").doc(group.id).collection("messages").doc(postID).set({
                         mode: mode,
                         sender_id: user.uid,
                         caption: caption,
-                        timestamp: db.FieldValue.serverTimestamp(),
+                        timestamp: firestore.FieldValue.serverTimestamp(),
                         content: postURL ? encodeURIComponent(postURL) : null,
                         thumbnail: thumbnailURL ? encodeURIComponent(thumbnailURL) : null,
                     });
-                    await db().collection("posts").doc(postID).collection("groups").doc(group.id).set({
-                        timestamp: db.FieldValue.serverTimestamp(),
+                    await db.collection("posts").doc(postID).collection("groups").doc(group.id).set({
+                        timestamp: firestore.FieldValue.serverTimestamp(),
                     });
                 })
             );

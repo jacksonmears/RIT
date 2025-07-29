@@ -38,7 +38,7 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const usersRef = db().collection("displayName").orderBy("lowerDisplayName").startAt(search.toLowerCase()).endAt(search.toLowerCase()+'\uf8ff').limit(10);
+            const usersRef = db.collection("displayName").orderBy("lowerDisplayName").startAt(search.toLowerCase()).endAt(search.toLowerCase()+'\uf8ff').limit(10);
 
 
             const querySnapshot = await usersRef.get();
@@ -48,7 +48,7 @@ const Page = () => {
                 const raw = await Promise.all(
                     querySnapshot.docs.map(async (docSnapshot) => {
                         const userId = docSnapshot.data().uid;
-                        const friendDoc = await db().collection("users").doc(userId).get();
+                        const friendDoc = await db.collection("users").doc(userId).get();
                         const data = friendDoc.data();
                         if (!friendDoc.exists() || !data) return;
 
