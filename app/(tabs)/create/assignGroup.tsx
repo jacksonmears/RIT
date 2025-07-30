@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
+import {View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Alert} from 'react-native';
 import { auth, db } from '@/firebase';
 import firestore from '@react-native-firebase/firestore';
 import { Checkbox } from 'react-native-paper';
@@ -17,12 +17,12 @@ type GroupType = {
 
 const Page = () => {
     const user = auth().currentUser;
-    const { fillerURI, fillerMode, fillerCaption, thumbnailUri } = useLocalSearchParams();
-    const caption = String(fillerCaption);
-    const thumbnail = String(thumbnailUri);
-    const localUri = String(fillerURI);
-    const mode = String(fillerMode);
-    const [groups, setGroups] = useState<GroupType[]>([]);
+    const { recapURI, mode, caption, thumbnailURI } = useLocalSearchParams();
+    const captionString = String(caption);
+    const thumbnailString = String(thumbnailURI);
+    const recapURIString = String(recapURI);
+    const modeString = String(mode);
+    const [userGroups, setUserGroups] = useState<GroupType[]>([]);
     const router = useRouter();
     const [selectedGroups, setSelectedGroups] = useState<Map<string, boolean>>(new Map());
     const [selectAll, setSelectAll] = useState<boolean>(false);
@@ -30,23 +30,28 @@ const Page = () => {
     useEffect(() => {
         if (!user) return;
 
-        const getGroups = async () => {
+        const fetchUserGroups = async () => {
             try {
-                const querySnapshot = await db.collection("users").doc(user.uid).collection("groups").get();
-                const groupList = querySnapshot.docs.map(doc => {
+                const queryUserGroups = await db
+                    .collection("users")
+                    .doc(user.uid)
+                    .collection("groups")
+                    .get();
+
+                const groupList = queryUserGroups.docs.map(doc => {
                     const data = doc.data();
                     return {
                         id: doc.id,
                         name: data.name || "Unnamed Group",
                     };
                 });
-                setGroups(groupList);
+                setUserGroups(groupList);
             } catch (err) {
                 console.error(err);
             }
         };
 
-        getGroups().catch(console.error);
+        fetchUserGroups().catch(console.error);
     }, [user]);
 
     const toggleSelection = (id: string) => {
@@ -63,14 +68,14 @@ const Page = () => {
         });
     };
 
-    const uploadThumbnail = async (postID: string, thumbnailUri: string): Promise<string | undefined> => {
-        if (!thumbnailUri) return;
+    const uploadThumbnail = async (postID: string, thumbnail: string): Promise<string | undefined> => {
+        if (!thumbnail) return;
 
         try {
             const signedURLs = await getSignedUploadUrl(postID, "photo");
             if (!signedURLs) return;
 
-            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, thumbnailUri, {
+            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, thumbnail, {
                 httpMethod: "PUT",
                 headers: { "Content-Type": "image/jpeg" },
             });
@@ -93,33 +98,40 @@ const Page = () => {
             .map((groupId) => ({ id: groupId }));
 
         if (parsedGroups.length === 0) {
-            console.warn("No groups selected");
+            Alert.alert("No groups selected");
             return;
         }
 
         try {
-            const postRef = await db.collection("posts").add({
+            const postReference = await db
+                .collection("posts")
+                .add({
                 sender_id: user.uid,
-                mode,
-                caption,
+                modeString,
+                captionString,
                 content: null,
                 thumbnail: null,
                 timestamp: firestore.FieldValue.serverTimestamp(),
             });
 
-            const postID = postRef.id;
+            const postID = postReference.id;
 
-            await db.collection("users").doc(user.uid).collection("posts").doc(postID).set({
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .collection("posts")
+                .doc(postID)
+                .set({
                 timestamp: firestore.FieldValue.serverTimestamp(),
             });
 
             await addPostToGroups(parsedGroups, postID, null, null);
 
-            const uploadFn = mode === "photo" ? uploadPhoto : uploadVideo;
+            const uploadFn = modeString === "photo" ? uploadPhoto : uploadVideo;
 
             Promise.all([
-                uploadFn(postID, localUri),
-                uploadThumbnail(postID, thumbnail),
+                uploadFn(postID, recapURIString),
+                uploadThumbnail(postID, thumbnailString),
             ])
                 .then(async ([postURL, thumbnailURL]) => {
                     if (!postURL || !thumbnailURL) {
@@ -127,13 +139,20 @@ const Page = () => {
                         return;
                     }
 
-                    await db.collection("posts").doc(postID).update({
+                    await db
+                        .collection("posts")
+                        .doc(postID)
+                        .update({
                         content: encodeURIComponent(postURL),
                         thumbnail: encodeURIComponent(thumbnailURL),
                     });
 
                     await Promise.all(parsedGroups.map(async (group) => {
-                        await db.collection("groups").doc(group.id).collection("messages").doc(postID).update({
+                        await db
+                            .collection("groups")
+                            .doc(group.id)
+                            .collection("messages")
+                            .doc(postID).update({
                             content: encodeURIComponent(postURL),
                             thumbnail: encodeURIComponent(thumbnailURL),
                         });
@@ -184,14 +203,14 @@ const Page = () => {
         }
     };
 
-    const uploadPhoto = async (postID: string, localUri: string): Promise<string | undefined> => {
-        if (!localUri) return;
+    const uploadPhoto = async (postID: string, recap: string): Promise<string | undefined> => {
+        if (!recap) return;
 
         try {
             const signedURLs = await getSignedUploadUrl(postID, "photo");
             if (!signedURLs) return;
 
-            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, localUri, {
+            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, recap, {
                 httpMethod: "PUT",
                 headers: { "Content-Type": "image/jpeg" },
             });
@@ -206,14 +225,14 @@ const Page = () => {
         }
     };
 
-    const uploadVideo = async (postID: string, localUri: string): Promise<string | undefined> => {
-        if (!localUri) return;
+    const uploadVideo = async (postID: string, recap: string): Promise<string | undefined> => {
+        if (!recap) return;
 
         try {
             const signedURLs = await getSignedUploadUrl(postID, "video");
             if (!signedURLs) return;
 
-            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, localUri, {
+            const uploadResult = await FileSystem.uploadAsync(signedURLs.uploadURL, recap, {
                 httpMethod: "PUT",
                 headers: { "Content-Type": "video/quicktime" },
             });
@@ -233,15 +252,25 @@ const Page = () => {
         try {
             await Promise.all(
                 parsedGroups.map(async (group) => {
-                    await db.collection("groups").doc(group.id).collection("messages").doc(postID).set({
-                        mode: mode,
+                    await db
+                        .collection("groups")
+                        .doc(group.id)
+                        .collection("messages")
+                        .doc(postID)
+                        .set({
+                        mode: modeString,
                         sender_id: user.uid,
-                        caption: caption,
+                        caption: captionString,
                         timestamp: firestore.FieldValue.serverTimestamp(),
                         content: postURL ? encodeURIComponent(postURL) : null,
                         thumbnail: thumbnailURL ? encodeURIComponent(thumbnailURL) : null,
                     });
-                    await db.collection("posts").doc(postID).collection("groups").doc(group.id).set({
+                    await db
+                        .collection("posts")
+                        .doc(postID)
+                        .collection("groups")
+                        .doc(group.id)
+                        .set({
                         timestamp: firestore.FieldValue.serverTimestamp(),
                     });
                 })
@@ -253,12 +282,12 @@ const Page = () => {
 
     const selectAllFunction = () => {
         const dummySelect = !selectAll;
-        if (!groups) return;
+        if (!userGroups) return;
 
         try {
             if (dummySelect) {
                 const next = new Map<string, boolean>();
-                groups.forEach(g => next.set(g.id, true));
+                userGroups.forEach(g => next.set(g.id, true));
                 setSelectedGroups(next);
             } else {
                 setSelectedGroups(new Map());
@@ -276,7 +305,9 @@ const Page = () => {
                     <TouchableOpacity onPress={() => router.back()}>
                         <Feather name="x" size={width / 17.5} color="#D3D3FF" />
                     </TouchableOpacity>
-                    {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
+                    {user && <Text style={styles.topBarText}>
+                        {user.displayName}
+                    </Text>}
                 </View>
                 {selectedGroups && (selectedGroups.size) === 0 ? (
                     <Ionicons name="send-outline" size={width / 15} color="#D3D3FF" />
@@ -290,7 +321,9 @@ const Page = () => {
             <View style={styles.groupContainer}>
                 <TouchableOpacity style={styles.groupRow} onPress={selectAllFunction}>
                     <View style={styles.backArrowName}>
-                        <Text style={styles.text}>{selectAll ? "unselect all" : "select all"}</Text>
+                        <Text style={styles.text}>
+                            {selectAll ? "unselect all" : "select all"}
+                        </Text>
                     </View>
                     <Checkbox
                         status={selectAll ? "checked" : "unchecked"}
@@ -301,13 +334,15 @@ const Page = () => {
 
             <FlatList
                 style={styles.groups}
-                data={groups}
+                data={userGroups}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <View style={styles.groupContainer}>
                         <TouchableOpacity onPress={() => toggleSelection(item.id)} style={styles.groupRow}>
                             <View style={styles.backArrowName}>
-                                <Text style={styles.text}>{item.name}</Text>
+                                <Text style={styles.text}>
+                                    {item.name}
+                                </Text>
                             </View>
                             {selectedGroups && (
                                 <Checkbox
