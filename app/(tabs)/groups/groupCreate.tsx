@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     FlatList,
     Image,
-    Dimensions,
+    Dimensions, Alert,
 } from 'react-native';
 import React, {useCallback, useEffect, useState} from "react";
 import { db, auth } from "@/firebase";
@@ -39,11 +39,13 @@ const Page = () => {
             if (!user) return;
 
             try {
-                const friendSnap = await db.collection("users").doc(user.uid).collection("friends").get();
-                let friendIds: string[] = [];
-                friendSnap.forEach((doc) => {
-                    friendIds.push(doc.id);
-                });
+                const friendReference = await db
+                    .collection("users")
+                    .doc(user.uid)
+                    .collection("friends")
+                    .get();
+
+                const friendIds = friendReference.docs.map(doc => doc.id);
                 setFriendsID(friendIds);
             } catch (err) {
                 console.error(err);
@@ -60,7 +62,7 @@ const Page = () => {
         if (!user || !friendsID || friendsID.length === 0) return;
 
         try {
-            const raw = await Promise.all(
+            const friendData = await Promise.all(
                 friendsID.map(async (f) => {
                     const docSnap = await db.collection("users").doc(f).get();
                     const data = docSnap.data();
@@ -69,8 +71,8 @@ const Page = () => {
                     return {id: f, displayName: data.displayName, photoURL: data.photoURL};
                 })
             )
-            const validPosts = raw.filter((f): f is FriendType => f !== null);
-            setFriends(validPosts);
+            const validFriendData = friendData.filter((f): f is FriendType => f !== null);
+            setFriends(validFriendData);
 
         } catch (error) {
             console.error("Error fetching friends' data:", error);
@@ -84,19 +86,22 @@ const Page = () => {
     }, [friendsID]);
 
 
-    const createGroup = async () => {
+    const createGroupID = async () => {
         if (!user || !groupName) return;
         try {
-            const docRef = await db.collection("groups").add({
-                name: groupName,
-                timestamp: firestore.FieldValue.serverTimestamp(),
-                creator: user.uid
+            const groupReference = await db
+                .collection("groups")
+                .add({
+                    name: groupName,
+                    timestamp: firestore.FieldValue.serverTimestamp(),
+                    creator: user.uid
             });
 
-            await addGroupUserSide(docRef.id);
-            await addGroupCollectionSide(docRef.id);
+            await addGroupUserSide(groupReference.id);
+            await addGroupCollectionSide(groupReference.id);
 
-            return docRef.id;
+            return groupReference.id;
+
         } catch (error) {
             console.error("Error creating group:", error);
         }
@@ -125,16 +130,30 @@ const Page = () => {
         if (!user || !groupName) return;
 
         try {
-            const docRef = db.collection("users").doc(user.uid).collection("groups").doc(groupID);
-            const docSnap = await db.collection("users").doc(user.uid).collection("groups").doc(groupID).get();
+            const groupReference = db
+                .collection("users")
+                .doc(user.uid)
+                .collection("groups")
+                .doc(groupID);
 
-            if (docSnap.exists()) return;
+            const groupData = await db
+                .collection("users")
+                .doc(user.uid)
+                .collection("groups")
+                .doc(groupID)
+                .get();
 
-            await docRef.set({
+            if (groupData.exists()) {
+                Alert.alert("Internal Error. GroupID already exists"); // really shouldn't ever hit this error i don't think
+                return;
+            }
+
+            await groupReference.set({
                 name: groupName,
                 timestamp: firestore.FieldValue.serverTimestamp(),
                 favorite: false
             })
+
         } catch (err) {
             console.error(err);
         }
@@ -143,17 +162,30 @@ const Page = () => {
     const sendRequest = async (friend: string, groupID: string | undefined) => {
         if (!user || !friend  || !groupID) return;
          try{
-            const docRef = db.collection("users").doc(friend);
-            const docSnap = await docRef.get();
-            const data = docSnap.data();
-            if (!docSnap.exists() || !data) return;
+            const friendReference = db
+                .collection("users")
+                .doc(friend);
 
-            const groupRequests = data.groupRequests;
+            const friendSnapShot = await friendReference.get();
+            const friendData = friendSnapShot.data();
+
+            if (!friendSnapShot.exists() || !friendData) return;
+
+            const groupRequests = friendData.groupRequests;
 
             if (groupRequests.includes(friend)) return;
+            if (friendSnapShot.exists()) await friendReference
+                .set({
+                    groupRequests: [...groupRequests, groupID]
+                    },
+                    { merge: true }
+                )
 
-            if (docSnap.exists()) await docRef.set({groupRequests: [...groupRequests, groupID] }, { merge: true })
-            else await docRef.set({ groupRequests: [groupID] })
+            else await friendReference
+                .set({
+                    groupRequests: [groupID]
+                })
+
         } catch (err) {
              console.error(err);
          }
@@ -163,8 +195,13 @@ const Page = () => {
         if (!user || !groupID) return;
 
         try {
-            const colRef = db.collection("groups").doc(groupID).collection("users").doc(user.uid);
-            await colRef.set({
+            const groupCollectionReference = db
+                .collection("groups")
+                .doc(groupID)
+                .collection("users")
+                .doc(user.uid);
+
+            await groupCollectionReference.set({
                 name: user.displayName,
                 timestamp: firestore.FieldValue.serverTimestamp(),
             })
@@ -173,11 +210,11 @@ const Page = () => {
         }
     };
 
-    const completeGroup = async () => {
+    const createGroup = async () => {
         if (!selectedGroups) return;
 
         try {
-            const groupID = await createGroup()
+            const groupID = await createGroupID()
             const selectedIds = [...selectedGroups.keys()];
 
             await Promise.all(selectedIds.map(id => sendRequest(id, groupID)));
@@ -186,6 +223,7 @@ const Page = () => {
 
             setSelectedGroups(null);
             router.back()
+
         } catch (err) {
             console.error(err);
         }
@@ -201,12 +239,14 @@ const Page = () => {
                     <TouchableOpacity onPress={() => router.back()}>
                         <Feather name="x" size={width / 17.5} color="#D3D3FF" />
                     </TouchableOpacity>
-                    {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
+                    {user && <Text style={styles.topBarText}>
+                        {user.displayName}
+                    </Text>}
                 </View>
                 {groupName.length === 0 ?
                     <Ionicons name="send-outline" size={width / 15} color="#D3D3FF" />
                     :
-                    <TouchableOpacity onPress={() => completeGroup()}>
+                    <TouchableOpacity onPress={() => createGroup()}>
                         <Ionicons name="send" size={width/15} color="#D3D3FF" />
                     </TouchableOpacity>
                 }
@@ -229,7 +269,7 @@ const Page = () => {
                     <View style={styles.groupContainer}>
                         <Pressable onPress={() => toggleSelection(item.id)} style={styles.groupRow}>
                             <View style={styles.backArrowName}>
-                                <Image   source={{ uri: item.photoURL || " "}} style={styles.avatar} />
+                                <Image source={{ uri: item.photoURL || " "}} style={styles.avatar} />
                                 <Text style={styles.text}>{item.displayName}</Text>
                             </View>
 
@@ -241,7 +281,11 @@ const Page = () => {
                     </View>
                 )}
                 contentContainerStyle={styles.listContent}
-                ListEmptyComponent={<Text style={styles.noResults}>You added all your friends!</Text>}
+                ListEmptyComponent={
+                    <Text style={styles.noResults}>
+                        You added all your friends!
+                    </Text>
+                }
 
             />
         </View>

@@ -16,15 +16,15 @@ type GroupType = {
 
 const Page = () => {
     const user = auth().currentUser;
-    const [groups, setGroups] = useState<GroupType[]>([]);
+    const [userGroups, setUserGroups] = useState<GroupType[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        getGroups().catch(console.error);
+        fetchUserGroups().catch(console.error);
     }, []);
 
-    const getGroups = async () => {
+    const fetchUserGroups = async () => {
         if (!user) return;
 
         try {
@@ -36,13 +36,15 @@ const Page = () => {
 
             const groupList = querySnapshot.docs.map(doc => ({
                 id: doc.id,
-                name: doc.data().name || "Unnamed Group",
+                name: doc.data().name,
                 favorite: doc.data().favorite,
             }));
 
-            groupList.sort((a, b) => (b.favorite === a.favorite ? 0 : b.favorite ? 1 : -1));
+            groupList.sort((a, b) =>
+                (b.favorite === a.favorite ? 0 : b.favorite ? 1 : -1)
+            );
 
-            setGroups(groupList);
+            setUserGroups(groupList);
 
         } catch (err) {
             console.error(err);
@@ -50,13 +52,13 @@ const Page = () => {
     };
 
     const refresh = async () => {
-        setGroups([]);
-        await getGroups();
+        setUserGroups([]);
+        await fetchUserGroups();
         setRefreshing(false);
     };
 
-    const handleFavorite = async (item: GroupType) => {
-        setGroups(prevGroups =>
+    const handleToggleFavorite = async (item: GroupType) => {
+        setUserGroups(prevGroups =>
             prevGroups.map(group =>
                 group.id === item.id ? { ...group, favorite: !group.favorite } : group
             )
@@ -69,9 +71,10 @@ const Page = () => {
                 .collection("groups")
                 .doc(item.id)
                 .update({ favorite: !item.favorite });
+
         } catch (error) {
             console.error("Error toggling favorite:", error);
-            setGroups(prevGroups =>
+            setUserGroups(prevGroups =>
                 prevGroups.map(group =>
                     group.id === item.id ? { ...group, favorite: item.favorite } : group
                 )
@@ -88,20 +91,24 @@ const Page = () => {
             .collection("groups")
             .doc(item.id)
             .delete();
-        setGroups(prev => prev.filter(group => group.id !== item.id));
+
+        setUserGroups(prev => prev.filter(group => group.id !== item.id));
     };
 
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
-                {user && <Text style={styles.topBarText}>{user.displayName}</Text>}
+                {user && <Text style={styles.topBarText}>
+                    {user.displayName}
+                </Text>}
+
                 <TouchableOpacity onPress={() => router.push('/groups/groupCreate')}>
                     <Entypo name="add-to-list" size={height/30} color="#D3D3FF" />
                 </TouchableOpacity>
             </View>
 
             <FlatList
-                data={groups}
+                data={userGroups}
                 keyExtractor={(item) => item.id}
                 refreshing={refreshing}
                 onRefresh={refresh}
@@ -109,14 +116,16 @@ const Page = () => {
                 renderItem={({ item, index }) => (
                     <SwipeableRow
                         item={item}
-                        onFavorite={handleFavorite}
+                        onFavorite={handleToggleFavorite}
                         onDelete={handleDelete}
                     >
                         <AnimatedGroupCard item={item} index={index} />
                     </SwipeableRow>
                 )}
                 ListEmptyComponent={
-                    <Text style={styles.noResults}>No results found</Text>
+                    <Text style={styles.noResults}>
+                        No groups found
+                    </Text>
                 }
             />
         </View>

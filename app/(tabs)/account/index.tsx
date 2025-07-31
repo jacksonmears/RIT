@@ -283,6 +283,9 @@ const Page = () => {
                         <Text style={styles.infoText}>
                             {numberOfPosts}
                         </Text>
+
+                        <View style={styles.infoTextSeparator}/>
+
                         <Text style={styles.genericText}>
                              posts
                         </Text>
@@ -294,6 +297,9 @@ const Page = () => {
                         <Text style={styles.infoText}>
                             {numberOfFriends}
                         </Text>
+
+                        <View style={styles.infoTextSeparator}/>
+
                         <Text style={styles.genericText}>
                              friends
                         </Text>
@@ -491,6 +497,9 @@ const styles = StyleSheet.create({
     },
     infoText: {
         color: "#D3D3FF",
+    },
+    infoTextSeparator: {
+        padding: 2
     }
 });
 
