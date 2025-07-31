@@ -29,11 +29,9 @@ const MAX_RECORDING_TIME = 300;
 
 const Page = () => {
     const router = useRouter();
-    const cameraRef = useRef<Camera>(null);
+    const cameraReference = useRef<Camera>(null);
     const [cameraPermission, setCameraPermission] = useState<CameraPermissionStatus | null>();
     const [micPermission, setMicPermission] = useState<CameraPermissionStatus | null>();
-    // const devices = useCameraDevices();
-    // const [cameraDevice, setCameraDevice] = useState(devices.find(d => d.position === 'back'));
     const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
     const device = useCameraDevice(cameraPosition);
     const [mode] = useState<"photo" | "video">("video");
@@ -41,10 +39,10 @@ const Page = () => {
     const animatedValue = useRef(new Animated.Value(0)).current;
     const [isRecording, setRecording] = useState<boolean>(false);
     const [recordingTime, setRecordingTime] = useState(0);
-    const timerRef = useRef<number | null>(null);
+    const timerReference = useRef<number | null>(null);
     const [isTimeExpired, setTimeExpired] = useState(false);
     const [isCameraReady, setIsCameraReady] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);  // <-- Added processing state
+    const [isProcessing, setIsProcessing] = useState(false);
 
 
     useEffect(() => {
@@ -68,12 +66,17 @@ const Page = () => {
             setIsCameraReady(false);
 
             return () => {
-                if (cameraRef.current && isRecording) cameraRef.current.stopRecording().catch(console.error);
+                if (cameraReference.current && isRecording)
+                    cameraReference
+                        .current
+                        .stopRecording()
+                        .catch(console.error);
                 stopTimer();
             };
         }, [])
     );
 
+    // permissions check before rendering camera!
     useEffect(() => {
         if (device && cameraPermission === 'granted' && micPermission === 'granted') {
             const timeout = setTimeout(() => setIsCameraReady(true), 300);
@@ -100,7 +103,11 @@ const Page = () => {
 
     const handleRecordingPressed = async () => {
         if (isRecording) {
-            if (cameraRef.current) await cameraRef.current.stopRecording();
+            if (cameraReference.current)
+                await cameraReference
+                    .current
+                    .stopRecording();
+
             await endRecording();
             setRecording(false);
         } else {
@@ -112,10 +119,10 @@ const Page = () => {
 
 
     const startTimer = async () => {
-        if (!timerRef) return;
+        if (!timerReference) return;
         setRecordingTime(0);
         stopTimer()
-        timerRef.current = setInterval(() => {
+        timerReference.current = setInterval(() => {
             setRecordingTime(prev => {
                 if (prev > MAX_RECORDING_TIME - 1) {
                     setTimeExpired(true);
@@ -127,15 +134,15 @@ const Page = () => {
     };
 
     const stopTimer = () => {
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
+        if (timerReference.current) {
+            clearInterval(timerReference.current);
+            timerReference.current = null;
         }
     };
 
 
     const beginRecording =  async () => {
-        if (!animatedValue || !cameraRef.current) return;
+        if (!animatedValue || !cameraReference.current) return;
         await startTimer();
 
 
@@ -167,12 +174,12 @@ const Page = () => {
 
 
     const handleVideoFile = async () => {
-        if (!cameraRef.current) return;
+        if (!cameraReference.current) return;
 
         try {
-            cameraRef.current.startRecording({
+            cameraReference.current.startRecording({
                 onRecordingFinished: async (videoFile: VideoFile) => {
-                    setIsProcessing(true);  // Show compressing overlay
+                    setIsProcessing(true);
 
                     const mp4Path = await convertToMp4(videoFile.path);
 
@@ -182,14 +189,14 @@ const Page = () => {
                             timeStamp: 0,
                         });
 
-                        setIsProcessing(false);  // Hide compressing overlay
+                        setIsProcessing(false);
 
                         router.push({
                             pathname: '/create/editFile',
                             params: {
-                                fillerUri: mp4Path,
-                                fillerMode: mode,
-                                thumbnailUri: thumbnail.path,
+                                recapURI: mp4Path,
+                                mode: mode,
+                                thumbnailURI: thumbnail.path,
                             },
                         });
 
@@ -212,7 +219,7 @@ const Page = () => {
 
 
     const endRecording = async () => {
-        if (!animatedValue || !cameraRef.current) return;
+        if (!animatedValue || !cameraReference.current) return;
         stopTimer();
 
         try {
@@ -261,30 +268,13 @@ const Page = () => {
     const seconds = timeLeft % 60;
 
 
-    // const handleTakePhoto = async () => {
-    //     if (!cameraRef.current) return;
-    //     try {
-    //         const photo = await cameraRef.current.takePhoto();
-    //         router.push({pathname: '/create/editFile', params: {fillerUri: photo?.path, fillerMode: mode}})
-    //     } catch (error) {
-    //         console.error(error);
-    //     }
-    // }
-
-    // const switchMode = () => {
-    //     (mode === "photo") ? setMode("video") : setMode("photo");
-    //
-    // }
-    //
-    // const d = useCameraDevices();
-    // console.log("CAMERA DEVICES:", d);
-
-
     if (!device) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="red" />
-                <Text>Failed to connect to device restart app</Text>
+                <Text>
+                    Failed to connect to device. Please restart app.
+                </Text>
             </View>
         );
     }
@@ -295,7 +285,9 @@ const Page = () => {
             {isProcessing && (
                 <View style={styles.processingOverlay}>
                     <ActivityIndicator size="large" color="#D3D3FF" />
-                    <Text style={styles.processingText}>Compressing video...</Text>
+                    <Text style={styles.processingText}>
+                        Compressing video...
+                    </Text>
                 </View>
             )}
 
@@ -315,7 +307,7 @@ const Page = () => {
                     <View style={styles.cameraContainer}>
                         <Camera
                             key={`${cameraPosition}-${isCameraReady}`}  // Force remount when camera changes or ready toggles
-                            ref={cameraRef}
+                            ref={cameraReference}
                             style={styles.camera}
                             device={device}
                             isActive={true}
@@ -326,7 +318,9 @@ const Page = () => {
                     </View>
                 ) :
                 <View style={[styles.camera, styles.loadingContainer]}>
-                    <Text style={styles.text}>Loading camera...</Text>
+                    <Text style={styles.text}>
+                        Loading camera...
+                    </Text>
                 </View>
             }
 

@@ -19,18 +19,19 @@ const { width, height } = Dimensions.get("window");
 
 const Page = () => {
     const router = useRouter();
-    const { fillerUri, fillerMode, thumbnailUri } = useLocalSearchParams();
-    const localUri = String(fillerUri);
-    const mode = String(fillerMode);
-    const thumbnail = String(thumbnailUri);
+    const { recapURI, mode, thumbnailUri } = useLocalSearchParams();
+    const recapURIString = String(recapURI);
+    const modeString = String(mode);
+    const thumbnailString = String(thumbnailUri);
     const [caption, setCaption] = useState<string>("");
-    const [remaingingCharacters, setRemaingingCharacters] = useState<number>(50);
+    const CAPTION_LENGTH: number =  50;
+    const [remainingCharacters, setRemainingCharacters] = useState<number>(CAPTION_LENGTH);
 
     useEffect(() => {
-        setRemaingingCharacters(50 - caption.length);
+        setRemainingCharacters(CAPTION_LENGTH - caption.length);
     }, [caption]);
 
-    if (!fillerUri) {
+    if (!recapURIString) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator color="#D3D3FF" />
@@ -38,9 +39,9 @@ const Page = () => {
         );
     }
 
-    const uri = !localUri.startsWith("file://")
-        ? `file://${localUri}`
-        : localUri;
+    const uri = !recapURIString.startsWith("file://")
+        ? `file://${recapURIString}`
+        : recapURIString;
 
     return (
         <KeyboardAvoidingView
@@ -51,17 +52,19 @@ const Page = () => {
             <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
                 <View style={styles.topRow}>
                     <TouchableOpacity onPress={() => router.back()}>
-                        <Text style={styles.backText}>Back</Text>
+                        <Text style={styles.backText}>
+                            Back
+                        </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={() =>
                         router.push({
                             pathname: "/create/assignGroup",
                             params: {
-                                fillerURI: uri,
-                                fillerMode: mode,
-                                fillerCaption: caption,
-                                thumbnailUri: thumbnail
+                                recapURI: uri,
+                                mode: modeString,
+                                caption: caption,
+                                thumbnailURI: thumbnailString
                             }
                         })
                     }>
@@ -70,7 +73,7 @@ const Page = () => {
                 </View>
 
                 <View style={styles.imageWrapper}>
-                    {mode === "photo" ? (
+                    {modeString === "photo" ? (
                         <Image
                             key={uri}
                             source={{ uri }}
@@ -78,20 +81,24 @@ const Page = () => {
                             resizeMode="cover"
                             onError={(e) => console.error("Image load error", e.nativeEvent.error)}
                         />
-                    ) : thumbnail ? (
+                    ) : thumbnailString ? (
                         <Image
-                            key={thumbnail}
-                            source={{ uri: thumbnail }}
+                            key={thumbnailString}
+                            source={{ uri: thumbnailString }}
                             style={styles.video}
                             resizeMode="cover"
                             onError={(e) => console.error("Thumbnail load error", e.nativeEvent.error)}
                         />
                     ) : (
-                        <Text>failed to render thumbnail</Text>
+                        <Text>
+                            failed to render thumbnail
+                        </Text>
                     )}
                 </View>
 
-                <Text style={styles.remCharText}>{remaingingCharacters}</Text>
+                <Text style={styles.remainingCharacterText}>
+                    {remainingCharacters}
+                </Text>
 
                 <TextInput
                     style={styles.input}
@@ -159,7 +166,7 @@ const styles = StyleSheet.create({
         paddingBottom: height / 20,
         fontSize: height * 0.02,
     },
-    remCharText: {
+    remainingCharacterText: {
         color: "grey",
         alignSelf: "flex-end",
         marginRight: width / 20,

@@ -5,21 +5,21 @@ import { useRouter } from "expo-router";
 const { width, height } = Dimensions.get("window");
 
 const PostLoadingScreen = () => {
-    const bounceAnim = useRef(new Animated.Value(0)).current;
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const bounceAnimation = useRef(new Animated.Value(0)).current;
+    const pulseAnimation = useRef(new Animated.Value(1)).current;
+    const fadeAnimation = useRef(new Animated.Value(0)).current;
     const router = useRouter();
 
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(bounceAnim, {
+                Animated.timing(bounceAnimation, {
                     toValue: -10,
                     duration: 500,
                     useNativeDriver: true,
                     easing: Easing.inOut(Easing.quad),
                 }),
-                Animated.timing(bounceAnim, {
+                Animated.timing(bounceAnimation, {
                     toValue: 0,
                     duration: 500,
                     useNativeDriver: true,
@@ -32,12 +32,12 @@ const PostLoadingScreen = () => {
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(pulseAnim, {
+                Animated.timing(pulseAnimation, {
                     toValue: 1.1,
                     duration: 700,
                     useNativeDriver: true,
                 }),
-                Animated.timing(pulseAnim, {
+                Animated.timing(pulseAnimation, {
                     toValue: 1,
                     duration: 700,
                     useNativeDriver: true,
@@ -49,12 +49,12 @@ const PostLoadingScreen = () => {
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(fadeAnim, {
+                Animated.timing(fadeAnimation, {
                     toValue: 1,
                     duration: 2000,
                     useNativeDriver: false,
                 }),
-                Animated.timing(fadeAnim, {
+                Animated.timing(fadeAnimation, {
                     toValue: 0,
                     duration: 2000,
                     useNativeDriver: false,
@@ -76,26 +76,20 @@ const PostLoadingScreen = () => {
     }, []);
 
 
-    const backgroundColor = fadeAnim.interpolate({
+    const backgroundColor = fadeAnimation.interpolate({
         inputRange: [0, 1],
         outputRange: ["#101010", "#202040"],
     });
 
     return (
         <Animated.View style={[styles.loadingContainer, { backgroundColor }]}>
-            {/*<Animated.Text*/}
-            {/*    style={{ color: "red", position: "absolute", top: height * 0.05, left: width * 0.1, fontSize: height / 50 }}*/}
-            {/*    onPress={() => router.push("../home")}*/}
-            {/*>*/}
-            {/*    Back*/}
-            {/*</Animated.Text>*/}
 
             <ActivityIndicator size="large" color="#D3D3FF" style={{ marginBottom: 30 }} />
-            <Animated.Text style={[styles.loadingText, { transform: [{ scale: pulseAnim }] }]}>
+            <Animated.Text style={[styles.loadingText, { transform: [{ scale: pulseAnimation }] }]}>
                 Sending your post...
             </Animated.Text>
 
-            <Animated.View style={{ transform: [{ translateY: bounceAnim }], marginTop: 30 }}>
+            <Animated.View style={{ transform: [{ translateY: bounceAnimation }], marginTop: 30 }}>
                 <MaterialCommunityIcons name="rabbit" size={60} color="#D3D3FF" />
             </Animated.View>
         </Animated.View>
