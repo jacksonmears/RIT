@@ -23,7 +23,7 @@ const { width, height } = Dimensions.get("window");
 
 type PostType = {
     groupID: string;
-    id: string;
+    postID: string;
     mode: string;
     content: string;
     caption: string;
@@ -45,7 +45,6 @@ const Index = () => {
     const groupNameString = String(groupName);
     const router = useRouter();
     const user = auth().currentUser;
-
     const [posts, setPosts] = useState<PostType[]>([]);
     const [groupMemberCache, setGroupMemberCache] = useState<Record<string, groupMemberInformation>>({});
     const [message, setMessage] = useState("");
@@ -78,15 +77,20 @@ const Index = () => {
     useEffect(() => {
         const fetchGroupMembers = async () => {
             try {
-                const membersSnapshot = await db
+                const membersReferences = await db
                     .collection("groups")
                     .doc(groupIDString)
                     .collection("users")
                     .get();
 
-                const memberIDs = membersSnapshot.docs.map(doc => doc.id);
+                const memberIDs = membersReferences.docs.map(doc => doc.id);
+
                 const userPromises = memberIDs.map(async (id) => {
-                    const userDoc = await db.collection("users").doc(id).get();
+                    const userDoc = await db
+                        .collection("users")
+                        .doc(id)
+                        .get();
+
                     const data = userDoc.data();
                     if (!data) return null;
                     return {
@@ -116,6 +120,8 @@ const Index = () => {
         fetchGroupMembers().catch(err => console.error(err));
     }, [groupIDString]);
 
+
+
     useEffect(() => {
         if (!user) return;
 
@@ -136,10 +142,10 @@ const Index = () => {
                     return;
                 }
 
-                const docs = snapshot.docs;
-                const fetchedPosts = docs.map(doc => ({
+                const documentReferences = snapshot.docs;
+                const fetchedPosts = documentReferences.map(doc => ({
                     groupID: groupIDString,
-                    id: doc.id,
+                    postID: doc.id,
                     mode: doc.data().mode,
                     content: doc.data().content,
                     caption: doc.data().caption,
@@ -148,16 +154,16 @@ const Index = () => {
                     thumbnail: doc.data().thumbnail,
                 }));
 
-                lastVisibleRef.current = docs[docs.length - 1].data().timestamp;
+                lastVisibleRef.current = documentReferences[documentReferences.length - 1].data().timestamp;
 
                 if (isInitialLoadRef.current) {
                     setPosts(fetchedPosts);
                     setInitialLoad(false);
                     isInitialLoadRef.current = false;
-                    setHasMoreMessages(docs.length >= 20);
+                    setHasMoreMessages(documentReferences.length >= 20);
 
-                    if (docs.length < 20) {
-                        setTotalMessageCount(docs.length);
+                    if (documentReferences.length < 20) {
+                        setTotalMessageCount(documentReferences.length);
                         setHasMoreMessages(false);
                     }
                 } else {
@@ -167,8 +173,8 @@ const Index = () => {
                         const deduped: PostType[] = [];
 
                         for (const post of allPosts) {
-                            if (!seen.has(post.id)) {
-                                seen.add(post.id);
+                            if (!seen.has(post.postID)) {
+                                seen.add(post.postID);
                                 deduped.push(post);
                             }
                         }
@@ -189,7 +195,7 @@ const Index = () => {
         };
     }, [groupIDString, user]);
 
-    const getMorePosts = async () => {
+    const fetchMorePosts = async () => {
         if (
             !posts.length ||
             loadingMore ||
@@ -216,7 +222,7 @@ const Index = () => {
             } else {
                 const newPosts = snapshot.docs.map(doc => ({
                     groupID: groupIDString,
-                    id: doc.id,
+                    postID: doc.id,
                     mode: doc.data().mode,
                     content: doc.data().content,
                     caption: doc.data().caption,
@@ -233,8 +239,8 @@ const Index = () => {
                     const deduped: PostType[] = [];
 
                     for (const post of allPosts) {
-                        if (!seen.has(post.id)) {
-                            seen.add(post.id);
+                        if (!seen.has(post.postID)) {
+                            seen.add(post.postID);
                             deduped.push(post);
                         }
                     }
@@ -275,8 +281,8 @@ const Index = () => {
         }
     };
 
-    const handleDelete = (deletedPostId: string) => {
-        setPosts(prev => prev.filter(p => p.id !== deletedPostId));
+    const handleDeletePost = (deletedPostID: string) => {
+        setPosts(prev => prev.filter(p => p.postID !== deletedPostID));
         setTotalMessageCount(prevCount =>
             prevCount !== null ? prevCount - 1 : null
         );
@@ -320,7 +326,7 @@ const Index = () => {
                 inverted
                 style={styles.groups}
                 data={posts}
-                keyExtractor={(item) => `${item.id}-${item.timestamp?.seconds ?? Math.random()}`}
+                keyExtractor={(item) => `${item.postID}-${item.timestamp?.seconds ?? Math.random()}`}
                 renderItem={({ item }) => (
                     <View
                         style={[
@@ -336,12 +342,12 @@ const Index = () => {
                             <GroupMessage
                                 post={item}
                                 groupMember={groupMemberCache[item.sender_id]}
-                                onDelete={handleDelete}
+                                onDelete={handleDeletePost}
                             />
                         )}
                     </View>
                 )}
-                onEndReached={getMorePosts}
+                onEndReached={fetchMorePosts}
                 onEndReachedThreshold={0.1}
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
             />

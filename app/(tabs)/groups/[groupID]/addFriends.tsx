@@ -38,7 +38,12 @@ const Page = () => {
             if (!user) return;
 
             try {
-                const friendSnap = await db.collection("users").doc(user.uid).collection("friends").get();
+                const friendSnap = await db
+                    .collection("users")
+                    .doc(user.uid)
+                    .collection("friends")
+                    .get();
+
                 if (friendSnap.empty) return;
 
                 setFriendsID(friendSnap.docs.map((doc) => doc.id));
@@ -59,12 +64,22 @@ const Page = () => {
 
         try {
             const friendUsernames: FriendType[] = [];
-            for (const id of friendsID) {
-                const docSnap = await db.collection("users").doc(id).get();
-                const friendsRef = await db.collection("groups").doc(groupIDString).collection("users").doc(id).get();
-                const data = docSnap.data();
-                if (!friendsRef.exists() && docSnap.exists() && data && !data.groupRequests.includes(groupIDString)) {
-                    friendUsernames.push({id: id, displayName: data.displayName, photoURL: data.photoURL});
+            for (const friendID of friendsID) {
+                const friendUserReference = await db
+                    .collection("users")
+                    .doc(friendID)
+                    .get();
+
+                const friendGroupReference = await db
+                    .collection("groups")
+                    .doc(groupIDString)
+                    .collection("users")
+                    .doc(friendID)
+                    .get();
+
+                const data = friendUserReference.data();
+                if (!friendGroupReference.exists() && friendUserReference.exists() && data && !data.groupRequests.includes(groupIDString)) {
+                    friendUsernames.push({id: friendID, displayName: data.displayName, photoURL: data.photoURL});
                 }
             }
             setFriends(friendUsernames);
@@ -97,7 +112,7 @@ const Page = () => {
         }
     };
 
-    const dealDone = async (selectedGroups: Map<string, boolean> | null) => {
+    const completedAddingFriends = async (selectedGroups: Map<string, boolean> | null) => {
         if (!selectedGroups) return;
 
         try {
@@ -122,16 +137,19 @@ const Page = () => {
         if (!user || !friend) return;
 
         try {
-            const docRef = db.collection("users").doc(friend);
-            const docSnap = await docRef.get();
-            const data = docSnap.data();
-            if (!docSnap.exists() || !data) return;
-            const groupRequests = data.groupRequests;
+            const friendReference = db
+                .collection("users")
+                .doc(friend);
+
+            const friendSnapShot = await friendReference.get();
+            const friendData = friendSnapShot.data();
+            if (!friendSnapShot.exists() || !friendData) return;
+            const groupRequests = friendData.groupRequests;
 
             if (groupRequests.includes(friend)) return;
 
-            if (docSnap.exists()) await docRef.set({ groupRequests: [...groupRequests, groupIDString] }, { merge: true });
-            else await docRef.set({ groupRequests: [groupIDString] });
+            if (friendSnapShot.exists()) await friendReference.set({ groupRequests: [...groupRequests, groupIDString] }, { merge: true });
+            else await friendReference.set({ groupRequests: [groupIDString] });
         } catch (error) {
             console.error(error);
         }
@@ -150,7 +168,7 @@ const Page = () => {
                     {selectedGroups && selectedGroups.size===0 ?
                         <Ionicons name="send-outline" size={height/50} color="#D3D3FF" />
                         :
-                        <TouchableOpacity onPress={() => dealDone(selectedGroups)}>
+                        <TouchableOpacity onPress={() => completedAddingFriends(selectedGroups)}>
                             <Ionicons name="send" size={height/50} color="#D3D3FF" />
                         </TouchableOpacity>
                     }

@@ -4,7 +4,7 @@ import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 
 interface Post {
     groupID: string;
-    id: string;
+    postID: string;
     mode: string;
     content: string;
     caption: string;
