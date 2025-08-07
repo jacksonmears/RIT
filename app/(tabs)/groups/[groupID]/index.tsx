@@ -22,20 +22,20 @@ import firestore from '@react-native-firebase/firestore';
 const { width, height } = Dimensions.get("window");
 
 type PostType = {
-    groupID: string;
-    postID: string;
-    mode: string;
+    id: string;
     content: string;
     caption: string;
-    sender_id: string;
+    mode: string;
+    userID: string;
+    displayName: string;
+    pfp: string;
     timestamp: FirebaseFirestoreTypes.Timestamp;
-    thumbnail: string;
 };
 
 type groupMemberInformation = {
     firstName: string;
     lastName: string;
-    photoURL: string;
+    pfp: string;
     displayName: string;
 };
 
@@ -98,7 +98,7 @@ const Index = () => {
                         userInfo: {
                             firstName: data.firstName,
                             lastName: data.lastName,
-                            photoURL: data.photoURL,
+                            pfp: data.photoURL,
                             displayName: data.displayName,
                         },
                     };
@@ -144,14 +144,14 @@ const Index = () => {
 
                 const documentReferences = snapshot.docs;
                 const fetchedPosts = documentReferences.map(doc => ({
-                    groupID: groupIDString,
-                    postID: doc.id,
-                    mode: doc.data().mode,
+                    id: doc.id,
                     content: doc.data().content,
                     caption: doc.data().caption,
-                    sender_id: doc.data().sender_id,
+                    mode: doc.data().mode,
+                    userID: doc.data().sender_id,
+                    displayName: groupMemberCache[doc.data().sender_id].displayName,
+                    pfp: groupMemberCache[doc.data().sender_id].pfp,
                     timestamp: doc.data().timestamp,
-                    thumbnail: doc.data().thumbnail,
                 }));
 
                 lastVisibleRef.current = documentReferences[documentReferences.length - 1].data().timestamp;
@@ -173,8 +173,8 @@ const Index = () => {
                         const deduped: PostType[] = [];
 
                         for (const post of allPosts) {
-                            if (!seen.has(post.postID)) {
-                                seen.add(post.postID);
+                            if (!seen.has(post.id)) {
+                                seen.add(post.id);
                                 deduped.push(post);
                             }
                         }
@@ -221,14 +221,14 @@ const Index = () => {
                 setHasMoreMessages(false);
             } else {
                 const newPosts = snapshot.docs.map(doc => ({
-                    groupID: groupIDString,
-                    postID: doc.id,
-                    mode: doc.data().mode,
+                    id: doc.id,
                     content: doc.data().content,
                     caption: doc.data().caption,
-                    sender_id: doc.data().sender_id,
+                    mode: doc.data().mode,
+                    userID: doc.data().sender_id,
+                    displayName: groupMemberCache[doc.data().sender_id].displayName,
+                    pfp: groupMemberCache[doc.data().sender_id].pfp,
                     timestamp: doc.data().timestamp,
-                    thumbnail: doc.data().thumbnail,
                 }));
 
                 lastVisibleRef.current = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
@@ -239,8 +239,8 @@ const Index = () => {
                     const deduped: PostType[] = [];
 
                     for (const post of allPosts) {
-                        if (!seen.has(post.postID)) {
-                            seen.add(post.postID);
+                        if (!seen.has(post.id)) {
+                            seen.add(post.id);
                             deduped.push(post);
                         }
                     }
@@ -282,7 +282,7 @@ const Index = () => {
     };
 
     const handleDeletePost = (deletedPostID: string) => {
-        setPosts(prev => prev.filter(p => p.postID !== deletedPostID));
+        setPosts(prev => prev.filter(p => p.id !== deletedPostID));
         setTotalMessageCount(prevCount =>
             prevCount !== null ? prevCount - 1 : null
         );
@@ -326,22 +326,22 @@ const Index = () => {
                 inverted
                 style={styles.groups}
                 data={posts}
-                keyExtractor={(item) => `${item.postID}-${item.timestamp?.seconds ?? Math.random()}`}
+                keyExtractor={(item) => `${item.id}-${item.timestamp?.seconds ?? Math.random()}`}
                 renderItem={({ item }) => (
                     <View
                         style={[
                             styles.messageContainer,
                             {
                                 alignSelf:
-                                    user?.uid === item.sender_id ? "flex-end" : "flex-start",
+                                    user?.uid === item.userID ? "flex-end" : "flex-start",
                             },
                         ]}>
                         {item.mode !== "text" ? (
-                            <GroupPost post={item} groupMember={groupMemberCache[item.sender_id]} />
+                            <GroupPost post={item} groupMember={groupMemberCache[item.userID]} />
                         ) : (
                             <GroupMessage
                                 post={item}
-                                groupMember={groupMemberCache[item.sender_id]}
+                                groupMember={groupMemberCache[item.userID]}
                                 onDelete={handleDeletePost}
                             />
                         )}

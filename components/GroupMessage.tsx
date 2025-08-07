@@ -3,20 +3,23 @@ import { auth } from "@/firebase";
 import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 
 interface Post {
-    groupID: string;
-    postID: string;
-    mode: string;
+    id: string;
     content: string;
     caption: string;
-    sender_id: string;
+    mode: string;
+    userID: string;
+    displayName: string;
+    pfp: string;
     timestamp: FirebaseFirestoreTypes.Timestamp;
+
 }
 
 type groupMemberInformation = {
     firstName: string;
     lastName: string;
-    photoURL: string;
+    pfp: string;
     displayName: string;
+
 }
 
 interface PostCompProps {
@@ -59,7 +62,7 @@ const GroupMessage: React.FC<PostCompProps> = ({ post, groupMember, onDelete }) 
     // };
 
     // Only allow sender to delete their own messages
-    const isSender = user?.uid === post.sender_id;
+    const isSender = user?.uid === post.userID;
 
     return (
         <View>
@@ -77,8 +80,8 @@ const GroupMessage: React.FC<PostCompProps> = ({ post, groupMember, onDelete }) 
                 <View style={styles.container}>
                     <View style={styles.pfpContainer}>
                         <View style={styles.avatarContainer}>
-                            {groupMember?.photoURL ? (
-                                <Image source={{ uri: groupMember.photoURL }} style={styles.avatar} />
+                            {groupMember?.pfp ? (
+                                <Image source={{ uri: groupMember.pfp }} style={styles.avatar} />
                             ) : (
                                 <View style={[styles.avatar, styles.placeholder]} />
                             )}

@@ -5,20 +5,20 @@ import {auth,db} from "@/firebase";
 import type {FirebaseFirestoreTypes} from "@react-native-firebase/firestore";
 
 interface Post {
-    groupID: string,
-    postID: string;
-    mode: string;
+    id: string;
     content: string;
     caption: string;
-    sender_id: string;
+    mode: string;
+    userID: string;
+    displayName: string;
+    pfp: string;
     timestamp: FirebaseFirestoreTypes.Timestamp;
-    thumbnail: string;
 }
 
 type groupMemberInformation = {
     firstName: string;
     lastName: string;
-    photoURL: string;
+    pfp: string;
     displayName: string;
 }
 
@@ -55,15 +55,15 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
         };
 
 
-        getSignedThumbnailUrl(post.postID).catch((err) => console.error(err));
-    }, [post.postID]);
+        getSignedThumbnailUrl(post.id).catch((err) => console.error(err));
+    }, [post.id]);
 
     useEffect(() => {
         const likeFunc = async () => {
             if (!user) return;
 
             try {
-                const likeCheck = await db.collection("posts").doc(post.postID).collection("likes").doc(user.uid).get();
+                const likeCheck = await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
                 const liked = likeCheck.exists();
                 setLikeStatus(liked);
             } catch (error) {
@@ -76,31 +76,25 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
         });
     }, [likeStatus]);
 
-    // const likeBeta = async () => {
-    //     if (!user) return;
-    //     if (!likeStatus) try {
-    //         await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).set({
-    //             likedAt: new Date().toISOString(),
-    //         })
-    //         setLikeStatus(true);
-    //     } catch (error){
-    //         console.error(error)
-    //     }
-    //     else {
-    //         await db().collection("posts").doc(post.id).collection("likes").doc(user.uid).delete();
-    //         setLikeStatus(false);
-    //     }
-    // }
+
 
     return (
         <View>
 
-            {user?.uid === post.sender_id ? (
+            {user?.uid === post.userID ? (
                 <View style={styles.postView}>
                         <View style={styles.imageWrapper}>
                             <TouchableOpacity onPress={() => router.push({
-                                pathname: '/(tabs)/groups/[groupID]/post',
-                                params: { groupID: post.groupID, rawPostID: post.postID, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
+                                pathname: '../../post/post/',
+                                params: {
+                                    id: post.id,
+                                    contend: post.content,
+                                    caption: post.caption,
+                                    mode: post.mode,
+                                    userID: post.userID,
+                                    displayName: post.displayName,
+                                    pfp: encodeURIComponent(post.pfp)
+                                }
                             })}>
                                 {thumbnailUrl ? (
                                     <Image
@@ -123,8 +117,8 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
                             <View>
                                 <View>
                                     <View style={styles.avatarContainer}>
-                                        {groupMember.photoURL? (
-                                            <Image source={{ uri: groupMember.photoURL }} style={styles.avatar} />
+                                        {groupMember.pfp? (
+                                            <Image source={{ uri: groupMember.pfp }} style={styles.avatar} />
                                         ) : (
                                         <View style={[styles.avatar, styles.placeholder]}>
                                         </View>
@@ -135,10 +129,20 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
                             </View>
                         </View>
                             <View style={styles.imageWrapper}>
-                                <TouchableOpacity onPress={() => router.push({
-                                    pathname: '/(tabs)/groups/[groupID]/post',
-                                    params: { groupID: post.groupID, rawPostID: post.postID, rawContent: post.content, rawCaption: post.caption, rawMode: post.mode, rawUsername: groupMember.displayName, rawPhotoURL: encodeURIComponent(groupMember.photoURL) }
-                                })}>
+                                <TouchableOpacity onPress={() => {
+                                    router.push({
+                                        pathname: '../../post/post',
+                                        params: {
+                                            id: post.id,
+                                            contend: post.content,
+                                            caption: post.caption,
+                                            mode: post.mode,
+                                            userID: post.userID,
+                                            displayName: post.displayName,
+                                            pfp: encodeURIComponent(post.pfp)
+                                        }
+                                    });
+                                }}>
                                     {thumbnailUrl ? (
                                         <Image
                                             source={{ uri: thumbnailUrl }}
