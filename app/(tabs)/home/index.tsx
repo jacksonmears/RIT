@@ -9,11 +9,12 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useConsent } from '@/hooks/useConsent';
 
 const { height, width } = Dimensions.get('window');
+
 type PostType = {
     id: string;
     content: string;
     caption: string;
-    userName: string;
+    displayName: string;
     timestamp: string;
     pfp: string;
     mode: string;
@@ -21,46 +22,53 @@ type PostType = {
 };
 
 
+
+
+
 const Page = () => {
-    const [friends, setFriends] = useState<string[]>([]);
-    const [postIds, setPostIds] = useState<string[]>([]);
     const user = auth().currentUser;
     const router = useRouter();
+    const [friendIDs, setFriendIDs] = useState<string[]>([]);
+    const [postIDs, setPostIDs] = useState<string[]>([]);
     const [postContents, setPostContents] = useState<PostType[] | []>([]);
     const [friendNotifications, setFriendNotifications] = useState<number>(0);
     const [groupNotifications, setGroupsNotifications] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isRefreshingPosts, setIsRefreshingPosts] = useState<boolean>(false);
-    const pullDownOffset = useSharedValue(0);
-    const isRefreshing = useSharedValue(false);
+    const personalizedAds = useConsent();
+
+
     const REFRESH_TRIGGER_HEIGHT = 100;
     const MAX_PULL_DOWN_HEIGHT = 101;
     const POST_HEIGHT   = height*0.7;
     const AD_HEIGHT = height/2;
     const MAX_POSITION = 0;
     const MIN_POSITION = - ((postContents.length - 1) * POST_HEIGHT + (postContents.length - 1) * AD_HEIGHT);
+    const pullDownOffset = useSharedValue(0);
+    const isRefreshing = useSharedValue(false);
     const position   = useSharedValue(0);
     const startY     = useSharedValue(0);
-    // const [personalizedAds, setPersonalizedAds] = useState<boolean>(false);
-    const personalizedAds = useConsent();
 
 
 
     useEffect(() => {
         if (!user) return;
 
-        const snapshot = db.collection("users").doc(user.uid).onSnapshot(() => {
+        const userSnapshot = db
+            .collection("users")
+            .doc(user.uid)
+            .onSnapshot(() => {
             getNotifications().catch((err) => {
                 console.error("Error fetching notifications:", err);
             });
         });
 
-        return () => snapshot();
+        return () => userSnapshot();
 
     }, [user]);
 
     useEffect(() => {
-        fetchFriendIds().catch((err) => {
+        fetchFriendIDs().catch((err) => {
             console.error("Error fetching friendIds:", err);
         });
     }, []);
@@ -69,13 +77,13 @@ const Page = () => {
         fetchPosts().catch((err) => {
             console.error("Error fetching posts:", err);
         });
-    }, [friends]);
+    }, [friendIDs]);
 
     useEffect(() => {
         fetchPostContent().catch((err) => {
             console.error("Error fetching postContent:", err);
         });
-    }, [postIds]);
+    }, [postIDs]);
 
     const feed = React.useMemo(() => {
         const items: ({ type: 'post'; post: PostType } | { type: 'ad'; id: string })[] = [];
@@ -96,7 +104,7 @@ const Page = () => {
 
 
 
-    const getTimeAgo = (timestampDate: Date): string => {
+    const fetchTimeOfPost = (timestampDate: Date): string => {
         const now = new Date();
         const diffMs = now.getTime() - timestampDate.getTime();
 
@@ -118,17 +126,23 @@ const Page = () => {
     };
 
 
-    const fetchFriendIds = async () => {
+    const fetchFriendIDs = async () => {
         if (!user) return;
 
         try {
-            const friendSnap = await db.collection("users").doc(user.uid).collection("friends").get();
-            let friendIds: string[] = [];
+            const userFriendReference = await db
+                .collection("users")
+                .doc(user.uid)
+                .collection("friends")
+                .get();
 
-            friendSnap.forEach((doc) => {
-                friendIds.push(doc.id);
+            let friendIDs: string[] = [];
+
+            userFriendReference.forEach((doc) => {
+                friendIDs.push(doc.id);
             });
-            setFriends(friendIds);
+
+            setFriendIDs(friendIDs);
         } catch (err) {
             console.error(err);
         }
@@ -136,19 +150,24 @@ const Page = () => {
 
     const fetchPosts = async () => {
         if (!user) return;
-        const postIds: string[] = [];
+        const postIDs: string[] = [];
 
         try  {
-            for (const friendId of friends) {
-                const q = db.collection("users").doc(friendId).collection("posts").orderBy("timestamp", "desc").limit(1);
+            for (const friendID of friendIDs) {
+                const postQuery = db
+                    .collection("users")
+                    .doc(friendID)
+                    .collection("posts")
+                    .orderBy("timestamp", "desc")
+                    .limit(1);
 
-                const snapshot = await q.get();
+                const postQueryData = await postQuery.get();
 
-                if (!snapshot.empty) {
-                    postIds.push(snapshot.docs[0].id);
+                if (!postQueryData.empty) {
+                    postIDs.push(postQueryData.docs[0].id);
                 }
             }
-            setPostIds(postIds);
+            setPostIDs(postIDs);
         } catch (err) {
             console.error(err);
         }
@@ -158,16 +177,19 @@ const Page = () => {
 
     const getNotifications = async () => {
         if (!user) return;
-        const userInfo = await db.collection("users").doc(user.uid).get();
-        const data = userInfo.data();
-        if (!userInfo.exists() || !data) return;
 
-        // const pAds = data.personalizedAds;
-        // if (pAds === undefined) askUserConsent()
-        // setPersonalizedAds(pAds==="true");
+        const userReference = await db
+            .collection("users")
+            .doc(user.uid)
+            .get();
 
-        setFriendNotifications(data.friendRequests.length);
-        setGroupsNotifications(data.groupRequests.length);
+        const userData = userReference.data();
+        if (!userReference.exists() || !userData) return;
+
+
+
+        setFriendNotifications(userData.friendRequests.length);
+        setGroupsNotifications(userData.groupRequests.length);
     }
 
 
@@ -175,45 +197,59 @@ const Page = () => {
 
 
     const fetchPostContent = async () => {
-        if (!postIds.length || !user) return;
+        if (!postIDs.length || !user) return;
 
         try {
             isRefreshingPosts && setIsLoading(true);
-            const raw = await Promise.all(postIds.map(async (post) => {
-                const postRef = db.collection("posts").doc(post);
-                const postSnap = await postRef.get();
-                const data =postSnap.data();
-                if (!postSnap.exists() || !data) return null;
+            const rawPosts = await Promise.all(
+                postIDs.map(async (post) => {
+
+                const postReference = db
+                    .collection("posts")
+                    .doc(post);
+
+                const postSnapshot = await postReference.get();
+                const postData = postSnapshot.data();
+
+                if (!postSnapshot.exists() || !postData) return null;
 
 
-                const userID = data.sender_id;
-                const mode = data.mode;
-                const userInfo = await db.collection("users").doc(userID).get();
-                let userName = ''
-                let pfp = ''
-                const Data = userInfo.data()
-                if (!userInfo.exists() || !Data) return;
+                const posterID = postData.sender_id;
+                const posterReference = await db
+                    .collection("users")
+                    .doc(posterID)
+                    .get();
 
-                userName = Data.displayName;
-                pfp = Data.photoURL;
-
-
+                const posterData = posterReference.data()
+                if (!posterReference.exists() || !posterData) return;
 
                 let timestamp = "Unknown date";
-                const rawTimestamp = data.timestamp;
+                const rawTimestamp = postData.timestamp;
                 if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
                     try {
                         const dateObj = rawTimestamp.toDate();
-                        timestamp = getTimeAgo(dateObj);
+                        timestamp = fetchTimeOfPost(dateObj);
                     } catch (error) {
                         console.error("Error converting timestamp:", error);
                     }
                 }
 
+                console.log(posterData)
 
-                return { id: post, content: data.content, caption: data.caption, userName: userName, timestamp: timestamp, pfp: pfp, mode: mode, thumbnail: data.thumbnail };
+
+                return {
+                    id: post,
+                    content: postData.content,
+                    caption: postData.caption,
+                    displayName: posterData.displayName,
+                    timestamp: timestamp,
+                    pfp: posterData.photoURL,
+                    mode: postData.mode,
+                    thumbnail: postData.thumbnail
+                };
             }))
-            const validPosts = raw.filter((p): p is PostType => p !== null);
+
+            const validPosts = rawPosts.filter((p): p is PostType => p !== null);
             setPostContents(validPosts)
 
             isRefreshingPosts && setIsLoading(false);
@@ -224,42 +260,13 @@ const Page = () => {
 
     const onRefresh = async () => {
         setIsRefreshingPosts(true)
-        await fetchFriendIds();
+        await fetchFriendIDs();
         await getNotifications()
         isRefreshing.value = false;
         pullDownOffset.value = 0;
         setIsRefreshingPosts(false);
     };
 
-
-
-    // const askUserConsent = () => {
-    //     Alert.alert(
-    //         "Personalized Ads Consent",
-    //         "Do you want to allow personalized ads to improve your experience?",
-    //         [
-    //             {
-    //                 text: "No",
-    //                 onPress: () => saveConsent(false),
-    //                 style: "cancel"
-    //             },
-    //             { text: "Yes", onPress: () => saveConsent(true) }
-    //         ],
-    //         { cancelable: false }
-    //     );
-    // };
-
-    // const saveConsent = async (consent: boolean) => {
-    //     if (!user) return;
-    //     try {
-    //         await db().collection("users").doc(user.uid).update({
-    //             personalizedAds: consent ? "true" : "false"
-    //         });
-    //         setPersonalizedAds(consent);
-    //     } catch (error) {
-    //         console.error("Error saving consent:", error);
-    //     }
-    // };
 
 
 
@@ -324,7 +331,9 @@ const Page = () => {
                 <Ionicons name="notifications-outline" size={width/15} color="#D3D3FF" />
                 {friendNotifications+groupNotifications>0 &&
                     <View style={styles.redCircle}>
-                        <Text style={styles.redCircleText}>{friendNotifications+groupNotifications}</Text>
+                        <Text style={styles.redCircleText}>
+                            {friendNotifications+groupNotifications}
+                        </Text>
                     </View>
                 }
             </TouchableOpacity>

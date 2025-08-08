@@ -8,12 +8,13 @@ const { width, height } = Dimensions.get('window');
 
 interface Post {
     id: string;
-    mode: string;
     content: string;
     caption: string;
-    userName: string;
-    timestamp: string;
+    mode: string;
+    userID: string;
+    displayName: string;
     pfp: string;
+    timestamp: string;
 }
 
 interface PostCompProps {
@@ -29,10 +30,11 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
     const [numLikes, setNumLikes] = useState<number>(0);
-    // const {width, height} = Dimensions.get('window');
-    // const POST_WIDTH = width;
-    // const POST_HEIGHT = height*0.7;
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        console.log(post)
+    }, []);
 
 
     useEffect(() => {
@@ -112,12 +114,22 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
                             </View>
                         )}
                     </View>
-                    <Text style={styles.username}>{post.userName}</Text>
+                    <Text style={styles.username}>{post.displayName}</Text>
                 </View>
             </View>
 
 
-            <TouchableOpacity onPress={()=> router.push({pathname:"/home/post", params:{rawPostID: post.id, rawContent: encodeURIComponent(content), rawCaption: post.caption, rawUserName: post.userName, rawMode: post.mode, rawPhotoURL: encodeURIComponent(post.pfp)}})}>
+            <TouchableOpacity onPress={()=> router.push({pathname:"/post/post",
+                params:{
+                    id: post.id,
+                    content: post.content,
+                    caption: post.caption,
+                    mode: post.mode,
+                    userID: post.userID,
+                    displayName: post.displayName,
+                    pfp: encodeURIComponent(post.pfp)
+            }})}
+            >
                 <View style={styles.contentViewPicture}>
                     {thumbnailUrl ? (
                         <View>
@@ -150,7 +162,7 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             </View>
 
             <View style={styles.captionBar}>
-                <Text style={styles.userNameCaption}>{post.userName}</Text>
+                <Text style={styles.userNameCaption}>{post.displayName}</Text>
                 <Text style={styles.caption}>{post.caption}</Text>
             </View>
             <Text style={styles.timeText}>{post.timestamp}</Text>

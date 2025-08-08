@@ -29,7 +29,6 @@ const Page = () => {
     const contentString = Array.isArray(content) ? content[0] : content || "";
     const displayNameString = String(displayName);
     const idString = String(id);
-    const captionString = String(caption);
     const router = useRouter();
     const pfpString = String(pfp)
     const [videoUri, setVideoUri] = useState<string | null>(null);

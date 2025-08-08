@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import Animated, {useAnimatedStyle, SharedValue, interpolate, Extrapolate} from 'react-native-reanimated';
 import MainPost from '@/components/MainPost';
 import {StyleSheet, View} from "react-native"
