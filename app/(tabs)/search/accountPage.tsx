@@ -20,36 +20,42 @@ type PostID = {
 const { width, height } = Dimensions.get('window');
 
 const Page = () => {
+
+    const { friendID } = useLocalSearchParams();
     const user = auth().currentUser;
-    const [numPosts, setNumPosts] = useState(0);
-    const [numFriends, setNumFriends] = useState(0);
+    const [numberOfPosts, setNumberOfPosts] = useState(0);
+    const [numberOfFriends, setNumberOfFriends] = useState(0);
     const [bio, setBio] = useState('');
     const [postContents, setPostContents] = useState<Post[] | []>([]);
     const [posts, setPosts] = useState<PostID[] | []>([]);
-    const {friendID} = useLocalSearchParams();
-    const friend = String(friendID);
-    const router = useRouter();
+    const friendIDString = String(friendID);
     const [friendStatus, setFriendStatus] = useState<boolean>(false);
     const [requestStatus, setRequestStatus] = useState<boolean>(false);
     const [pfp, setPfp] = useState<string>('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const router = useRouter();
 
 
 
 
 
     const fetchUserPosts = useCallback(async () => {
-        if (!friend) return;
+        if (!friendIDString) return;
         try {
-            const postsRef = db.collection("users").doc(friend).collection("posts");
-            const orderedQuery = postsRef.orderBy("timestamp", "asc");
-            const usersDocs = await orderedQuery.get();
+            const postsReference = db
+                .collection("users")
+                .doc(friendIDString)
+                .collection("posts");
 
-            if (usersDocs.empty) return;
+            const orderedQuery = await postsReference
+                .orderBy("timestamp", "asc")
+                .get();
+
+            if (orderedQuery.empty) return;
 
             try {
-                const postList = usersDocs.docs.map((doc) => ({
+                const postList = orderedQuery.docs.map((doc) => ({
                     id: doc.id,
                     timestamp: doc.data().timestamp,
                     mode: doc.data().mode,
@@ -62,63 +68,8 @@ const Page = () => {
         } catch (err) {
             console.error("Error fetching data:", err);
         }
-    }, [friend]);
+    }, [friendIDString]);
 
-
-    const fetchFriendStatus = useCallback(async () => {
-        if (!user || !friend) return;
-        const friendsRef = await db.collection("users").doc(user.uid).collection("friends").doc(friend).get();
-        if (friendsRef.exists()) {
-            setFriendStatus(true);
-        }
-        else if (user.uid === friend) setFriendStatus(true);
-        else {
-            const friendReqRef = await db.collection("users").doc(friend).get();
-            const data = friendReqRef.data();
-            if (!friendReqRef.exists() || !data) return;
-
-            if (data.friendRequests.includes(user.uid)) setRequestStatus(true);
-        }
-    }, [user, friend]);
-
-    const getBioInfo = useCallback(async () => {
-        if (!friend) return;
-        const getInfo = await db.collection("users").doc(friend).get();
-        const data = getInfo.data()
-        if (!getInfo.exists() || !data) return;
-
-        setBio(data.bio);
-        setPfp(data.photoURL);
-        setFirstName(data.firstName);
-        setLastName(data.lastName);
-
-        const fetchFriendCount = await db.collection("users").doc(friend).collection("friends").get();
-        const fetchPostCount = await db.collection("users").doc(friend).collection("posts").get();
-
-        setNumFriends(fetchFriendCount.size);
-        setNumPosts(fetchPostCount.size);
-
-    },[friend]);
-
-
-    const sendRequest = async () => {
-        if (!user) return;
-        try {
-            if (friend === '' || user.uid === friend) return;
-            const docRef = db.collection("users").doc(friend);
-            const docSnap = await docRef.get();
-            const friendRequests = docSnap.data()?.friendRequests || [];
-            if (docSnap.exists()) {
-                await docRef.set({ friendRequests: [...friendRequests, user.uid] }, { merge: true });
-            } else {
-                await docRef.set({ friendRequests: [user.uid] });
-            }
-            setRequestStatus(true);
-        }
-        catch (error) {
-            console.error(error);
-        }
-    }
 
 
     const getPostContent = useCallback(async () => {
@@ -141,14 +92,114 @@ const Page = () => {
         }
     }, [posts]);
 
+
+    const fetchFriendInformation = useCallback(async () => {
+        if (!user || !friendIDString) return;
+
+        const usersFriendReference = await db
+            .collection("users")
+            .doc(user.uid)
+            .collection("friends")
+            .doc(friendIDString)
+            .get();
+
+
+        const friendReference = await db
+            .collection("users")
+            .doc(friendIDString)
+            .get();
+
+        const data = friendReference.data();
+        if (!friendReference.exists() || !data) return;
+
+
+        if (usersFriendReference.exists() || user.uid === friendIDString) setFriendStatus(true);
+        else if (data.friendRequests.includes(user.uid)) setRequestStatus(true);
+
+
+        setBio(data.bio);
+        setPfp(data.photoURL);
+        setFirstName(data.firstName);
+        setLastName(data.lastName);
+
+
+        const fetchFriendCount = await db
+            .collection("users")
+            .doc(friendIDString)
+            .collection("friends")
+            .get();
+
+        const fetchPostCount = await db
+            .collection("users")
+            .doc(friendIDString)
+            .collection("posts")
+            .get();
+
+        setNumberOfFriends(fetchFriendCount.size);
+        setNumberOfPosts(fetchPostCount.size);
+
+    }, [user, friendIDString]);
+
+    // const getBioInfo = useCallback(async () => {
+    //     if (!friendIDString) return;
+    //
+    //     const getInfo = await db
+    //         .collection("users")
+    //         .doc(friendIDString)
+    //         .get();
+    //
+    //     const data = getInfo.data()
+    //
+    //     if (!getInfo.exists() || !data) return;
+    //
+    //     setBio(data.bio);
+    //     setPfp(data.photoURL);
+    //     setFirstName(data.firstName);
+    //     setLastName(data.lastName);
+    //
+    //     const fetchFriendCount = await db.collection("users").doc(friendIDString).collection("friends").get();
+    //     const fetchPostCount = await db.collection("users").doc(friendIDString).collection("posts").get();
+    //
+    //     setNumberOfFriends(fetchFriendCount.size);
+    //     setNumberOfPosts(fetchPostCount.size);
+    //
+    // },[friendIDString]);
+
+
+    const sendRequest = async () => {
+        if (!user || !friendIDString || user.uid === friendIDString) return;
+        try {
+            const friendReference = db
+                .collection("users")
+                .doc(friendIDString);
+
+            const friendSnapshot = await friendReference.get();
+            const friendData = friendSnapshot.data();
+
+            if (!friendSnapshot.exists || !friendData) return;
+
+            const friendRequests = friendData.friendRequests || [];
+
+            if (friendSnapshot.exists()) {
+                await friendReference.set({ friendRequests: [...friendRequests, user.uid] }, { merge: true });
+            } else {
+                await friendReference.set({ friendRequests: [user.uid] });
+            }
+            setRequestStatus(true);
+        }
+        catch (error) {
+            console.error(error);
+        }
+    }
+
+
+
+
     useEffect(() => {
-        getBioInfo().catch((err) => {
+        fetchFriendInformation().catch((err) => {
             console.error("error fetching Bio info", err);
         });
-        fetchFriendStatus().catch((err) => {
-            console.error("Error fetching data:", err);
-        });
-    }, [getBioInfo, fetchFriendStatus]);
+    }, [fetchFriendInformation]);
 
     useEffect(() => {
         getPostContent().catch((err) => {
@@ -169,24 +220,36 @@ const Page = () => {
         <View style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <Feather name="x" size={height/45} color="#D3D3FF" />
-                <Text style={styles.backButtonText}>Back</Text>
+                <Text style={styles.backButtonText}>
+                    Back
+                </Text>
             </TouchableOpacity>
 
             <View style={styles.infoContainer}>
                 <View style={styles.pfpAndInfo}>
                     <View>
-                        <Image source={{ uri: pfp }} style={styles.pfp} />
+                        {pfp && <Image source={{ uri: pfp }} style={styles.pfp} />}
                     </View>
                     <View style={styles.nameAndInfo}>
-                        <Text style={styles.nameText}>{firstName} {lastName}</Text>
+                        <Text style={styles.nameText}>
+                            {firstName} {lastName}
+                        </Text>
                         <View style={styles.info}>
                             <View>
-                                <Text style={styles.infoNumber}>{numPosts}</Text>
-                                <Text style={styles.infoText}>posts</Text>
+                                <Text style={styles.infoNumber}>
+                                    {numberOfPosts}
+                                </Text>
+                                <Text style={styles.infoText}>
+                                    posts
+                                </Text>
                             </View>
                             <View style={styles.friendsBox}>
-                                <Text style={styles.infoNumber}>{numFriends}</Text>
-                                <Text style={styles.infoText}>friends</Text>
+                                <Text style={styles.infoNumber}>
+                                    {numberOfFriends}
+                                </Text>
+                                <Text style={styles.infoText}>
+                                    friends
+                                </Text>
                             </View>
                         </View>
                     </View>
@@ -197,14 +260,18 @@ const Page = () => {
             <View style={styles.buttonContainer}>
                 {friendStatus ? (
                     <View style={styles.followButton}>
-                        <Text style={styles.followText}>friends</Text>
+                        <Text style={styles.followText}>
+                            friends
+                        </Text>
                     </View>
                 ) : (
                     <TouchableOpacity
                         style={styles.notFollowedButton}
                         onPress={sendRequest}
                     >
-                        <Text style={styles.notFollowedText}>{requestStatus ? "request pending" : "request"}</Text>
+                        <Text style={styles.notFollowedText}>
+                            {requestStatus ? "request pending" : "request"}
+                        </Text>
                     </TouchableOpacity>
                 )}
             </View>

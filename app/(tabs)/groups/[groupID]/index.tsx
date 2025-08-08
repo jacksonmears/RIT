@@ -47,6 +47,7 @@ const Index = () => {
     const user = auth().currentUser;
     const [posts, setPosts] = useState<PostType[]>([]);
     const [groupMemberCache, setGroupMemberCache] = useState<Record<string, groupMemberInformation>>({});
+    const [cacheReady, setCacheReady] = useState(false);  // NEW: to track cache readiness
     const [message, setMessage] = useState("");
     const [loadingMore, setLoadingMore] = useState(false);
     const [membersLoading, setMembersLoading] = useState(true);
@@ -77,6 +78,9 @@ const Index = () => {
     useEffect(() => {
         const fetchGroupMembers = async () => {
             try {
+                setCacheReady(false);
+                setMembersLoading(true);
+
                 const membersReferences = await db
                     .collection("groups")
                     .doc(groupIDString)
@@ -112,18 +116,19 @@ const Index = () => {
 
                 setGroupMemberCache(userMap);
                 setMembersLoading(false);
+                setCacheReady(true);
             } catch (error) {
                 console.error("Error loading group members:", error);
+                setMembersLoading(false);
+                setCacheReady(false);
             }
         };
 
         fetchGroupMembers().catch(err => console.error(err));
     }, [groupIDString]);
 
-
-
     useEffect(() => {
-        if (!user) return;
+        if (!user || !cacheReady) return;
 
         fetchTotalMessageCount().catch(err => console.error("Failed to fetch total message count:", err));
 
@@ -143,16 +148,19 @@ const Index = () => {
                 }
 
                 const documentReferences = snapshot.docs;
-                const fetchedPosts = documentReferences.map(doc => ({
-                    id: doc.id,
-                    content: doc.data().content,
-                    caption: doc.data().caption,
-                    mode: doc.data().mode,
-                    userID: doc.data().sender_id,
-                    displayName: groupMemberCache[doc.data().sender_id].displayName,
-                    pfp: groupMemberCache[doc.data().sender_id].pfp,
-                    timestamp: doc.data().timestamp,
-                }));
+                const fetchedPosts = documentReferences.map(doc => {
+                    const senderID = doc.data().sender_id;
+                    return {
+                        id: doc.id,
+                        content: doc.data().content,
+                        caption: doc.data().caption,
+                        mode: doc.data().mode,
+                        userID: senderID,
+                        displayName: groupMemberCache[senderID]?.displayName ?? "Unknown",
+                        pfp: groupMemberCache[senderID]?.pfp ?? "",
+                        timestamp: doc.data().timestamp,
+                    };
+                });
 
                 lastVisibleRef.current = documentReferences[documentReferences.length - 1].data().timestamp;
 
@@ -193,7 +201,7 @@ const Index = () => {
             isInitialLoadRef.current = true;
             lastVisibleRef.current = null;
         };
-    }, [groupIDString, user]);
+    }, [groupIDString, user, cacheReady]);
 
     const fetchMorePosts = async () => {
         if (
@@ -220,16 +228,19 @@ const Index = () => {
             if (snapshot.empty) {
                 setHasMoreMessages(false);
             } else {
-                const newPosts = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    content: doc.data().content,
-                    caption: doc.data().caption,
-                    mode: doc.data().mode,
-                    userID: doc.data().sender_id,
-                    displayName: groupMemberCache[doc.data().sender_id].displayName,
-                    pfp: groupMemberCache[doc.data().sender_id].pfp,
-                    timestamp: doc.data().timestamp,
-                }));
+                const newPosts = snapshot.docs.map(doc => {
+                    const senderID = doc.data().sender_id;
+                    return {
+                        id: doc.id,
+                        content: doc.data().content,
+                        caption: doc.data().caption,
+                        mode: doc.data().mode,
+                        userID: senderID,
+                        displayName: groupMemberCache[senderID]?.displayName ?? "Unknown",
+                        pfp: groupMemberCache[senderID]?.pfp ?? "",
+                        timestamp: doc.data().timestamp,
+                    };
+                });
 
                 lastVisibleRef.current = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
 
@@ -360,7 +371,6 @@ const Index = () => {
                     onChangeText={setMessage}
                     inputMode={"search"}
                     placeholderTextColor={"black"}
-
                 />
                 <TouchableOpacity onPress={pushTextMessage}>
                     <Text style={styles.text}> send </Text>
@@ -393,7 +403,7 @@ const styles = StyleSheet.create({
     },
     topBarText: {
         color: "#D3D3FF",
-        fontSize: height/50
+        fontSize: height / 50,
     },
     backArrowName: {
         flexDirection: "row",

@@ -38,22 +38,31 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const usersRef = db.collection("displayName").orderBy("lowerDisplayName").startAt(search.toLowerCase()).endAt(search.toLowerCase()+'\uf8ff').limit(10);
+            const usersQuery = db
+                .collection("displayName")
+                .orderBy("lowerDisplayName")
+                .startAt(search.toLowerCase())
+                .endAt(search.toLowerCase()+'\uf8ff')
+                .limit(10);
 
 
-            const querySnapshot = await usersRef.get();
+            const querySnapshot = await usersQuery.get();
             if (querySnapshot.empty) return;
 
             try {
-                const raw = await Promise.all(
+                const rawFriendData = await Promise.all(
                     querySnapshot.docs.map(async (docSnapshot) => {
-                        const userId = docSnapshot.data().uid;
-                        const friendDoc = await db.collection("users").doc(userId).get();
-                        const data = friendDoc.data();
-                        if (!friendDoc.exists() || !data) return;
+                        const friendID = docSnapshot.data().uid;
+                        const friendReference = await db
+                            .collection("users")
+                            .doc(friendID)
+                            .get();
+
+                        const data = friendReference.data();
+                        if (!friendReference.exists() || !data) return;
 
                         return {
-                            id: userId,
+                            id: friendID,
                             username: docSnapshot.data().displayName,
                             photoURL: data.photoURL,
                             firstName: data.firstName,
@@ -62,8 +71,8 @@ const Page = () => {
 
                     })
                 );
-                const validPosts = raw.filter((p): p is SearchType => p !== null);
-                setSearchResults(validPosts);
+                const validFriendData = rawFriendData.filter((p): p is SearchType => p !== null);
+                setSearchResults(validFriendData);
 
             } catch (err) {
                 console.error(err);
@@ -105,7 +114,11 @@ const Page = () => {
                         index={index}
                     />
                 )}
-                ListEmptyComponent={<Text style={styles.noResults}>No results found</Text>}
+                ListEmptyComponent={
+                    <Text style={styles.noResults}>
+                        No results found
+                    </Text>
+                }
             />
 
 

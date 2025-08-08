@@ -33,33 +33,7 @@ const { width, height } = Dimensions.get("window");
 const GroupMessage: React.FC<PostCompProps> = ({ post, groupMember, onDelete }) => {
     const user = auth().currentUser;
 
-    // const confirmDelete = () => {
-    //     Alert.alert(
-    //         "Delete message?",
-    //         "Are you sure you want to delete this message?",
-    //         [
-    //             { text: "Cancel", style: "cancel" },
-    //             { text: "Delete", style: "destructive", onPress: handleDelete },
-    //         ]
-    //     );
-    // };
-    //
-    // const handleDelete = async () => {
-    //     try {
-    //         // Delete the message from Firestore
-    //         await db()
-    //             .collection("groups")
-    //             .doc(post.groupID)
-    //             .collection("messages")
-    //             .doc(post.id)
-    //             .delete();
-    //
-    //         // Notify parent component without refetching everything
-    //         if (onDelete) onDelete(post.id);
-    //     } catch (error) {
-    //         console.error("Failed to delete message:", error);
-    //     }
-    // };
+
 
     // Only allow sender to delete their own messages
     const isSender = user?.uid === post.userID;
