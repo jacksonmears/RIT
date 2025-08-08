@@ -14,7 +14,6 @@ const RootLayout = () => {
     const router = useRouter();
     const segments = useSegments();
 
-    // Subscribe to auth state changesF
     useEffect(() => {
         return auth().onAuthStateChanged(u => {
             setUser(u);
@@ -22,7 +21,6 @@ const RootLayout = () => {
         });
     }, []);
 
-    // Redirect logic
 
     useEffect(() => {
         if (initializing) return;
@@ -45,7 +43,6 @@ const RootLayout = () => {
     }, [user, initializing, segments]);
 
 
-    // Loading indicator
     if (initializing) {
         return (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>

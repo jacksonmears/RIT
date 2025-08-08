@@ -18,16 +18,14 @@ import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebase';
 import firestore from '@react-native-firebase/firestore';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SignUpPage() {
     const router = useRouter();
-
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [username, setUsername] = useState('');
+    const [displayName, setDisplayName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,7 +40,7 @@ export default function SignUpPage() {
             Alert.alert('Error', 'Passwords do not match.');
             return;
         }
-        if (!username.trim()) {
+        if (!displayName.trim()) {
             Alert.alert('Error', 'Please choose a username.');
             return;
         }
@@ -51,7 +49,7 @@ export default function SignUpPage() {
         try {
             const nameDoc = await db
                 .collection('displayName')
-                .doc(username.toLowerCase())
+                .doc(displayName.toLowerCase())
                 .get();
             if (nameDoc.exists()) {
                 Alert.alert('Error', 'Username already taken.');
@@ -62,7 +60,7 @@ export default function SignUpPage() {
                 await auth().createUserWithEmailAndPassword(email.trim(), password);
             const user = cred.user;
 
-            await user.updateProfile({ displayName: username });
+            await user.updateProfile({ displayName: displayName });
 
             await db
                 .collection('users')
@@ -71,7 +69,7 @@ export default function SignUpPage() {
                     firstName: firstName.trim(),
                     lastName: lastName.trim(),
                     email: email.trim(),
-                    displayName: username,
+                    displayName: displayName.trim(),
                     bio: '',
                     photoURL: null,
                     friendRequests: [],
@@ -81,11 +79,11 @@ export default function SignUpPage() {
 
             await db
                 .collection('displayName')
-                .doc(username.toLowerCase())
+                .doc(displayName.toLowerCase())
                 .set({
                     uid: user.uid,
-                    displayName: username,
-                    lowerDisplayName: username.toLowerCase(),
+                    displayName: displayName,
+                    lowerDisplayName: displayName.toLowerCase(),
                 });
 
             await user.sendEmailVerification();
@@ -144,8 +142,8 @@ export default function SignUpPage() {
                         style={styles.input}
                         placeholder="Username"
                         keyboardType="default"
-                        value={username}
-                        onChangeText={setUsername}
+                        value={displayName}
+                        onChangeText={setDisplayName}
                         autoCapitalize="none"
                         maxLength={30}
                         placeholderTextColor={"grey"}
@@ -201,8 +199,7 @@ export default function SignUpPage() {
                         </>
                     )}
 
-                    {/* Optional bottom spacing to prevent keyboard overlap */}
-                    <View style={{ height: 80 }} />
+                    <View style={{ height: height/10 }} />
                 </ScrollView>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
