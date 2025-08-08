@@ -23,7 +23,7 @@ const SearchCard: React.FC<UserCompProps> = ({ info }) => {
 
     return (
 
-        <TouchableOpacity style={styles.resultItem} onPress={() =>  router.push({ pathname: "/search/accountPage", params: { friendID: info.id }})}>
+        <TouchableOpacity style={styles.resultItem} onPress={() =>  router.push({ pathname: "/accountPage/account", params: { friendID: info.id }})}>
             <View style={styles.avatarView}>
                 <Image source={{ uri: info.photoURL }} style={styles.avatar} />
                 <View>

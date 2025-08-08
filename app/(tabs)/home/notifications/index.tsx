@@ -6,12 +6,13 @@ import { useRouter } from "expo-router";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
+import {raw} from "express";
 
 const { width, height } = Dimensions.get("window");
 
 type FriendRequestType = {
     id: string;
-    name: string;
+    displayName: string;
     photoURL: string;
 }
 
@@ -39,28 +40,36 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const userDoc = await db.collection("users").doc(user.uid).get();
-            const data = userDoc.data();
-            if (!userDoc.exists() || !data) return;
+            const userReference = await db
+                .collection("users")
+                .doc(user.uid)
+                .get();
 
-            const incomingIds: string[] = data.groupRequests;
+            const userData = userReference.data();
+            if (!userReference.exists() || !userData) return;
+
+            const incomingGroupRequests: string[] = userData.groupRequests;
 
             try {
-                const detailed = await Promise.all(
-                    incomingIds.map(async (groupId) => {
-                        const groupDoc = await db.collection("groups").doc(groupId).get();
-                        const Data = groupDoc.data();
-                        if (!Data || !groupDoc.exists()) return;
+                const rawGroupRequests = await Promise.all(
+                    incomingGroupRequests.map(async (groupID) => {
+                        const groupReference = await db
+                            .collection("groups")
+                            .doc(groupID)
+                            .get();
+
+                        const groupData = groupReference.data();
+                        if (!groupData || !groupReference.exists()) return;
                         return {
-                            id:   groupId,
-                            name: groupDoc.exists()
-                                ? (Data.name as string)
+                            id:   groupID,
+                            name: groupReference.exists()
+                                ? (groupData.name as string)
                                 : "Unknown",
                         };
                     })
                 );
-                const validPosts = detailed.filter((p): p is GroupRequestType => p !== null);
-                setGroupRequests(validPosts);
+                const validGroupRequests = rawGroupRequests.filter((p): p is GroupRequestType => p !== null);
+                setGroupRequests(validGroupRequests);
             } catch (err) {
                 console.error("Error fetching groupRequests for user", err);
             }
@@ -75,21 +84,30 @@ const Page = () => {
         if (!user) return;
 
         try {
-            const userDoc = await db.collection("users").doc(user.uid).get();
-            const filler= userDoc.data();
-            if (!userDoc.exists() || !filler) return;
-            const friendRequests: string[] = filler.friendRequests;
+            const userReference = await db
+                .collection("users")
+                .doc(user.uid)
+                .get();
+
+            const userData= userReference.data();
+            if (!userReference.exists() || !userData) return;
+            const friendRequests: string[] = userData.friendRequests;
 
             try {
-                const raw = await Promise.all(friendRequests.map(async (friend) => {
-                    const friendDoc = await db.collection("users").doc(friend).get();
-                    const data = friendDoc.data();
-                    if (!friendDoc.exists() || !data) return;
-                    return {id: friend, name: data.displayName, photoURL: data.photoURL};
-                }))
-                const validPosts = raw.filter((p): p is FriendRequestType => p !== null);
+                const rawFriendRequests = await Promise.all(
+                    friendRequests.map(async (friendID) => {
+                    const friendReference = await db
+                        .collection("users")
+                        .doc(friendID)
+                        .get();
 
-                setFriendRequests(validPosts)
+                    const friendData = friendReference.data();
+                    if (!friendReference.exists() || !friendData) return;
+                    return {id: friendID, displayName: friendData.displayName, photoURL: friendData.photoURL};
+                }))
+                const validFriendRequests = rawFriendRequests.filter((p): p is FriendRequestType => p !== null);
+
+                setFriendRequests(validFriendRequests);
             } catch (err) {
                 console.error(err);
             }
@@ -101,23 +119,27 @@ const Page = () => {
 
 
 
-    const acceptGroupInvite = async (groupId: string) => {
+    const acceptGroupInvite = async (groupID: string) => {
         if (!user) return;
         try {
-            const groupNameRef =  db.collection("groups").doc(groupId)
-            const docSnap = await groupNameRef.get();
-            const data = docSnap.data();
-            if (!docSnap.exists() || !data) return;
+            const groupReference =  db
+                .collection("groups")
+                .doc(groupID)
+
+            const groupSnapshot = await groupReference.get();
+            const groupData = groupSnapshot.data();
+
+            if (!groupSnapshot.exists() || !groupData) return;
 
             try {
-                const groupName = data.name;
-                addGroupUserSide(groupId, groupName).catch((err) => {
+                const groupName = groupData.name;
+                addGroupUserSide(groupID, groupName).catch((err) => {
                     console.error(err);
                 });
-                addGroupCollectionSide(groupId).catch((err) => {
+                addGroupCollectionSide(groupID).catch((err) => {
                     console.error(err);
                 });
-                removeGroupInvite(groupId).catch((err) => {
+                removeGroupInvite(groupID).catch((err) => {
                     console.error(err);
                 });
                 fetchGroupRequests().catch((err) => {
@@ -137,10 +159,14 @@ const Page = () => {
     const addGroupUserSide = async (groupID: string, groupName: string) => {
         if (!user) return;
 
-        const docRef = db.collection("users").doc(user.uid).collection("groups").doc(groupID);
+        const userGroupReference = db
+            .collection("users")
+            .doc(user.uid)
+            .collection("groups")
+            .doc(groupID);
 
         try {
-            await docRef.set({
+            await userGroupReference.set({
                 name: groupName,
                 timestamp: firestore.FieldValue.serverTimestamp(),
                 favorite: false
@@ -154,9 +180,14 @@ const Page = () => {
     const addGroupCollectionSide = async (groupID: string) => {
         if (!user) return;
 
-        const colRef = db.collection("groups").doc(groupID).collection("users").doc(user.uid);
+        const groupUserReference = db
+            .collection("groups")
+            .doc(groupID)
+            .collection("users")
+            .doc(user.uid);
+
         try {
-            await colRef.set({
+            await groupUserReference.set({
                 name: user.displayName,
                 timestamp: firestore.FieldValue.serverTimestamp(),
             });
@@ -168,41 +199,47 @@ const Page = () => {
 
 
 
-    const acceptFriend = async (displayName: string) => {
-        if (user) {
-            const friendRef = await db.collection("displayName").doc(displayName).get();
-            const friend= friendRef.data();
-            if (!friendRef.exists() || !friend) return;
+    const acceptFriend = async (friendID: string) => {
+        if (!user) return;
+
+        try {
 
 
-            const userFriendDocRef = db.collection("users").doc(user.uid).collection("friends").doc(friend.uid);
-            const friendFriendDocRef = db.collection("users").doc(friend.uid).collection("friends").doc(user.uid);
+            const userUpdateReference = db.collection("users").doc(user.uid).collection("friends").doc();
+            const friendUpdateReference = db.collection("users").doc(friendID).collection("friends").doc(user.uid);
 
             try {
                 const friendData = { timestamp: firestore.FieldValue.serverTimestamp(),};
-                await userFriendDocRef.set(friendData);
-                await friendFriendDocRef.set(friendData);
-                await removeFriendRequest(friend.uid);
+                await userUpdateReference.set(friendData);
+                await friendUpdateReference.set(friendData);
+                await removeFriendRequest(friendID);
 
             } catch (error) {
                 console.error("Error accepting friend request: ", error);
             }
         }
+        catch (error) {
+            console.error(error);
+        }
     };
 
-    const removeFriendRequest = async (friend: string) => {
+    const removeFriendRequest = async (friendID: string) => {
         if (!user) return;
 
-        const docRef = db.collection("users").doc(user.uid);
-        const getData = await docRef.get();
-        const data = getData.data();
-        if (!data) return;
+        const userReference = db
+            .collection("users")
+            .doc(user.uid);
+
+        const userSnapshot = await userReference.get();
+        const userData = userSnapshot.data();
+
+        if (!userSnapshot.exists() || !userData) return;
 
         try {
-            const currentRequests: string[] = data.friendRequests || [];
-            const updatedRequests = currentRequests.filter(id => id !== friend);
+            const currentRequests: string[] = userData.friendRequests || [];
+            const updatedRequests = currentRequests.filter(id => id !== friendID);
 
-            await docRef.update({
+            await userReference.update({
                 friendRequests: updatedRequests
             });
             await fetchFriendRequestsAndUsernames();
@@ -215,16 +252,19 @@ const Page = () => {
     const removeGroupInvite = async (groupID: string) => {
         if (!user) return;
 
-        const docRef = db.collection("users").doc(user.uid);
-        const getData = await docRef.get();
-        const data = getData.data();
-        if (!data) return;
+        const userReference = db
+            .collection("users")
+            .doc(user.uid);
+
+        const userSnapshot = await userReference.get();
+        const userData = userSnapshot.data();
+        if (!userSnapshot.exists() || !userData) return;
 
         try {
-            const currentRequests: string[] = data.groupRequests || [];
+            const currentRequests: string[] = userData.groupRequests || [];
             const updatedRequests = currentRequests.filter(id => id !== groupID);
 
-            await docRef.update({
+            await userReference.update({
                 groupRequests: updatedRequests
             });
             await fetchGroupRequests();
@@ -244,7 +284,9 @@ const Page = () => {
                 </TouchableOpacity>
                 {user &&
                     <View style={styles.titleCardView}>
-                        <Text style={styles.topBarName}>{user.displayName}</Text>
+                        <Text style={styles.topBarName}>
+                            {user.displayName}
+                        </Text>
                     </View>
                 }
 
@@ -257,14 +299,18 @@ const Page = () => {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <View style={styles.listContainer}>
-                        <TouchableOpacity style={styles.nameContainer} onPress={() => router.push({pathname: '/home/notifications/accountPage', params: {friendID: item.id}})}>
+                        <TouchableOpacity style={styles.nameContainer} onPress={() => router.push({pathname: '/accountPage/account', params: {friendID: item.id}})}>
                             <Image source={{ uri: item.photoURL }} style={styles.avatar} />
-                            <Text style={styles.userName}>{item.name}</Text>
-                            <Text style={styles.greyText}>Friend</Text>
+                            <Text style={styles.userName}>
+                                {item.displayName}
+                            </Text>
+                            <Text style={styles.greyText}>
+                                Friend
+                            </Text>
                         </TouchableOpacity>
 
                         <View style={styles.buttonGroup}>
-                            <TouchableOpacity onPress={() => acceptFriend(item.name)} style={styles.acceptButton}>
+                            <TouchableOpacity onPress={() => acceptFriend(item.id)} style={styles.acceptButton}>
                                 <Entypo name="check" size={24} color="green" />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => removeFriendRequest(item.id)} style={styles.declineButton}>
@@ -283,8 +329,12 @@ const Page = () => {
                 renderItem={({ item }) => (
                     <View style={styles.listContainer}>
                         <View style={styles.nameContainer}>
-                            <Text style={styles.userName}>{item.name}</Text>
-                            <Text style={styles.greyText}>Group</Text>
+                            <Text style={styles.userName}>
+                                {item.name}
+                            </Text>
+                            <Text style={styles.greyText}>
+                                Group
+                            </Text>
                         </View>
 
                         <View style={styles.buttonGroup}>

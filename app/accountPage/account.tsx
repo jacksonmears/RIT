@@ -2,7 +2,7 @@ import React, {useState, useEffect, useCallback} from 'react';
 import {View, Text, StyleSheet, Image, Dimensions, FlatList, TouchableOpacity} from 'react-native';
 import { auth, db } from '@/firebase';
 import { useLocalSearchParams, useRouter} from 'expo-router'
-import AccountPost from "../../../components/AccountPost";
+import AccountPost from "../../components/AccountPost";
 import Feather from "@expo/vector-icons/Feather";
 
 type Post = {

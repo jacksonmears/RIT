@@ -32,6 +32,7 @@ const RootLayout = () => {
 
         const allowedOutsideTabs = [
             "post/post",
+            "accountPage/account"
         ];
 
         const isAllowedOutside = allowedOutsideTabs.some(path => currentPath.startsWith(path));
