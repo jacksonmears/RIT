@@ -17,9 +17,9 @@ type GroupType = {
 
 const Page = () => {
     const user = auth().currentUser;
-    const { recapURI, mode, caption, thumbnailURI } = useLocalSearchParams();
+    const { recapURI, mode, caption, thumbnail } = useLocalSearchParams();
     const captionString = String(caption);
-    const thumbnailString = String(thumbnailURI);
+    const thumbnailString = String(thumbnail);
     const recapURIString = String(recapURI);
     const modeString = String(mode);
     const [userGroups, setUserGroups] = useState<GroupType[]>([]);
@@ -128,6 +128,7 @@ const Page = () => {
             await addPostToGroups(parsedGroups, postID, null, null);
 
             const uploadFn = modeString === "photo" ? uploadPhoto : uploadVideo;
+
 
             Promise.all([
                 uploadFn(postID, recapURIString),

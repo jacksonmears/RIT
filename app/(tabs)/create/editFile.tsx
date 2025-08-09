@@ -19,10 +19,10 @@ const { width, height } = Dimensions.get("window");
 
 const Page = () => {
     const router = useRouter();
-    const { recapURI, mode, thumbnailUri } = useLocalSearchParams();
+    const { recapURI, mode, thumbnail } = useLocalSearchParams();
     const recapURIString = String(recapURI);
     const modeString = String(mode);
-    const thumbnailString = String(thumbnailUri);
+    const thumbnailString = String(thumbnail);
     const [caption, setCaption] = useState<string>("");
     const CAPTION_LENGTH: number =  50;
     const [remainingCharacters, setRemainingCharacters] = useState<number>(CAPTION_LENGTH);
@@ -64,7 +64,7 @@ const Page = () => {
                                 recapURI: uri,
                                 mode: modeString,
                                 caption: caption,
-                                thumbnailURI: thumbnailString
+                                thumbnail: thumbnailString
                             }
                         })
                     }>

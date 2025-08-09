@@ -196,7 +196,7 @@ const Page = () => {
                             params: {
                                 recapURI: mp4Path,
                                 mode: mode,
-                                thumbnailURI: thumbnail.path,
+                                thumbnail: thumbnail.path,
                             },
                         });
 
