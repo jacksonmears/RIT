@@ -53,9 +53,9 @@ Before running this project, ensure your development environment meets the follo
    
 3. **Configure Firebase**
 
-    This project uses Firebase for backend services (cloud functions and database)
-    **IMPORTANT**: The 'android/app/google-services.json' file is **not** include in the repository for security reasons.
-    Please contact me at [jackson.mears2002@gmail.com] to get access to the Firebase configuration file and how to implement it.
+    - This project uses Firebase for backend services (cloud functions and database)
+    - **IMPORTANT**: The 'android/app/google-services.json' file is **not** include in the repository for security reasons.
+    - Please contact me at [jackson.mears2002@gmail.com] to get access to the Firebase configuration file and how to implement it.
 
 4. **Start the development server**
     
