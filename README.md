@@ -45,3 +45,64 @@ Before running this project, ensure your development environment meets the follo
    ```bash
    git clone https://github.com/yourusername/rit.git
    cd rit
+   
+2. **Install Dependencies**
+    
+    ```bash
+    npm install
+   
+3. **Configure Firebase**
+
+    This project uses Firebase for backend services (cloud functions and database)
+    **IMPORTANT**: The 'android/app/google-services.json' file is **not** include in the repository for security reasons.
+    Please contact me at [jackson.mears2002@gmail.com] to get access to the Firebase configuration file and how to implement it.
+
+4. **Start the development server**
+    
+    ```bash
+   npx expo start
+   
+---
+
+## Running the App
+
+**On Android Emulator**
+
+1. Open Android Studio.
+2. Launch an Android Virtual Device (AVD) with Android 13 or higher.
+3. Run the app with:
+
+    ```bash
+   npx expo run:android
+   
+**On Physical Device**
+
+- Connect your Android device via USB with USB debugging enabled. 
+- Run the app the same way as emulator
+
+    ```bash
+    npx expo run:android
+  
+---
+
+## Firebase Configuration
+
+- The Firebase backend includes Firestore, Authentication, and Storage.
+- The Firestore and Storage rules are configured to restrict unauthorized access and prevent abuse. 
+- **DO NOT COMMIT** your 'google-services.json' to the repository. It is listed in .gitignore.
+
+---
+
+## Additional Notes
+
+- This project uses Expo SDK 53. Ensure your global/local Expo CLI version supports this.
+- Using npx allows running Expo commands without global install.
+- For IOS development, a Mac and Xcode are required. 
+- For any questions or Firebase config requests, again contact me at [jackson.mears2002@gmail.com]
+
+---
+
+## License
+
+This project is licensed under the MIT License!
+    
