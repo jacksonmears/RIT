@@ -336,7 +336,7 @@ const Page = () => {
                     style={[styles.groups, {marginTop: height * 0.02, marginBottom: height * 0.07}]}
                     data={postContents}
                     keyExtractor={(item) => item.id}
-                    renderItem={({item, index}) => (
+                    renderItem={({item}) => (
                         <TouchableOpacity onPress={() => router.push({
                                 pathname: `../post/post`,
                                 params: {
@@ -351,7 +351,7 @@ const Page = () => {
                         })}>
 
                             <View style={styles.itemContainer}>
-                                <AccountPost post={item} index={index}/>
+                                <AccountPost post={item}/>
                             </View>
                         </TouchableOpacity>
 

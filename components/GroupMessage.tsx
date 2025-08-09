@@ -25,7 +25,7 @@ type groupMemberInformation = {
 interface PostCompProps {
     post: Post;
     groupMember: groupMemberInformation;
-    onDelete?: (id: string) => void; // optional callback if you want to pass delete up
+    onDelete?: (id: string) => void;
 }
 
 const { width, height } = Dimensions.get("window");
@@ -35,7 +35,6 @@ const GroupMessage: React.FC<PostCompProps> = ({ post, groupMember, onDelete }) 
 
 
 
-    // Only allow sender to delete their own messages
     const isSender = user?.uid === post.userID;
 
     return (
@@ -43,11 +42,12 @@ const GroupMessage: React.FC<PostCompProps> = ({ post, groupMember, onDelete }) 
             {isSender ? (
                 <View style={styles.container}>
                     <TouchableOpacity
-                        // onLongPress={confirmDelete}
                         delayLongPress={500}
                         style={styles.selfMessage}
                     >
-                        <Text style={styles.selfText}>{post.content}</Text>
+                        <Text style={styles.selfText}>
+                            {post.content}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             ) : (

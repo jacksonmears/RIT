@@ -32,7 +32,6 @@ const AnimatedGroupCard: React.FC<Props> = ({ item, index }) => {
     return (
         <Animated.View
             style={animatedStyle}
-            // entering={SlideInLeft.delay(index * 100).duration(300)}
         >
             <GroupCard group={item} />
         </Animated.View>

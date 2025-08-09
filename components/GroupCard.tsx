@@ -2,13 +2,11 @@ import {View, Text, StyleSheet, TouchableOpacity, Dimensions, Pressable} from "r
 import { useRouter } from "expo-router";
 import AntDesign from '@expo/vector-icons/AntDesign';
 
-// Define the shape of a Group object
 interface Group {
     id: string;
     name: string;
 }
 
-// Define props for GroupCard
 interface GroupCardProps {
     group: Group;
 }

@@ -26,15 +26,10 @@ interface PostCompProps {
 
 const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const router = useRouter();
-    const content = decodeURIComponent(post.content);
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
     const [numLikes, setNumLikes] = useState<number>(0);
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-
-    useEffect(() => {
-        console.log(post)
-    }, []);
 
 
     useEffect(() => {

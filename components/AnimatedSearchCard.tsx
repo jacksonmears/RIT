@@ -10,7 +10,6 @@ import SearchCard from './SearchCard';
 type Props = {
     item: any;
     index: number;
-    // version: number;
 };
 
 const AnimatedSearchCard: React.FC<Props> = ({ item, index }) => {
@@ -23,7 +22,7 @@ const AnimatedSearchCard: React.FC<Props> = ({ item, index }) => {
 
         translateX.value = withDelay(index * 100, withTiming(0, { duration: 300 }));
         opacity.value = withDelay(index * 100, withTiming(1, { duration: 300 }));
-    }, []); //version
+    }, []);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: translateX.value }],
@@ -33,7 +32,6 @@ const AnimatedSearchCard: React.FC<Props> = ({ item, index }) => {
     return (
         <Animated.View
             style={animatedStyle}
-            // entering={SlideInLeft.delay(index * 100).duration(300)}
         >
             <SearchCard info={item} />
         </Animated.View>

@@ -234,7 +234,6 @@ const Page = () => {
                     }
                 }
 
-                console.log(posterData)
 
 
                 return {

@@ -22,55 +22,62 @@ type Post = {
 
 type PostCompProps = {
     post: Post;
-    index: number;
 };
 
 const { width, height } = Dimensions.get("window");
 const gapSize = 3; // small gap between items
 
-const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
+const AccountPost: React.FC<PostCompProps> = ({ post }) => {
     const user = auth().currentUser;
     const router = useRouter();
     const [sheetVisible, setSheetVisible] = useState<boolean>(false);
-    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    const [thumbnail, setThumbnail] = useState<string | null>(null);
 
     useEffect(() => {
-        const getSignedThumbnailUrl = async (postId: string): Promise<string | undefined> => {
+        const fetchThumbnail = async (postID: string): Promise<string | undefined> => {
             try {
-                const path = encodeURIComponent(`${postId}/thumbnail.jpg`);
+                const thumbnailPath = encodeURIComponent(`${postID}/thumbnail.jpg`);
                 const response = await fetch(
-                    `https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${path}`
+                    `https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${thumbnailPath}`,
                 );
                 if (!response.ok) {
                     const text = await response.text();
                     console.error(`Failed to get signed thumbnail URL: ${response.status} ${text}`);
                     return undefined;
                 }
-                const data = await response.json();
-                setThumbnailUrl(data.url);
-                return data.url;
+                const thumbnailData = await response.json();
+                setThumbnail(thumbnailData.url);
+                return thumbnailData.url;
             } catch (error) {
                 console.error("Error fetching signed thumbnail URL:", error);
                 return undefined;
             }
         };
 
-        getSignedThumbnailUrl(post.id);
+        fetchThumbnail(post.id).catch((error) => {
+            console.error("Error fetching signed thumbnail URL:", error);
+        })
     }, [post.id]);
 
-    const deleteCollection = async (collectionPath: string, batchSize: number) => {
+    const deletePostCollection = async (collectionPath: string, batchSize: number) => {
         if (!collectionPath || !batchSize) return;
 
-        const collectionRef = db.collection("posts").doc(post.id).collection(collectionPath);
+        const postCollectionReference = db
+            .collection("posts")
+            .doc(post.id)
+            .collection(collectionPath);
+
         while (true) {
             try {
-                const q = collectionRef.orderBy("timestamp").limit(batchSize);
-                const snapshot = await q.get();
+                const postCollectionQuery = await postCollectionReference
+                    .orderBy("timestamp")
+                    .limit(batchSize)
+                    .get();
 
-                if (snapshot.empty) {
+                if (postCollectionQuery.empty) {
                     break;
                 }
-                await Promise.all(snapshot.docs.map((doc) => doc.ref.delete()));
+                await Promise.all(postCollectionQuery.docs.map((doc) => doc.ref.delete()));
             } catch (err) {
                 console.error(err);
                 break;
@@ -78,29 +85,40 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
         }
     };
 
-    const handleDeletePost = async () => {
+    const deletePost = async () => {
         if (!user) return;
 
-        const dummyPostID = post.id;
-        const postRef = db.collection("posts").doc(dummyPostID);
-        const userRef = db.collection("users").doc(user.uid).collection("posts").doc(dummyPostID);
-        const snapshot = await postRef.collection("groups").get();
-        const groupIDs = snapshot.docs.map((doc) => doc.id);
-        const videoRef = storage().ref(`uploads/${dummyPostID}.mov`);
+        const postReference = db
+            .collection("posts")
+            .doc(post.id);
+
+        const userPostReference = db
+            .collection("users")
+            .doc(user.uid)
+            .collection("posts")
+            .doc(post.id);
+
+        const postData = await postReference
+            .collection("groups")
+            .get();
+
+        const groupIDs = postData.docs.map((doc) => doc.id);
+
+        const videoPath = storage().ref(`uploads/${post.id}.mov`);
 
         try {
             await Promise.all(
                 groupIDs.map(async (groupID) => {
-                    await db.collection("groups").doc(groupID).collection("messages").doc(dummyPostID).delete();
+                    await db.collection("groups").doc(groupID).collection("messages").doc(post.id).delete();
                 })
             );
             await Promise.all([
-                deleteCollection("likes", 50),
-                deleteCollection("comments", 50),
-                deleteCollection("groups", 50),
-                userRef.delete(),
-                postRef.delete(),
-                videoRef.delete(),
+                deletePostCollection("likes", 50),
+                deletePostCollection("comments", 50),
+                deletePostCollection("groups", 50),
+                userPostReference.delete(),
+                postReference.delete(),
+                videoPath.delete(),
             ]);
             setSheetVisible(false);
             router.push("/home");
@@ -119,8 +137,10 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
                         </TouchableWithoutFeedback>
 
                         <View style={[styles.panel, { height: height * 0.8 }]}>
-                            <TouchableOpacity onPress={() => handleDeletePost()}>
-                                <Text style={styles.modalButtonText}>delete post</Text>
+                            <TouchableOpacity onPress={() => deletePost()}>
+                                <Text style={styles.modalButtonText}>
+                                    delete post
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </Modal>
@@ -130,8 +150,8 @@ const AccountPost: React.FC<PostCompProps> = ({ post, index }) => {
                 </>
             )}
 
-            {thumbnailUrl ? (
-                <Image source={{ uri: thumbnailUrl }} style={styles.videoContent} resizeMode="cover" />
+            {thumbnail ? (
+                <Image source={{ uri: thumbnail }} style={styles.videoContent} resizeMode="cover" />
             ) : (
                 <View style={[styles.videoContent, { justifyContent: "center", alignItems: "center" }]}>
                     <Text style={{ color: "white" }}>Loading...</Text>
