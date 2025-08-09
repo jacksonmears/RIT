@@ -11,8 +11,7 @@ A React Native Instagram clone built with Expo and Firebase.
 - [Setup Instructions](#setup-instructions)
 - [Running the App](#running-the-app)
 - [Firebase Configuration](#firebase-configuration)
-- [Android Emulator Setup](#android-emulator-setup)
-- [Contributing](#contributing)
+- [Additional Notes](#additional-notes)
 - [License](#license)
 
 ---
