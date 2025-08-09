@@ -28,23 +28,25 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
     const router = useRouter();
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
-    const [numLikes, setNumLikes] = useState<number>(0);
-    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    const [numberOfLikes, setNumberOfLikes] = useState<number>(0);
+    const [thumbnail, setThumbnail] = useState<string | null>(null);
 
 
     useEffect(() => {
-        const getSignedThumbnailUrl = async (postId: string): Promise<string | undefined> => {
+        const fetchThumbnail = async (postID: string): Promise<string | undefined> => {
             try {
-                const path = encodeURIComponent(`${postId}/thumbnail.jpg`);
-                const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${path}`);
+                const thumbnailPath = encodeURIComponent(`${postID}/thumbnail.jpg`);
+                const response = await fetch(
+                    `https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${thumbnailPath}`,
+                );
                 if (!response.ok) {
                     const text = await response.text();
                     console.error(`Failed to get signed thumbnail URL: ${response.status} ${text}`);
                     return undefined;
                 }
-                const data = await response.json();
-                setThumbnailUrl(data.url);
-                return data.url;
+                const thumbnailData = await response.json();
+                setThumbnail(thumbnailData.url);
+                return thumbnailData.url;
             } catch (error) {
                 console.error("Error fetching signed thumbnail URL:", error);
                 return undefined;
@@ -52,46 +54,66 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
         };
 
 
-        getSignedThumbnailUrl(post.id).catch((err) => console.error(err));
+
+        fetchThumbnail(post.id).catch((err) => console.error(err));
     }, [post.id]);
+
+
+
     useEffect(() => {
-        const likeFunc = async () => {
+        const fetchLikeStatus = async () => {
             if (!user) return;
 
             try {
-                const likeCount = await db.collection("posts").doc(post.id).collection("likes").get();
-                setNumLikes(likeCount.size)
-                const likeCheck = await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
-                const liked = likeCheck.exists();
-                setLikeStatus(liked);
+                const likeReference = await db
+                    .collection("posts")
+                    .doc(post.id)
+                    .collection("likes")
+                    .doc(user.uid)
+                    .get();
+
+                setLikeStatus(likeReference.exists());
+
             } catch (error) {
                 console.error("Error checking like status:", error);
             }
         };
 
-        likeFunc().catch((err) => {
+        fetchLikeStatus().catch((err) => {
             console.error("Error checking like status:", err);
         });
+
     }, [likeStatus]);
 
 
 
-    const likeBeta = async () => {
+    const likeFunction = async () => {
         if (!user) return;
+
         if (!likeStatus) try {
-            await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).set({
-                likedAt: new Date().toISOString(),
-            });
+            await db
+                .collection("posts")
+                .doc(post.id)
+                .collection("likes")
+                .doc(user.uid)
+                .set({
+                    likedAt: new Date().toISOString(),
+                });
+
             setLikeStatus(true);
-        } catch (error){
-            console.error(error)
-        }
+        } catch (error) {console.error(error)}
+
+
         else try {
-            await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).delete();
+            await db
+                .collection("posts")
+                .doc(post.id)
+                .collection("likes")
+                .doc(user.uid)
+                .delete();
+
             setLikeStatus(false);
-        } catch (err) {
-            console.error("Error checking like status:", err);
-        }
+        } catch (err) {console.error("Error checking like status:", err);}
     }
 
 
@@ -105,11 +127,15 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
                             <Image source={{ uri: post.pfp }} style={styles.avatar} />
                         ) : (
                             <View style={[styles.avatar, styles.placeholder]}>
-                                <Text style={styles.noPhotoText}>No Photo</Text>
+                                <Text style={styles.noPhotoText}>
+                                    No Photo
+                                </Text>
                             </View>
                         )}
                     </View>
-                    <Text style={styles.username}>{post.displayName}</Text>
+                    <Text style={styles.username}>
+                        {post.displayName}
+                    </Text>
                 </View>
             </View>
 
@@ -126,10 +152,10 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
             }})}
             >
                 <View style={styles.contentViewPicture}>
-                    {thumbnailUrl ? (
+                    {thumbnail ? (
                         <View>
                             <Image
-                                source={{ uri: thumbnailUrl }}
+                                source={{ uri: thumbnail }}
                                 style={styles.pictureContent}
                                 resizeMode="cover"
                             />
@@ -144,7 +170,7 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
 
 
             <View style={styles.likeBar}>
-                <TouchableOpacity onPress={() => likeBeta()}>
+                <TouchableOpacity onPress={() => likeFunction()}>
                     <View style={styles.likeAssetContainer}>
                         {likeStatus ?
                             <AntDesign name="heart" size={24} color={"red"} />
@@ -153,14 +179,22 @@ const MainPost: React.FC<PostCompProps> = ({ post, style }) => {
                         }
                     </View>
                 </TouchableOpacity>
-                <Text style={styles.numLikesText}>{numLikes}</Text>
+                <Text style={styles.numLikesText}>
+                    {numberOfLikes}
+                </Text>
             </View>
 
             <View style={styles.captionBar}>
-                <Text style={styles.userNameCaption}>{post.displayName}</Text>
-                <Text style={styles.caption}>{post.caption}</Text>
+                <Text style={styles.userNameCaption}>
+                    {post.displayName}
+                </Text>
+                <Text style={styles.caption}>
+                    {post.caption}
+                </Text>
             </View>
-            <Text style={styles.timeText}>{post.timestamp}</Text>
+            <Text style={styles.timeText}>
+                {post.timestamp}
+            </Text>
 
         </View>
     );

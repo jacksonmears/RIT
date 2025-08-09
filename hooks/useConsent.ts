@@ -17,26 +17,21 @@ export function useConsent() {
         async function initConsent() {
             if (!user) return
             try {
-                // 1) Build your debug/testing options (remove or comment out in prod):
                 const options: AdsConsentInfoOptions = {
-                    // debugGeography: AdsConsentDebugGeography.EEA,   // force EEA for testing
-                    // testDeviceIdentifiers: ['EMULATOR'],            // your device’s ID or 'EMULATOR'
                     tagForUnderAgeOfConsent: false,
                 };
 
-                // 2) Ask the SDK for consent info:
                 const info: AdsConsentInfo = await AdsConsent.requestInfoUpdate(options);
                 if (info.status === AdsConsentStatus.OBTAINED) {
                     await db.collection('users').doc(user.uid).update({ personalizedAds: true });
                 }
 
 
-                // 3) If consent *might* be required AND a form is available, show it:
                 if (
                     info.status === AdsConsentStatus.REQUIRED &&
                     info.isConsentFormAvailable
                 ) {
-                    await AdsConsent.showForm();                     // Google’s built-in form
+                    await AdsConsent.showForm();
                     const newInfo = await AdsConsent.requestInfoUpdate();
                     setPersonalizedAds(newInfo.status === AdsConsentStatus.OBTAINED);
                 } else {

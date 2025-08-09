@@ -27,8 +27,12 @@ const SearchCard: React.FC<UserCompProps> = ({ info }) => {
             <View style={styles.avatarView}>
                 <Image source={{ uri: info.photoURL }} style={styles.avatar} />
                 <View>
-                    <Text style={styles.userNameText}>{info.username}</Text>
-                    <Text style={styles.nameText}>{info.firstName} {info.lastName}</Text>
+                    <Text style={styles.userNameText}>
+                        {info.username}
+                    </Text>
+                    <Text style={styles.nameText}>
+                        {info.firstName} {info.lastName}
+                    </Text>
                 </View>
             </View>
         </TouchableOpacity>

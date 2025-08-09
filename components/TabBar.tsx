@@ -10,7 +10,6 @@ const HIDDEN_ROUTES = ['create',];
 const { height, width } = Dimensions.get('window');
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-    // const { colors } = useTheme();
     const { buildHref } = useLinkBuilder();
     const primaryColor = '#D3D3FF';
     const secondaryColor = 'grey';
@@ -19,7 +18,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     if (HIDDEN_ROUTES.includes(currentRoute)) return null;
 
 
-    // Define the icons with an explicit key union and a typed function.
     const icons: Record<
         'home' | 'search' | 'create' | 'groups' | 'account',
         (props: { color: string }) => JSX.Element
@@ -27,7 +25,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         home: ({ color }) => <AntDesign name="home" size={24} color={color} />,
         search: ({ color }) => <AntDesign name="search1" size={24} color={color} />,
         create: ({ color }) => <AntDesign name="plussquareo" size={24} color={color} />,
-        // groups: ({ color }) => <FontAwesome name="group" size={24} color={color} />,
         groups: ({ color }) => <AntDesign name="staro" size={24} color={color} />,
         account: ({ color }) => (<MaterialCommunityIcons name="account-circle-outline" size={24} color={color} />),
     };
@@ -36,12 +33,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         <View style={styles.tabBar}>
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
-                // const label =
-                //     options.tabBarLabel !== undefined
-                //         ? options.tabBarLabel
-                //         : options.title !== undefined
-                //             ? options.title
-                //             : route.name;
 
                 const isFocused = state.index === index;
 
@@ -64,17 +55,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     });
                 };
 
-                // let renderedLabel: React.ReactNode;
-                // if (typeof label === 'function') {
-                //     renderedLabel = label({
-                //         focused: isFocused,
-                //         color: isFocused ? colors.primary : colors.text,
-                //         position: 'below-icon', // adjust as needed
-                //         children: route.name,
-                //     });
-                // } else {
-                //     renderedLabel = label;
-                // }
 
                 const iconKey = route.name as keyof typeof icons;
                 const IconComponent = icons[iconKey];
@@ -91,9 +71,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                         onLongPress={onLongPress}
                     >
                         {IconComponent && IconComponent({ color: isFocused ? primaryColor: secondaryColor})}
-                        {/*<Text style={{ color: isFocused ? primaryColor : secondaryColor, fontSize: 12}}>*/}
-                        {/*    {renderedLabel}*/}
-                        {/*</Text>*/}
                     </PlatformPressable>
                 );
             })}

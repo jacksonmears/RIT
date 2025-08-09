@@ -75,7 +75,6 @@ const PostLoadingScreen = () => {
             </Animated.Text>
 
             <Animated.View style={{ transform: [{ translateY: bounceAnim }], marginTop: 30 }}>
-                {/*<Ionicons name="rocket-outline" size={60} color="#D3D3FF" />*/}
                 <MaterialCommunityIcons name="rabbit" size={60} color="#D3D3FF" />
             </Animated.View>
         </Animated.View>

@@ -1,8 +1,6 @@
-// utils/authStorage.ts
-
 import * as SecureStore from 'expo-secure-store';
 
-const USER_KEY = 'user_uid'; // you can store a token instead if you prefer
+const USER_KEY = 'user_uid';
 
 export const saveUser = async (uid: string) => {
     await SecureStore.setItemAsync(USER_KEY, uid);

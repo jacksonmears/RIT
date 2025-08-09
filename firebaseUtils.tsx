@@ -1,4 +1,3 @@
-// src/firebase/firebaseUtils.ts
 import { auth, storage, db } from './firebase';
 import * as ImagePicker from 'expo-image-picker';
 

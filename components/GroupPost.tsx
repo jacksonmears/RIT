@@ -33,21 +33,23 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
     const router = useRouter();
     const user = auth().currentUser;
     const [likeStatus, setLikeStatus] = useState<boolean | null>(null);
-    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    const [thumbnail, setThumbnail] = useState<string | null>(null);
 
     useEffect(() => {
-        const getSignedThumbnailUrl = async (postId: string): Promise<string | undefined> => {
+        const fetchThumbnail = async (postID: string): Promise<string | undefined> => {
             try {
-                const path = encodeURIComponent(`${postId}/thumbnail.jpg`);
-                const response = await fetch(`https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${path}`);
+                const thumbnailPath = encodeURIComponent(`${postID}/thumbnail.jpg`);
+                const response = await fetch(
+                    `https://us-central1-recap-d22e0.cloudfunctions.net/getSignedDownloadUrl?filename=${thumbnailPath}`,
+                );
                 if (!response.ok) {
                     const text = await response.text();
                     console.error(`Failed to get signed thumbnail URL: ${response.status} ${text}`);
                     return undefined;
                 }
-                const data = await response.json();
-                setThumbnailUrl(data.url);
-                return data.url;
+                const thumbnailData = await response.json();
+                setThumbnail(thumbnailData.url);
+                return thumbnailData.url;
             } catch (error) {
                 console.error("Error fetching signed thumbnail URL:", error);
                 return undefined;
@@ -55,23 +57,29 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
         };
 
 
-        getSignedThumbnailUrl(post.id).catch((err) => console.error(err));
+        fetchThumbnail(post.id).catch((err) => console.error(err));
     }, [post.id]);
 
     useEffect(() => {
-        const likeFunc = async () => {
+        const fetchLikeStatus = async () => {
             if (!user) return;
 
             try {
-                const likeCheck = await db.collection("posts").doc(post.id).collection("likes").doc(user.uid).get();
-                const liked = likeCheck.exists();
-                setLikeStatus(liked);
+                const likeReference = await db
+                    .collection("posts")
+                    .doc(post.id)
+                    .collection("likes")
+                    .doc(user.uid)
+                    .get();
+
+                setLikeStatus(likeReference.exists());
+
             } catch (error) {
                 console.error("Error checking like status:", error);
             }
         };
 
-        likeFunc().catch((err) => {
+        fetchLikeStatus().catch((err) => {
             console.error("Error checking like status:", err);
         });
     }, [likeStatus]);
@@ -96,9 +104,9 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
                                     pfp: encodeURIComponent(post.pfp)
                                 }
                             })}>
-                                {thumbnailUrl ? (
+                                {thumbnail ? (
                                     <Image
-                                        source={{ uri: thumbnailUrl }}
+                                        source={{ uri: thumbnail }}
                                         style={styles.videoContent}
                                         resizeMode="cover"
                                     />
@@ -143,9 +151,9 @@ const GroupPost: React.FC<PostCompProps> = ({ post, groupMember }) => {
                                         }
                                     });
                                 }}>
-                                    {thumbnailUrl ? (
+                                    {thumbnail ? (
                                         <Image
-                                            source={{ uri: thumbnailUrl }}
+                                            source={{ uri: thumbnail }}
                                             style={styles.videoContent}
                                             resizeMode="cover"
                                         />
